@@ -309,7 +309,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     return;
   }
 
-  if (req.method === "GET" && url.pathname === "/docs") {
+  if (req.method === "GET" && (url.pathname === "/docs" || url.pathname === "/v1/docs")) {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(buildOpenApiSpec()));
     return;
