@@ -1,8 +1,8 @@
 import http, { IncomingMessage, ServerResponse } from "node:http";
 import crypto from "node:crypto";
 import { db } from "./db";
-import { ports, portCalls, vessels } from "../drizzle/schema";
-import { and, desc, eq, ilike, gte, lte } from "drizzle-orm";
+import { aisPositions, ports, portCalls, vessels } from "../drizzle/schema";
+import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import { getPortMetrics7d } from "./services/portStatisticsService";
 
 const PORT = Number(process.env.PORT ?? 3000);
@@ -85,6 +85,18 @@ function parseNumber(value: string | null, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function parseBbox(value: string | null) {
+  if (!value) {
+    return null;
+  }
+  const parts = value.split(",").map((part) => Number(part.trim()));
+  if (parts.length !== 4 || parts.some((part) => !Number.isFinite(part))) {
+    return null;
+  }
+  const [minLon, minLat, maxLon, maxLat] = parts;
+  return { minLon, minLat, maxLon, maxLat };
+}
+
 function buildOpenApiSpec() {
   return {
     openapi: "3.0.3",
@@ -147,6 +159,47 @@ function buildOpenApiSpec() {
           },
         },
       },
+      "/v1/vessels": {
+        get: {
+          summary: "Search vessels",
+          parameters: [
+            { name: "mmsi", in: "query", schema: { type: "string" } },
+            { name: "imo", in: "query", schema: { type: "string" } },
+            { name: "name", in: "query", schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Vessels list" },
+            "401": { description: "Unauthorized" },
+          },
+        },
+      },
+      "/v1/vessels/{id}/latest-position": {
+        get: {
+          summary: "Get latest AIS position for a vessel",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Latest position" },
+            "401": { description: "Unauthorized" },
+            "404": { description: "Not found" },
+          },
+        },
+      },
+      "/v1/vessels/positions": {
+        get: {
+          summary: "Get latest positions per vessel inside a bbox",
+          parameters: [
+            { name: "bbox", in: "query", schema: { type: "string", example: "minLon,minLat,maxLon,maxLat" } },
+            { name: "sinceMinutes", in: "query", schema: { type: "integer", default: 60 } },
+            { name: "limit", in: "query", schema: { type: "integer", default: 2000 } },
+          ],
+          responses: {
+            "200": { description: "Latest positions per vessel" },
+            "401": { description: "Unauthorized" },
+          },
+        },
+      },
     },
   };
 }
@@ -162,6 +215,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
   const segments = url.pathname.split("/").filter(Boolean);
   const isPortsRoute = segments[0] === "v1" && segments[1] === "ports";
+  const isVesselsRoute = segments[0] === "v1" && segments[1] === "vessels";
 
   if (req.method === "GET" && isPortsRoute) {
     if (!requireAuth(req, res)) {
@@ -279,6 +333,116 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ data, limit, offset }));
+      return;
+    }
+  }
+
+  if (req.method === "GET" && isVesselsRoute) {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    if (segments.length === 2) {
+      const mmsi = url.searchParams.get("mmsi");
+      const imo = url.searchParams.get("imo");
+      const name = url.searchParams.get("name");
+      const conditions = [];
+
+      if (mmsi) {
+        conditions.push(eq(vessels.mmsi, mmsi));
+      }
+      if (imo) {
+        conditions.push(eq(vessels.imo, imo));
+      }
+      if (name) {
+        conditions.push(ilike(vessels.name, `%${name}%`));
+      }
+
+      const vesselsList = await db
+        .select({
+          id: vessels.id,
+          name: vessels.name,
+          mmsi: vessels.mmsi,
+          imo: vessels.imo,
+        })
+        .from(vessels)
+        .where(conditions.length ? and(...conditions) : undefined)
+        .orderBy(vessels.name);
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ data: vesselsList }));
+      return;
+    }
+
+    if (segments.length === 3 && segments[2] === "positions") {
+      const bbox = parseBbox(url.searchParams.get("bbox"));
+      if (!bbox) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "bbox must be minLon,minLat,maxLon,maxLat" }));
+        return;
+      }
+
+      const sinceMinutes = Math.max(parseNumber(url.searchParams.get("sinceMinutes"), 60), 1);
+      const limit = Math.min(parseNumber(url.searchParams.get("limit"), 2000), 5000);
+      const sinceDate = new Date(Date.now() - sinceMinutes * 60 * 1000);
+
+      const results = await db.execute(sql`
+        select distinct on (p.vessel_id)
+          p.id,
+          p.vessel_id as "vesselId",
+          v.name as "vesselName",
+          v.mmsi,
+          v.imo,
+          p.timestamp_utc as "timestampUtc",
+          p.lat,
+          p.lon,
+          p.speed,
+          p.course,
+          p.heading,
+          p.nav_status as "navStatus",
+          p.source
+        from ais_positions p
+        inner join vessels v on v.id = p.vessel_id
+        where p.timestamp_utc >= ${sinceDate}
+          and p.lon between ${bbox.minLon} and ${bbox.maxLon}
+          and p.lat between ${bbox.minLat} and ${bbox.maxLat}
+        order by p.vessel_id, p.timestamp_utc desc
+        limit ${limit}
+      `);
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ data: results.rows, limit, sinceMinutes, bbox }));
+      return;
+    }
+
+    if (segments.length === 4 && segments[3] === "latest-position") {
+      const vesselId = segments[2];
+      const [latest] = await db
+        .select({
+          id: aisPositions.id,
+          vesselId: aisPositions.vesselId,
+          timestampUtc: aisPositions.timestampUtc,
+          lat: aisPositions.lat,
+          lon: aisPositions.lon,
+          speed: aisPositions.speed,
+          course: aisPositions.course,
+          heading: aisPositions.heading,
+          navStatus: aisPositions.navStatus,
+          source: aisPositions.source,
+        })
+        .from(aisPositions)
+        .where(eq(aisPositions.vesselId, vesselId))
+        .orderBy(desc(aisPositions.timestampUtc))
+        .limit(1);
+
+      if (!latest) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "latest position not found" }));
+        return;
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(latest));
       return;
     }
   }
