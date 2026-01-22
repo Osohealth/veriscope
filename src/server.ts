@@ -1,5 +1,6 @@
 import http, { IncomingMessage, ServerResponse } from "node:http";
 import crypto from "node:crypto";
+import { Socket } from "node:net";
 import { db } from "./db";
 import { aisPositions, ports, portCalls, vessels } from "../drizzle/schema";
 import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
@@ -10,6 +11,8 @@ const JWT_SECRET = process.env.JWT_SECRET ?? "";
 const APP_VERSION = process.env.APP_VERSION ?? "unknown";
 const AIS_MODE = (process.env.AIS_MODE ?? "").toLowerCase();
 const AISSTREAM_API_KEY = process.env.AISSTREAM_API_KEY ?? "";
+const WS_WINDOW_MINUTES = Math.max(Number(process.env.WS_WINDOW_MINUTES ?? "10"), 1);
+const WS_LIMIT = Math.max(Number(process.env.WS_LIMIT ?? "1000"), 1);
 
 type JwtPayload = {
   sub?: string;
@@ -108,6 +111,58 @@ function resolveAisMode() {
     return "mock";
   }
   return AISSTREAM_API_KEY ? "aisstream" : "mock";
+}
+
+function createWebSocketAccept(key: string) {
+  const GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+  return crypto.createHash("sha1").update(`${key}${GUID}`).digest("base64");
+}
+
+function frameWebSocketMessage(message: string) {
+  const payload = Buffer.from(message);
+  const length = payload.length;
+
+  if (length > 0xffff) {
+    throw new Error("WebSocket payload too large");
+  }
+
+  const header = length < 126 ? Buffer.alloc(2) : Buffer.alloc(4);
+  header[0] = 0x81;
+  if (length < 126) {
+    header[1] = length;
+  } else {
+    header[1] = 126;
+    header.writeUInt16BE(length, 2);
+  }
+
+  return Buffer.concat([header, payload]);
+}
+
+async function loadLatestVesselPositions(sinceMinutes: number, limit: number) {
+  const sinceDate = new Date(Date.now() - sinceMinutes * 60 * 1000);
+  const results = await db.execute(sql`
+    select distinct on (p.vessel_id)
+      p.id,
+      p.vessel_id as "vesselId",
+      v.name as "vesselName",
+      v.mmsi,
+      v.imo,
+      p.timestamp_utc as "timestampUtc",
+      p.lat,
+      p.lon,
+      p.speed,
+      p.course,
+      p.heading,
+      p.nav_status as "navStatus",
+      p.source
+    from ais_positions p
+    inner join vessels v on v.id = p.vessel_id
+    where p.timestamp_utc >= ${sinceDate}
+    order by p.vessel_id, p.timestamp_utc desc
+    limit ${limit}
+  `);
+
+  return results.rows;
 }
 
 function buildOpenApiSpec() {
@@ -485,12 +540,82 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   res.end(JSON.stringify({ error: "not found" }));
 }
 
-http.createServer((req, res) => {
+const WS_POLL_INTERVAL_MS = Math.max(Number(process.env.WS_POLL_INTERVAL_MS ?? "10000"), 1000);
+const wsClients = new Set<Socket>();
+
+function broadcastWebSocket(message: string) {
+  const frame = frameWebSocketMessage(message);
+  for (const client of wsClients) {
+    if (client.destroyed) {
+      wsClients.delete(client);
+      continue;
+    }
+    client.write(frame);
+  }
+}
+
+async function pollAndBroadcastVessels() {
+  if (wsClients.size === 0) {
+    return;
+  }
+
+  try {
+    const rows = await loadLatestVesselPositions(WS_WINDOW_MINUTES, WS_LIMIT);
+    for (const row of rows) {
+      broadcastWebSocket(
+        JSON.stringify({
+          type: "vessel_position_update",
+          data: row,
+        }),
+      );
+    }
+  } catch (error) {
+    console.error("WebSocket broadcast failed", error);
+  }
+}
+
+const server = http.createServer((req, res) => {
   handleRequest(req, res).catch((error) => {
     console.error("Request failed", error);
     res.writeHead(500, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "internal server error" }));
   });
-}).listen(PORT, () => {
+});
+
+server.on("upgrade", (req, socket) => {
+  const url = new URL(req.url ?? "", `http://${req.headers.host}`);
+  if (url.pathname !== "/ws/vessels") {
+    socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+    socket.destroy();
+    return;
+  }
+
+  const key = req.headers["sec-websocket-key"];
+  if (typeof key !== "string") {
+    socket.write("HTTP/1.1 400 Bad Request\r\n\r\n");
+    socket.destroy();
+    return;
+  }
+
+  const acceptKey = createWebSocketAccept(key);
+  socket.write(
+    [
+      "HTTP/1.1 101 Switching Protocols",
+      "Upgrade: websocket",
+      "Connection: Upgrade",
+      `Sec-WebSocket-Accept: ${acceptKey}`,
+      "\r\n",
+    ].join("\r\n"),
+  );
+
+  wsClients.add(socket);
+  socket.on("close", () => wsClients.delete(socket));
+  socket.on("end", () => wsClients.delete(socket));
+  socket.on("error", () => wsClients.delete(socket));
+});
+
+setInterval(pollAndBroadcastVessels, WS_POLL_INTERVAL_MS).unref();
+
+server.listen(PORT, () => {
   console.log(`Server listening on :${PORT}`);
 });
