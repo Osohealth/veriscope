@@ -13,6 +13,7 @@ const AIS_MODE = (process.env.AIS_MODE ?? "").toLowerCase();
 const AISSTREAM_API_KEY = process.env.AISSTREAM_API_KEY ?? "";
 const WS_WINDOW_MINUTES = Math.max(Number(process.env.WS_WINDOW_MINUTES ?? "10"), 1);
 const WS_LIMIT = Math.max(Number(process.env.WS_LIMIT ?? "1000"), 1);
+const MAX_VESSELS_PER_REQUEST = Math.max(Number(process.env.MAX_VESSELS_PER_REQUEST ?? "5000"), 1);
 
 type JwtPayload = {
   sub?: string;
@@ -493,6 +494,18 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
         res.end(JSON.stringify({ error: "bbox must be minLon,minLat,maxLon,maxLat" }));
         return;
       }
+      if (
+        bbox.minLon < -180 ||
+        bbox.maxLon > 180 ||
+        bbox.minLat < -90 ||
+        bbox.maxLat > 90 ||
+        bbox.minLon >= bbox.maxLon ||
+        bbox.minLat >= bbox.maxLat
+      ) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "bbox must be within world bounds" }));
+        return;
+      }
 
       const sinceMinutesParam = parseNumber(url.searchParams.get("sinceMinutes"), 60);
       if (sinceMinutesParam > 1440) {
@@ -502,14 +515,14 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       }
 
       const limitParam = parseNumber(url.searchParams.get("limit"), 2000);
-      if (limitParam > 5000) {
+      if (limitParam > MAX_VESSELS_PER_REQUEST) {
         res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "limit must be <= 5000" }));
+        res.end(JSON.stringify({ error: `limit must be <= ${MAX_VESSELS_PER_REQUEST}` }));
         return;
       }
 
       const sinceMinutes = Math.max(sinceMinutesParam, 1);
-      const limit = Math.min(limitParam, 5000);
+      const limit = Math.min(limitParam, MAX_VESSELS_PER_REQUEST);
       const sinceDate = new Date(Date.now() - sinceMinutes * 60 * 1000);
 
       const results = await withTimeout(
