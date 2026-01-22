@@ -13,6 +13,7 @@ This document defines the **Phase-1 correctness gates** for VeriScope. Phase-1 i
 | Ports list works | `/api/ports` | `GET` | `{ "ports": [ { "id": "<id>", "name": "<string>" } ] }` | HTTP 200 and `ports` is an array. |
 | Port detail returns KPIs | `/api/ports/{portId}` | `GET` | `{ "id": "<id>", "name": "<string>", "kpis": { ... } }` | HTTP 200 and `kpis` is an object. |
 | Port calls endpoint returns array | `/api/ports/{portId}/calls` | `GET` | `[ { ... } ]` | HTTP 200 and the root response is an array. |
+| Vessels bbox endpoint returns latest positions | `/v1/vessels/positions?bbox=<minLon>,<minLat>,<maxLon>,<maxLat>&sinceMinutes=60&limit=2000` | `GET` | `{ "data": [ { ... } ] }` | HTTP 200 and `data` is a non-empty array when AIS data exists. |
 | BBox map endpoint returns features array | `/api/map/bbox?west=<w>&south=<s>&east=<e>&north=<n>` | `GET` | `{ "features": [ { ... } ] }` | HTTP 200 and `features` is an array. |
 | Latest AIS timestamp is recent | `/api/ais/latest` | `GET` | `{ "timestamp": "<ISO-8601>" }` | HTTP 200 and `timestamp` is within the last **15 minutes**. |
 | Positions list works | `/api/positions` | `GET` | `{ "positions": [ { ... } ] }` | HTTP 200 and `positions` is an array. |
@@ -33,6 +34,7 @@ This document defines the **Phase-1 correctness gates** for VeriScope. Phase-1 i
 * ports list works
 * port detail returns KPIs
 * port calls endpoint returns array
+* vessels bbox endpoint returns latest positions
 * bbox map endpoint returns features array
 * latest AIS timestamp is recent (endpoint exposes this)
 

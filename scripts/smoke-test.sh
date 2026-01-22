@@ -227,6 +227,28 @@ PY
   fi
 fi
 
+# vessels bbox endpoint returns latest positions
+request "GET" "/v1/vessels/positions?bbox=-180,-90,180,90&sinceMinutes=1440&limit=2000"
+if require_http_200 "vessels bbox endpoint returns latest positions"; then
+  VESSEL_POSITIONS_COUNT=$(RESPONSE_BODY="$RESPONSE_BODY" python - <<'PY'
+import json
+import os
+import sys
+
+data = json.loads(os.environ["RESPONSE_BODY"])
+items = data.get("data")
+if not isinstance(items, list):
+    sys.exit(1)
+print(len(items))
+PY
+  )
+  if [[ -n "$VESSEL_POSITIONS_COUNT" && "$VESSEL_POSITIONS_COUNT" -ge 1 ]]; then
+    log_pass "vessels bbox endpoint returns latest positions"
+  else
+    log_fail "vessels bbox endpoint returns latest positions"
+  fi
+fi
+
 # latest AIS timestamp is recent (endpoint exposes this)
 request "GET" "/api/ais/latest"
 if require_http_200 "latest AIS timestamp is recent (endpoint exposes this)"; then
