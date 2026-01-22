@@ -9,6 +9,10 @@ CREATE TABLE IF NOT EXISTS "users" (
 CREATE TABLE IF NOT EXISTS "ports" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "name" text NOT NULL,
+  "country_code" text NOT NULL,
+  "lat" double precision NOT NULL,
+  "lon" double precision NOT NULL,
+  "geofence_radius_km" double precision NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
 
@@ -57,3 +61,4 @@ CREATE INDEX IF NOT EXISTS "port_calls_open_calls" ON "port_calls" ("port_id", "
   WHERE "departure_time_utc" IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS "vessels_mmsi_unique" ON "vessels" ("mmsi");
 CREATE UNIQUE INDEX IF NOT EXISTS "vessels_imo_unique" ON "vessels" ("imo");
+CREATE UNIQUE INDEX IF NOT EXISTS "ports_name_country_unique" ON "ports" ("name", "country_code");

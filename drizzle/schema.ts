@@ -20,10 +20,19 @@ export const users = pgTable("users", {
 export const ports = pgTable("ports", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
+  countryCode: text("country_code").notNull(),
+  lat: doublePrecision("lat").notNull(),
+  lon: doublePrecision("lon").notNull(),
+  geofenceRadiusKm: doublePrecision("geofence_radius_km").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => ({
+  nameCountryUniqueIdx: uniqueIndex("ports_name_country_unique").on(
+    table.name,
+    table.countryCode,
+  ),
+}));
 
 export const vessels = pgTable("vessels", {
   id: uuid("id").defaultRandom().primaryKey(),
