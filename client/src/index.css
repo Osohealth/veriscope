@@ -1,0 +1,375 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(222, 84%, 5%);
+  --foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 84%, 7%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --popover: hsl(222, 84%, 7%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --primary: hsl(199, 89%, 48%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(217, 32%, 15%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217, 32%, 12%);
+  --muted-foreground: hsl(215, 20%, 65%);
+  --accent: hsl(217, 32%, 15%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 32%, 17%);
+  --input: hsl(217, 32%, 17%);
+  --ring: hsl(199, 89%, 48%);
+  --chart-1: hsl(199, 89%, 48%);
+  --chart-2: hsl(142, 76%, 36%);
+  --chart-3: hsl(38, 92%, 50%);
+  --chart-4: hsl(0, 84%, 60%);
+  --chart-5: hsl(270, 95%, 75%);
+  --sidebar: hsl(222, 84%, 7%);
+  --sidebar-foreground: hsl(210, 40%, 98%);
+  --sidebar-primary: hsl(199, 89%, 48%);
+  --sidebar-primary-foreground: hsl(210, 40%, 98%);
+  --sidebar-accent: hsl(217, 32%, 15%);
+  --sidebar-accent-foreground: hsl(210, 40%, 98%);
+  --sidebar-border: hsl(217, 32%, 17%);
+  --sidebar-ring: hsl(199, 89%, 48%);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 0.5rem;
+  /* Enhanced beautiful shadows */
+  --shadow-2xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.1);
+  --shadow-xs: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+  /* Ocean wave animation colors */
+  --ocean-primary: hsl(199, 89%, 48%);
+  --ocean-secondary: hsl(207, 90%, 54%);
+  --ocean-tertiary: hsl(215, 89%, 60%);
+}
+
+.dark {
+  --background: hsl(222, 84%, 5%);
+  --foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 84%, 7%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --popover: hsl(222, 84%, 7%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --primary: hsl(199, 89%, 48%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(217, 32%, 15%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217, 32%, 12%);
+  --muted-foreground: hsl(215, 20%, 65%);
+  --accent: hsl(217, 32%, 15%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 32%, 17%);
+  --input: hsl(217, 32%, 17%);
+  --ring: hsl(199, 89%, 48%);
+  --chart-1: hsl(199, 89%, 48%);
+  --chart-2: hsl(142, 76%, 36%);
+  --chart-3: hsl(38, 92%, 50%);
+  --chart-4: hsl(0, 84%, 60%);
+  --chart-5: hsl(270, 95%, 75%);
+  --sidebar: hsl(222, 84%, 7%);
+  --sidebar-foreground: hsl(210, 40%, 98%);
+  --sidebar-primary: hsl(199, 89%, 48%);
+  --sidebar-primary-foreground: hsl(210, 40%, 98%);
+  --sidebar-accent: hsl(217, 32%, 15%);
+  --sidebar-accent-foreground: hsl(210, 40%, 98%);
+  --sidebar-border: hsl(217, 32%, 17%);
+  --sidebar-ring: hsl(199, 89%, 48%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+
+  /* Accessibility: Respect reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    .floating,
+    .maritime-glow,
+    .ocean-wave,
+    .lighthouse-beam::before,
+    .radar-sweep,
+    .ship-sail {
+      animation: none;
+    }
+    
+    .vessel-marker {
+      transition: none;
+    }
+    
+    .maritime-card {
+      transition: none;
+    }
+  }
+}
+
+/* Beautiful Maritime Animations */
+.vessel-marker {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
+}
+
+.vessel-marker:hover {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.8));
+}
+
+.pulse-dot {
+  animation: pulse 2s infinite;
+}
+
+.ocean-wave {
+  animation: oceanWave 6s ease-in-out infinite;
+}
+
+.maritime-glow {
+  animation: maritimeGlow 3s ease-in-out infinite alternate;
+}
+
+.floating {
+  animation: floating 3s ease-in-out infinite;
+}
+
+.ship-sail {
+  animation: shipSail 8s linear infinite;
+}
+
+.radar-sweep {
+  animation: radarSweep 4s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.6; 
+    transform: scale(1.05);
+  }
+}
+
+@keyframes oceanWave {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes maritimeGlow {
+  from {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 40px rgba(59, 130, 246, 0.1);
+  }
+  to {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.5), 0 0 60px rgba(59, 130, 246, 0.2);
+  }
+}
+
+@keyframes floating {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes shipSail {
+  0% {
+    transform: translateX(-100px);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(calc(100vw + 100px));
+    opacity: 0;
+  }
+}
+
+@keyframes radarSweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Enhanced scroll styling */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(199, 89%, 48%) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, hsl(199, 89%, 48%), hsl(207, 90%, 54%));
+  border-radius: 4px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, hsl(207, 90%, 54%), hsl(215, 89%, 60%));
+}
+
+/* Beautiful chart backgrounds */
+.chart-container {
+  background: linear-gradient(135deg, 
+    hsl(222, 84%, 6%) 0%, 
+    hsl(217, 32%, 8%) 50%, 
+    hsl(222, 84%, 6%) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+/* Ocean-themed gradient backgrounds */
+.ocean-gradient {
+  background: linear-gradient(135deg, 
+    var(--ocean-primary), 
+    var(--ocean-secondary), 
+    var(--ocean-tertiary));
+  background-size: 400% 400%;
+  animation: oceanWave 8s ease infinite;
+}
+
+.maritime-card {
+  background: linear-gradient(145deg, 
+    rgba(59, 130, 246, 0.05) 0%,
+    rgba(37, 99, 235, 0.02) 50%,
+    rgba(59, 130, 246, 0.05) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.maritime-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.1), 
+              0 10px 10px -5px rgba(59, 130, 246, 0.04);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+/* Beautiful buttons with maritime theme */
+.maritime-button {
+  background: linear-gradient(45deg, var(--ocean-primary), var(--ocean-secondary));
+  border: none;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.maritime-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.maritime-button:hover::before {
+  left: 100%;
+}
+
+/* Lighthouse beacon effect */
+.lighthouse-beam {
+  position: relative;
+  overflow: hidden;
+}
+
+.lighthouse-beam::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(59, 130, 246, 0.3) 30deg, transparent 60deg);
+  animation: radarSweep 8s linear infinite;
+  pointer-events: none;
+}
+
+/* Status indicator animations */
+.status-online {
+  background: hsl(142, 76%, 36%);
+  animation: pulse 2s infinite;
+}
+
+.status-warning {
+  background: hsl(38, 92%, 50%);
+  animation: pulse 1.5s infinite;
+}
+
+.status-danger {
+  background: hsl(0, 84%, 60%);
+  animation: pulse 1s infinite;
+}
+
+/* Leaflet map container styles */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  background: #1a1a2e;
+  z-index: 1;
+}
+
+.leaflet-tile-pane {
+  opacity: 1;
+}
+
+.leaflet-control-container {
+  z-index: 400;
+}
+
+.leaflet-popup-content-wrapper {
+  background: hsl(222, 84%, 7%);
+  color: hsl(210, 40%, 98%);
+  border: 1px solid hsl(217, 32%, 17%);
+  border-radius: 0.5rem;
+}
+
+.leaflet-popup-tip {
+  background: hsl(222, 84%, 7%);
+}
+
+.leaflet-popup-content {
+  margin: 12px;
+}
