@@ -372,9 +372,16 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       }
 
       const metrics_7d = await getPortMetrics7d(portId);
+      const mappedMetrics = {
+        arrivals: metrics_7d.arrivals_7d,
+        departures: metrics_7d.departures_7d,
+        unique_vessels: metrics_7d.unique_vessels_7d,
+        avg_dwell_hours: metrics_7d.avg_dwell_hours_7d,
+        open_calls: metrics_7d.open_calls,
+      };
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ...port, metrics_7d }));
+      res.end(JSON.stringify({ ...port, metrics_7d: mappedMetrics }));
       return;
     }
 
@@ -409,19 +416,23 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
         .offset(offset);
 
       const now = Date.now();
-      const data = calls.map((call) => {
+      const items = calls.map((call) => {
         const arrival = call.arrivalTimeUtc.getTime();
         const departure = call.departureTimeUtc?.getTime() ?? now;
         const dwellHours = Math.max(0, (departure - arrival) / 36e5);
 
         return {
-          ...call,
-          dwellHours,
+          id: call.id,
+          vessel_id: call.vesselId,
+          vessel_name: call.vesselName,
+          arrival_time_utc: call.arrivalTimeUtc,
+          departure_time_utc: call.departureTimeUtc,
+          dwell_hours: dwellHours,
         };
       });
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ data, limit, offset }));
+      res.end(JSON.stringify({ items, limit, offset }));
       return;
     }
   }
