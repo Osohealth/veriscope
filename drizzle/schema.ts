@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   doublePrecision,
   index,
   pgTable,
@@ -111,3 +112,26 @@ export const sessions = pgTable("sessions", {
     .defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
+
+export const vesselPortState = pgTable(
+  "vessel_port_state",
+  {
+    vesselId: uuid("vessel_id")
+      .notNull()
+      .references(() => vessels.id, { onDelete: "cascade" })
+      .primaryKey(),
+    inPort: boolean("in_port").notNull().default(false),
+    currentPortId: uuid("current_port_id").references(() => ports.id),
+    currentPortCallId: uuid("current_port_call_id").references(() => portCalls.id),
+    lastPositionTimeUtc: timestamp("last_position_time_utc", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    currentPortIdx: index("vessel_port_state_current_port_idx").on(
+      table.currentPortId,
+    ),
+    inPortIdx: index("vessel_port_state_in_port_idx").on(table.inPort),
+  }),
+);

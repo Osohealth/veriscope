@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { detectPortTransitions } from "../src/services/portCallService";
+import { detectPortTransitions, derivePortStateTransition } from "../src/services/portCallService";
 
 const port = {
   id: "port-1",
@@ -48,4 +48,78 @@ test("repeated inside positions do not create multiple arrivals", () => {
   assert.equal(transition.arrivalAt, undefined);
   assert.equal(transition.departureAt, undefined);
   assert.equal(transition.currentlyInside, true);
+});
+
+test("state transition opens a call only once for repeated inside positions", () => {
+  const initialState = {
+    vesselId: "vessel-1",
+    inPort: false,
+    currentPortId: null,
+    currentPortCallId: null,
+    lastPositionTimeUtc: null,
+  };
+
+  const first = derivePortStateTransition(
+    initialState,
+    true,
+    "port-1",
+    new Date("2024-01-01T00:00:00Z"),
+  );
+
+  assert.equal(first.action, "open");
+  assert.equal(first.nextState.inPort, true);
+  assert.equal(first.nextState.currentPortId, "port-1");
+
+  const second = derivePortStateTransition(
+    first.nextState,
+    true,
+    "port-1",
+    new Date("2024-01-01T00:05:00Z"),
+  );
+
+  assert.equal(second.action, "none");
+  assert.equal(second.nextState.inPort, true);
+});
+
+test("state transition closes call and clears state on departure", () => {
+  const initialState = {
+    vesselId: "vessel-1",
+    inPort: true,
+    currentPortId: "port-1",
+    currentPortCallId: "call-1",
+    lastPositionTimeUtc: new Date("2024-01-01T00:00:00Z"),
+  };
+
+  const transition = derivePortStateTransition(
+    initialState,
+    false,
+    null,
+    new Date("2024-01-01T00:10:00Z"),
+  );
+
+  assert.equal(transition.action, "close");
+  assert.equal(transition.nextState.inPort, false);
+  assert.equal(transition.nextState.currentPortId, null);
+  assert.equal(transition.nextState.currentPortCallId, null);
+});
+
+test("restart-safe behavior uses persisted state to avoid duplicate arrivals", () => {
+  const persistedState = {
+    vesselId: "vessel-1",
+    inPort: true,
+    currentPortId: "port-1",
+    currentPortCallId: "call-1",
+    lastPositionTimeUtc: new Date("2024-01-01T00:00:00Z"),
+  };
+
+  const transition = derivePortStateTransition(
+    persistedState,
+    true,
+    "port-1",
+    new Date("2024-01-01T00:15:00Z"),
+  );
+
+  assert.equal(transition.action, "none");
+  assert.equal(transition.nextState.inPort, true);
+  assert.equal(transition.nextState.currentPortCallId, "call-1");
 });

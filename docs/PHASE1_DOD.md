@@ -47,3 +47,7 @@ bash scripts/smoke-test.sh $BASE_URL $EMAIL $PASSWORD
 ```
 
 The script logs `PASS`/`FAIL` for each check, and exits **0** only if all checks pass.
+
+## Port-call state persistence
+
+Port-call detection state is persisted in the database (`vessel_port_state`) to ensure restarts do not create duplicate arrivals or lose open-call context.

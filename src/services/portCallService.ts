@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import { db } from "../db";
-import { aisPositions, portCalls, ports } from "../../drizzle/schema";
+import { aisPositions, portCalls, ports, vesselPortState } from "../../drizzle/schema";
 
 export type PositionSample = {
   lat: number;
@@ -21,6 +21,22 @@ export type PortTransition = {
   departureAt?: Date;
   currentlyInside: boolean;
 };
+
+type VesselState = {
+  vesselId: string;
+  inPort: boolean;
+  currentPortId: string | null;
+  currentPortCallId: string | null;
+  lastPositionTimeUtc: Date | null;
+};
+
+type PortStateTransition = {
+  action: "open" | "close" | "none";
+  nextState: VesselState;
+  portId: string | null;
+};
+
+type DbTx = typeof db;
 
 const EARTH_RADIUS_KM = 6371;
 
@@ -80,13 +96,51 @@ export function detectPortTransitions(
   };
 }
 
-async function loadRecentPositions(vesselId: string, lookbackHours: number) {
+export function derivePortStateTransition(
+  state: VesselState,
+  isInPortNow: boolean,
+  detectedPortId: string | null,
+  positionTime: Date,
+): PortStateTransition {
+  const nextState: VesselState = {
+    ...state,
+    lastPositionTimeUtc: positionTime,
+    currentPortId: state.currentPortId,
+    currentPortCallId: state.currentPortCallId,
+  };
+
+  if (!state.inPort && isInPortNow && detectedPortId) {
+    nextState.inPort = true;
+    nextState.currentPortId = detectedPortId;
+    return { action: "open", nextState, portId: detectedPortId };
+  }
+
+  if (state.inPort && !isInPortNow) {
+    nextState.inPort = false;
+    nextState.currentPortId = null;
+    nextState.currentPortCallId = null;
+    return { action: "close", nextState, portId: state.currentPortId };
+  }
+
+  if (state.inPort && isInPortNow && detectedPortId === state.currentPortId) {
+    return { action: "none", nextState, portId: state.currentPortId };
+  }
+
+  return { action: "none", nextState, portId: state.currentPortId };
+}
+
+async function loadLatestPosition(vesselId: string, lookbackHours: number) {
   const since = new Date(Date.now() - lookbackHours * 60 * 60 * 1000);
   return db
-    .select({ lat: aisPositions.lat, lon: aisPositions.lon, timestampUtc: aisPositions.timestampUtc })
+    .select({
+      lat: aisPositions.lat,
+      lon: aisPositions.lon,
+      timestampUtc: aisPositions.timestampUtc,
+    })
     .from(aisPositions)
     .where(and(eq(aisPositions.vesselId, vesselId), gte(aisPositions.timestampUtc, since)))
-    .orderBy(aisPositions.timestampUtc);
+    .orderBy(desc(aisPositions.timestampUtc))
+    .limit(1);
 }
 
 async function loadPorts(): Promise<PortGeofence[]> {
@@ -102,54 +156,141 @@ async function loadPorts(): Promise<PortGeofence[]> {
   return rows;
 }
 
-async function loadOpenCall(vesselId: string, portId: string) {
-  const [openCall] = await db
-    .select({ id: portCalls.id })
-    .from(portCalls)
-    .where(
-      and(
-        eq(portCalls.vesselId, vesselId),
-        eq(portCalls.portId, portId),
-        isNull(portCalls.departureTimeUtc),
-      ),
-    )
-    .orderBy(desc(portCalls.arrivalTimeUtc))
-    .limit(1);
-  return openCall;
+function findPortForPosition(position: PositionSample, allPorts: PortGeofence[]) {
+  let best: { portId: string; distance: number } | null = null;
+  for (const port of allPorts) {
+    const distance = haversineKm(position, port);
+    if (distance <= port.geofenceRadiusKm) {
+      if (!best || distance < best.distance) {
+        best = { portId: port.id, distance };
+      }
+    }
+  }
+  return best?.portId ?? null;
 }
 
-async function openCall(vesselId: string, portId: string, arrivalTimeUtc: Date) {
-  await db.insert(portCalls).values({ vesselId, portId, arrivalTimeUtc });
-}
+async function loadOrCreateState(tx: DbTx, vesselId: string): Promise<VesselState> {
+  const [state] = await tx
+    .select({
+      vesselId: vesselPortState.vesselId,
+      inPort: vesselPortState.inPort,
+      currentPortId: vesselPortState.currentPortId,
+      currentPortCallId: vesselPortState.currentPortCallId,
+      lastPositionTimeUtc: vesselPortState.lastPositionTimeUtc,
+    })
+    .from(vesselPortState)
+    .where(eq(vesselPortState.vesselId, vesselId));
 
-async function closeCall(callId: string, departureTimeUtc: Date) {
-  await db
-    .update(portCalls)
-    .set({ departureTimeUtc })
-    .where(eq(portCalls.id, callId));
+  if (state) {
+    return {
+      vesselId: state.vesselId,
+      inPort: state.inPort,
+      currentPortId: state.currentPortId,
+      currentPortCallId: state.currentPortCallId,
+      lastPositionTimeUtc: state.lastPositionTimeUtc,
+    };
+  }
+
+  await tx.insert(vesselPortState).values({ vesselId, inPort: false });
+  return {
+    vesselId,
+    inPort: false,
+    currentPortId: null,
+    currentPortCallId: null,
+    lastPositionTimeUtc: null,
+  };
 }
 
 export async function processPortCallsForVessel(
   vesselId: string,
   lookbackHours = 6,
 ): Promise<void> {
-  const positions = await loadRecentPositions(vesselId, lookbackHours);
+  const positions = await loadLatestPosition(vesselId, lookbackHours);
   if (positions.length === 0) {
     return;
   }
 
+  const [latestPosition] = positions;
   const allPorts = await loadPorts();
+  const detectedPortId = findPortForPosition(latestPosition, allPorts);
+  const isInPortNow = Boolean(detectedPortId);
 
-  for (const port of allPorts) {
-    const transition = detectPortTransitions(positions, port);
-    const openCallRecord = await loadOpenCall(vesselId, port.id);
+  await db.transaction(async (tx) => {
+    const state = await loadOrCreateState(tx, vesselId);
+    const transition = derivePortStateTransition(
+      state,
+      isInPortNow,
+      detectedPortId,
+      latestPosition.timestampUtc,
+    );
 
-    if (transition.arrivalAt && !openCallRecord) {
-      await openCall(vesselId, port.id, transition.arrivalAt);
+    if (transition.action === "open" && transition.portId) {
+      const [newCall] = await tx
+        .insert(portCalls)
+        .values({
+          vesselId,
+          portId: transition.portId,
+          arrivalTimeUtc: latestPosition.timestampUtc,
+        })
+        .returning({ id: portCalls.id });
+
+      await tx
+        .update(vesselPortState)
+        .set({
+          inPort: true,
+          currentPortId: transition.portId,
+          currentPortCallId: newCall?.id ?? null,
+          lastPositionTimeUtc: transition.nextState.lastPositionTimeUtc,
+          updatedAt: new Date(),
+        })
+        .where(eq(vesselPortState.vesselId, vesselId));
+      return;
     }
 
-    if (transition.departureAt && openCallRecord) {
-      await closeCall(openCallRecord.id, transition.departureAt);
+    if (transition.action === "close") {
+      if (state.currentPortCallId) {
+        await tx
+          .update(portCalls)
+          .set({ departureTimeUtc: latestPosition.timestampUtc })
+          .where(eq(portCalls.id, state.currentPortCallId));
+      } else {
+        const [openCall] = await tx
+          .select({ id: portCalls.id })
+          .from(portCalls)
+          .where(and(eq(portCalls.vesselId, vesselId), isNull(portCalls.departureTimeUtc)))
+          .orderBy(desc(portCalls.arrivalTimeUtc))
+          .limit(1);
+
+        if (openCall) {
+          await tx
+            .update(portCalls)
+            .set({ departureTimeUtc: latestPosition.timestampUtc })
+            .where(eq(portCalls.id, openCall.id));
+        }
+      }
+
+      await tx
+        .update(vesselPortState)
+        .set({
+          inPort: false,
+          currentPortId: null,
+          currentPortCallId: null,
+          lastPositionTimeUtc: transition.nextState.lastPositionTimeUtc,
+          updatedAt: new Date(),
+        })
+        .where(eq(vesselPortState.vesselId, vesselId));
+      return;
     }
-  }
+
+    await tx
+      .update(vesselPortState)
+      .set({
+        inPort: transition.nextState.inPort,
+        currentPortId: transition.nextState.currentPortId,
+        currentPortCallId: transition.nextState.currentPortCallId,
+        lastPositionTimeUtc: transition.nextState.lastPositionTimeUtc,
+        updatedAt: new Date(),
+      })
+      .where(eq(vesselPortState.vesselId, vesselId));
+  });
 }
