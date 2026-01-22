@@ -91,6 +91,18 @@ function parseNumber(value: string | null, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      const timer = setTimeout(() => {
+        clearTimeout(timer);
+        reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }),
+  ]);
+}
+
 function parseBbox(value: string | null) {
   if (!value) {
     return null;
@@ -482,33 +494,51 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
         return;
       }
 
-      const sinceMinutes = Math.max(parseNumber(url.searchParams.get("sinceMinutes"), 60), 1);
-      const limit = Math.min(parseNumber(url.searchParams.get("limit"), 2000), 5000);
+      const sinceMinutesParam = parseNumber(url.searchParams.get("sinceMinutes"), 60);
+      if (sinceMinutesParam > 1440) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "sinceMinutes must be <= 1440" }));
+        return;
+      }
+
+      const limitParam = parseNumber(url.searchParams.get("limit"), 2000);
+      if (limitParam > 5000) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "limit must be <= 5000" }));
+        return;
+      }
+
+      const sinceMinutes = Math.max(sinceMinutesParam, 1);
+      const limit = Math.min(limitParam, 5000);
       const sinceDate = new Date(Date.now() - sinceMinutes * 60 * 1000);
 
-      const results = await db.execute(sql`
-        select distinct on (p.vessel_id)
-          p.id,
-          p.vessel_id as "vesselId",
-          v.name as "vesselName",
-          v.mmsi,
-          v.imo,
-          p.timestamp_utc as "timestampUtc",
-          p.lat,
-          p.lon,
-          p.speed,
-          p.course,
-          p.heading,
-          p.nav_status as "navStatus",
-          p.source
-        from ais_positions p
-        inner join vessels v on v.id = p.vessel_id
-        where p.timestamp_utc >= ${sinceDate}
-          and p.lon between ${bbox.minLon} and ${bbox.maxLon}
-          and p.lat between ${bbox.minLat} and ${bbox.maxLat}
-        order by p.vessel_id, p.timestamp_utc desc
-        limit ${limit}
-      `);
+      const results = await withTimeout(
+        db.execute(sql`
+          select distinct on (p.vessel_id)
+            p.id,
+            p.vessel_id as "vesselId",
+            v.name as "vesselName",
+            v.mmsi,
+            v.imo,
+            p.timestamp_utc as "timestampUtc",
+            p.lat,
+            p.lon,
+            p.speed,
+            p.course,
+            p.heading,
+            p.nav_status as "navStatus",
+            p.source
+          from ais_positions p
+          inner join vessels v on v.id = p.vessel_id
+          where p.timestamp_utc >= ${sinceDate}
+            and p.lon between ${bbox.minLon} and ${bbox.maxLon}
+            and p.lat between ${bbox.minLat} and ${bbox.maxLat}
+          order by p.vessel_id, p.timestamp_utc desc
+          limit ${limit}
+        `),
+        500,
+        "bbox query",
+      );
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ data: results.rows, limit, sinceMinutes, bbox }));
