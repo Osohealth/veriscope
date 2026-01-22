@@ -59,6 +59,8 @@ CREATE INDEX IF NOT EXISTS "ais_positions_vessel_timestamp_desc" ON "ais_positio
 CREATE INDEX IF NOT EXISTS "port_calls_port_arrival_desc" ON "port_calls" ("port_id", "arrival_time_utc" DESC);
 CREATE INDEX IF NOT EXISTS "port_calls_open_calls" ON "port_calls" ("port_id", "arrival_time_utc" DESC)
   WHERE "departure_time_utc" IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS "port_calls_open_unique" ON "port_calls" ("vessel_id", "port_id")
+  WHERE "departure_time_utc" IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS "vessels_mmsi_unique" ON "vessels" ("mmsi");
 CREATE UNIQUE INDEX IF NOT EXISTS "vessels_imo_unique" ON "vessels" ("imo");
 CREATE UNIQUE INDEX IF NOT EXISTS "ports_name_country_unique" ON "ports" ("name", "country_code");
