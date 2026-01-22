@@ -82,6 +82,37 @@ PY
   fi
 fi
 
+# health endpoint works
+request "GET" "/health" "" 0
+if require_http_200 "health endpoint works"; then
+  HEALTH_OK=$(RESPONSE_BODY="$RESPONSE_BODY" python - <<'PY'
+import json
+import os
+import sys
+
+data = json.loads(os.environ["RESPONSE_BODY"])
+if data.get("status") != "ok":
+    sys.exit(1)
+if not isinstance(data.get("timeUtc"), str):
+    sys.exit(1)
+db = data.get("db")
+ais = data.get("ais")
+if not isinstance(db, dict) or not isinstance(db.get("ok"), bool):
+    sys.exit(1)
+if not isinstance(ais, dict) or not isinstance(ais.get("mode"), str):
+    sys.exit(1)
+if not isinstance(data.get("version"), str):
+    sys.exit(1)
+print("yes")
+PY
+  )
+  if [[ "$HEALTH_OK" == "yes" ]]; then
+    log_pass "health endpoint works"
+  else
+    log_fail "health endpoint works"
+  fi
+fi
+
 # ports list works
 request "GET" "/api/ports"
 if require_http_200 "ports list works"; then

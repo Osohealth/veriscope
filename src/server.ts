@@ -7,6 +7,9 @@ import { getPortMetrics7d } from "./services/portStatisticsService";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const JWT_SECRET = process.env.JWT_SECRET ?? "";
+const APP_VERSION = process.env.APP_VERSION ?? "unknown";
+const AIS_MODE = (process.env.AIS_MODE ?? "").toLowerCase();
+const AISSTREAM_API_KEY = process.env.AISSTREAM_API_KEY ?? "";
 
 type JwtPayload = {
   sub?: string;
@@ -95,6 +98,16 @@ function parseBbox(value: string | null) {
   }
   const [minLon, minLat, maxLon, maxLat] = parts;
   return { minLon, minLat, maxLon, maxLat };
+}
+
+function resolveAisMode() {
+  if (AIS_MODE === "aisstream") {
+    return "aisstream";
+  }
+  if (AIS_MODE === "mock") {
+    return "mock";
+  }
+  return AISSTREAM_API_KEY ? "aisstream" : "mock";
 }
 
 function buildOpenApiSpec() {
@@ -206,6 +219,27 @@ function buildOpenApiSpec() {
 
 async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   const url = new URL(req.url ?? "", `http://${req.headers.host}`);
+
+  if (req.method === "GET" && url.pathname === "/health") {
+    let dbOk = true;
+    try {
+      await db.execute(sql`select 1`);
+    } catch {
+      dbOk = false;
+    }
+
+    const payload = {
+      status: "ok",
+      timeUtc: new Date().toISOString(),
+      db: { ok: dbOk },
+      ais: { mode: resolveAisMode() },
+      version: APP_VERSION,
+    };
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(payload));
+    return;
+  }
 
   if (req.method === "GET" && url.pathname === "/docs") {
     res.writeHead(200, { "Content-Type": "application/json" });

@@ -9,6 +9,7 @@ This document defines the **Phase-1 correctness gates** for VeriScope. Phase-1 i
 | Check | Endpoint | Method | Expected response shape | Pass criteria |
 | --- | --- | --- | --- | --- |
 | Login works | `/api/auth/login` | `POST` | `{ "token": "<jwt>" }` | HTTP 200 and `token` is a non-empty string. |
+| Health endpoint works | `/health` | `GET` | `{ "status": "ok", "timeUtc": "<ISO-8601>", "db": { "ok": <bool> }, "ais": { "mode": "<string>" }, "version": "<string>" }` | HTTP 200 and fields are present, with `db.ok` reflecting DB reachability. |
 | Ports list works | `/api/ports` | `GET` | `{ "ports": [ { "id": "<id>", "name": "<string>" } ] }` | HTTP 200 and `ports` is an array. |
 | Port detail returns KPIs | `/api/ports/{portId}` | `GET` | `{ "id": "<id>", "name": "<string>", "kpis": { ... } }` | HTTP 200 and `kpis` is an object. |
 | Port calls endpoint returns array | `/api/ports/{portId}/calls` | `GET` | `[ { ... } ]` | HTTP 200 and the root response is an array. |
@@ -28,6 +29,7 @@ This document defines the **Phase-1 correctness gates** for VeriScope. Phase-1 i
 ## Phase-1 checks (exact list)
 
 * login works
+* health endpoint works
 * ports list works
 * port detail returns KPIs
 * port calls endpoint returns array
