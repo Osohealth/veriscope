@@ -9,7 +9,47 @@ export type PortMetrics7d = {
   open_calls: number;
 };
 
+export type PortCallSample = {
+  vesselId: string;
+  arrivalTimeUtc: Date;
+  departureTimeUtc: Date | null;
+};
+
 const WINDOW_DAYS = 7;
+
+export function computePortMetrics7dFromCalls(
+  calls: PortCallSample[],
+  now: Date = new Date(),
+): PortMetrics7d {
+  const windowStart = now.getTime() - WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+  const windowed = calls.filter(
+    (call) => call.arrivalTimeUtc.getTime() >= windowStart,
+  );
+  const departures_7d = calls.filter(
+    (call) =>
+      call.departureTimeUtc &&
+      call.departureTimeUtc.getTime() >= windowStart,
+  ).length;
+
+  const uniqueVessels = new Set(windowed.map((call) => call.vesselId));
+  const dwellHours = windowed.map((call) => {
+    const end = call.departureTimeUtc ?? now;
+    return Math.max(0, (end.getTime() - call.arrivalTimeUtc.getTime()) / 36e5);
+  });
+  const avgDwell =
+    dwellHours.length === 0
+      ? 0
+      : dwellHours.reduce((sum, value) => sum + value, 0) / dwellHours.length;
+
+  return {
+    arrivals_7d: windowed.length,
+    departures_7d,
+    unique_vessels_7d: uniqueVessels.size,
+    avg_dwell_hours_7d: avgDwell,
+    open_calls: calls.filter((call) => call.departureTimeUtc === null).length,
+  };
+}
 
 // departures_7d is computed by departure_time_utc within the 7-day window.
 export async function getPortMetrics7d(portId: string): Promise<PortMetrics7d> {
