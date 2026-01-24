@@ -15,6 +15,13 @@
       "when": 0,
       "tag": "0001_vessel_port_state",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "0.0.0",
+      "when": 0,
+      "tag": "0002_port_daily_baselines",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { db } from "./db";
 import { aisPositions, ports, portCalls, vessels } from "../drizzle/schema";
 import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import { getPortMetrics7d } from "./services/portStatisticsService";
+import { schedulePortBaselineJob } from "./services/portBaselineService";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const JWT_SECRET = process.env.JWT_SECRET ?? "";
@@ -14,6 +15,12 @@ const AISSTREAM_API_KEY = process.env.AISSTREAM_API_KEY ?? "";
 const WS_WINDOW_MINUTES = Math.max(Number(process.env.WS_WINDOW_MINUTES ?? "10"), 1);
 const WS_LIMIT = Math.max(Number(process.env.WS_LIMIT ?? "1000"), 1);
 const MAX_VESSELS_PER_REQUEST = Math.max(Number(process.env.MAX_VESSELS_PER_REQUEST ?? "5000"), 1);
+const BASELINE_DAYS_BACK = Math.max(Number(process.env.BASELINE_DAYS_BACK ?? "60"), 1);
+const BASELINE_INTERVAL_HOURS = Math.max(
+  Number(process.env.BASELINE_INTERVAL_HOURS ?? "24"),
+  1,
+);
+const BASELINE_JOB_ENABLED = process.env.BASELINE_JOB_ENABLED !== "false";
 
 type JwtPayload = {
   sub?: string;
@@ -679,6 +686,12 @@ server.on("upgrade", (req, socket) => {
 });
 
 setInterval(pollAndBroadcastVessels, WS_POLL_INTERVAL_MS).unref();
+if (BASELINE_JOB_ENABLED) {
+  schedulePortBaselineJob({
+    daysBack: BASELINE_DAYS_BACK,
+    intervalHours: BASELINE_INTERVAL_HOURS,
+  });
+}
 
 server.listen(PORT, () => {
   console.log(`Server listening on :${PORT}`);

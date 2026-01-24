@@ -1,6 +1,7 @@
 import {
   bigint,
   boolean,
+  date,
   doublePrecision,
   index,
   pgTable,
@@ -133,5 +134,38 @@ export const vesselPortState = pgTable(
       table.currentPortId,
     ),
     inPortIdx: index("vessel_port_state_in_port_idx").on(table.inPort),
+  }),
+);
+
+export const portDailyBaselines = pgTable(
+  "port_daily_baselines",
+  {
+    portId: uuid("port_id")
+      .notNull()
+      .references(() => ports.id, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    arrivals: bigint("arrivals", { mode: "number" }).notNull().default(0),
+    departures: bigint("departures", { mode: "number" }).notNull().default(0),
+    uniqueVessels: bigint("unique_vessels", { mode: "number" }).notNull().default(0),
+    avgDwellHours: doublePrecision("avg_dwell_hours"),
+    openCalls: bigint("open_calls", { mode: "number" }).notNull().default(0),
+    arrivals30dAvg: doublePrecision("arrivals_30d_avg"),
+    arrivals30dStd: doublePrecision("arrivals_30d_std"),
+    dwell30dAvg: doublePrecision("dwell_30d_avg"),
+    dwell30dStd: doublePrecision("dwell_30d_std"),
+    openCalls30dAvg: doublePrecision("open_calls_30d_avg"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    portDatePk: uniqueIndex("port_daily_baselines_port_date_pk").on(
+      table.portId,
+      table.date,
+    ),
+    dateIdx: index("port_daily_baselines_date_idx").on(table.date),
   }),
 );
