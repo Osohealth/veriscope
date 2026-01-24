@@ -2,7 +2,7 @@ import http, { IncomingMessage, ServerResponse } from "node:http";
 import crypto from "node:crypto";
 import { Socket } from "node:net";
 import { db } from "./db";
-import { aisPositions, ports, portCalls, vessels } from "../drizzle/schema";
+import { aisPositions, ports, portCalls, signals, vessels } from "../drizzle/schema";
 import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import { getPortMetrics7d } from "./services/portStatisticsService";
 import { schedulePortBaselineJob } from "./services/portBaselineService";
@@ -294,6 +294,36 @@ function buildOpenApiSpec() {
           },
         },
       },
+      "/v1/signals": {
+        get: {
+          summary: "List signals",
+          parameters: [
+            { name: "port_id", in: "query", schema: { type: "string" } },
+            { name: "country", in: "query", schema: { type: "string" } },
+            { name: "signal_type", in: "query", schema: { type: "string" } },
+            { name: "severity", in: "query", schema: { type: "string" } },
+            { name: "limit", in: "query", schema: { type: "integer", default: 50 } },
+            { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+          ],
+          responses: {
+            "200": { description: "Signals list" },
+            "401": { description: "Unauthorized" },
+          },
+        },
+      },
+      "/v1/signals/{id}": {
+        get: {
+          summary: "Get signal detail",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Signal detail" },
+            "401": { description: "Unauthorized" },
+            "404": { description: "Not found" },
+          },
+        },
+      },
     },
   };
 }
@@ -341,6 +371,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   const segments = url.pathname.split("/").filter(Boolean);
   const isPortsRoute = segments[0] === "v1" && segments[1] === "ports";
   const isVesselsRoute = segments[0] === "v1" && segments[1] === "vessels";
+  const isSignalsRoute = segments[0] === "v1" && segments[1] === "signals";
 
   if (req.method === "GET" && isPortsRoute) {
     if (!requireAuth(req, res)) {
@@ -609,6 +640,103 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(latest));
+      return;
+    }
+  }
+
+  if (req.method === "GET" && isSignalsRoute) {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    if (segments.length === 2) {
+      const limit = Math.min(parseNumber(url.searchParams.get("limit"), 50), 200);
+      const offset = Math.max(parseNumber(url.searchParams.get("offset"), 0), 0);
+      const portId = url.searchParams.get("port_id");
+      const country = url.searchParams.get("country");
+      const signalType = url.searchParams.get("signal_type");
+      const severity = url.searchParams.get("severity");
+      const conditions = [];
+
+      if (signalType) {
+        conditions.push(eq(signals.signalType, signalType));
+      }
+      if (severity) {
+        conditions.push(eq(signals.severity, severity));
+      }
+      if (portId) {
+        conditions.push(eq(signals.entityType, "port"));
+        conditions.push(eq(signals.entityId, portId));
+      }
+
+      let query = db
+        .select({
+          id: signals.id,
+          signal_type: signals.signalType,
+          entity_type: signals.entityType,
+          entity_id: signals.entityId,
+          severity: signals.severity,
+          value: signals.value,
+          baseline: signals.baseline,
+          delta_pct: signals.deltaPct,
+          explanation: signals.explanation,
+          signal_date: signals.signalDate,
+          created_at: signals.createdAt,
+          port_name: ports.name,
+          country_code: ports.countryCode,
+        })
+        .from(signals)
+        .leftJoin(ports, eq(ports.id, signals.entityId))
+        .orderBy(desc(signals.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      if (country) {
+        conditions.push(eq(signals.entityType, "port"));
+        conditions.push(eq(ports.countryCode, country));
+      }
+
+      if (conditions.length) {
+        query = query.where(and(...conditions));
+      }
+
+      const rows = await query;
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ data: rows, limit, offset }));
+      return;
+    }
+
+    if (segments.length === 3) {
+      const signalId = segments[2];
+      const [signal] = await db
+        .select({
+          id: signals.id,
+          signal_type: signals.signalType,
+          entity_type: signals.entityType,
+          entity_id: signals.entityId,
+          severity: signals.severity,
+          value: signals.value,
+          baseline: signals.baseline,
+          delta_pct: signals.deltaPct,
+          explanation: signals.explanation,
+          signal_date: signals.signalDate,
+          created_at: signals.createdAt,
+          port_name: ports.name,
+          country_code: ports.countryCode,
+        })
+        .from(signals)
+        .leftJoin(ports, eq(ports.id, signals.entityId))
+        .where(eq(signals.id, signalId));
+
+      if (!signal) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "signal not found" }));
+        return;
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(signal));
       return;
     }
   }
