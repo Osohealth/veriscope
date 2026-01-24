@@ -30,13 +30,17 @@ fi
 echo
 
 # 2) OpenAPI docs should load (not strict JSON requirement)
-echo "[2/8] GET /docs (fallback /v1/docs)"
+echo "[2/8] GET /docs (fallback /v1/docs, /openapi.json, /v1/openapi.json)"
 if curl -fsS "${BASE_URL}/docs" >/dev/null 2>&1; then
   echo "PASS: /docs loads"
 elif curl -fsS "${BASE_URL}/v1/docs" >/dev/null 2>&1; then
   echo "PASS: /v1/docs loads"
+elif curl -fsS "${BASE_URL}/openapi.json" >/dev/null 2>&1; then
+  echo "PASS: /openapi.json loads"
+elif curl -fsS "${BASE_URL}/v1/openapi.json" >/dev/null 2>&1; then
+  echo "PASS: /v1/openapi.json loads"
 else
-  echo "FAIL: /docs and /v1/docs not accessible"
+  echo "FAIL: docs/OpenAPI routes not accessible"
   exit 1
 fi
 echo
