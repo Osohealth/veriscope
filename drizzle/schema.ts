@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -167,5 +168,34 @@ export const portDailyBaselines = pgTable(
       table.date,
     ),
     dateIdx: index("port_daily_baselines_date_idx").on(table.date),
+  }),
+);
+
+export const signals = pgTable(
+  "signals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    signalType: text("signal_type").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    severity: text("severity").notNull(),
+    value: doublePrecision("value").notNull(),
+    baseline: doublePrecision("baseline").notNull(),
+    deltaPct: doublePrecision("delta_pct").notNull(),
+    explanation: text("explanation").notNull(),
+    signalDate: date("signal_date").notNull().default(sql`current_date`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    signalUniqueIdx: uniqueIndex("signals_unique_per_day").on(
+      table.signalType,
+      table.entityType,
+      table.entityId,
+      table.signalDate,
+    ),
+    entityIdx: index("signals_entity_idx").on(table.entityType, table.entityId),
+    createdAtIdx: index("signals_created_at_idx").on(table.createdAt),
   }),
 );

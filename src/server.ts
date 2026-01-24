@@ -6,6 +6,7 @@ import { aisPositions, ports, portCalls, vessels } from "../drizzle/schema";
 import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import { getPortMetrics7d } from "./services/portStatisticsService";
 import { schedulePortBaselineJob } from "./services/portBaselineService";
+import { scheduleSignalEngine } from "./services/signalEngine";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const JWT_SECRET = process.env.JWT_SECRET ?? "";
@@ -21,6 +22,11 @@ const BASELINE_INTERVAL_HOURS = Math.max(
   1,
 );
 const BASELINE_JOB_ENABLED = process.env.BASELINE_JOB_ENABLED !== "false";
+const SIGNAL_ENGINE_INTERVAL_HOURS = Math.max(
+  Number(process.env.SIGNAL_ENGINE_INTERVAL_HOURS ?? "24"),
+  1,
+);
+const SIGNAL_ENGINE_ENABLED = process.env.SIGNAL_ENGINE_ENABLED !== "false";
 
 type JwtPayload = {
   sub?: string;
@@ -691,6 +697,9 @@ if (BASELINE_JOB_ENABLED) {
     daysBack: BASELINE_DAYS_BACK,
     intervalHours: BASELINE_INTERVAL_HOURS,
   });
+}
+if (SIGNAL_ENGINE_ENABLED) {
+  scheduleSignalEngine({ intervalHours: SIGNAL_ENGINE_INTERVAL_HOURS });
 }
 
 server.listen(PORT, () => {
