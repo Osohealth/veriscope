@@ -19,6 +19,21 @@ echo "== Phase-1 Smoke Test =="
 echo "BASE_URL=${BASE_URL}"
 echo
 
+# Preflight connectivity check for restricted networks
+echo "[0/8] Preflight connectivity check"
+PRECHECK_ERR="$(mktemp)"
+if ! curl -I -sS "${BASE_URL}/health" -o /dev/null 2>"${PRECHECK_ERR}"; then
+  if grep -qiE "CONNECT tunnel failed|proxy.*403|403 Forbidden" "${PRECHECK_ERR}"; then
+    echo "NETWORK BLOCK: upstream proxy denied CONNECT tunnel"
+    echo "Suggestion: run against localhost or from an unrestricted network."
+    rm -f "${PRECHECK_ERR}"
+    exit 3
+  fi
+  echo "WARN: preflight connectivity check failed; continuing."
+fi
+rm -f "${PRECHECK_ERR}"
+echo
+
 # 1) Health (if you have it; strongly recommended)
 echo "[1/8] GET /health (recommended)"
 if curl -fsS "${BASE_URL}/health" >/dev/null 2>&1; then
