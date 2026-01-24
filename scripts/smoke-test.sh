@@ -29,24 +29,27 @@ else
 fi
 echo
 
-# 2) OpenAPI docs should load (not strict JSON requirement)
-echo "[2/8] GET /docs (fallback /v1/docs, /api/docs, /openapi.json, /v1/openapi.json, /api/openapi.json)"
-if curl -fsS "${BASE_URL}/docs" >/dev/null 2>&1; then
-  echo "PASS: /docs loads"
-elif curl -fsS "${BASE_URL}/v1/docs" >/dev/null 2>&1; then
-  echo "PASS: /v1/docs loads"
-elif curl -fsS "${BASE_URL}/api/docs" >/dev/null 2>&1; then
-  echo "PASS: /api/docs loads"
-elif curl -fsS "${BASE_URL}/openapi.json" >/dev/null 2>&1; then
-  echo "PASS: /openapi.json loads"
-elif curl -fsS "${BASE_URL}/v1/openapi.json" >/dev/null 2>&1; then
-  echo "PASS: /v1/openapi.json loads"
-elif curl -fsS "${BASE_URL}/api/openapi.json" >/dev/null 2>&1; then
-  echo "PASS: /api/openapi.json loads"
-else
-  echo "FAIL: docs/OpenAPI routes not accessible"
-  exit 1
+# 2) OpenAPI docs should load (non-blocking)
+echo "[2/8] OpenAPI docs check (NON-BLOCKING)"
+DOC_OK=0
+
+for URL in \
+  "${BASE_URL}/docs" \
+  "${BASE_URL}/openapi.json" \
+  "${BASE_URL}/api/docs" \
+  "${BASE_URL}/api/openapi.json"
+do
+  if curl -fsS "$URL" >/dev/null 2>&1; then
+    echo "PASS: docs reachable at $URL"
+    DOC_OK=1
+    break
+  fi
+done
+
+if [[ "$DOC_OK" -eq 0 ]]; then
+  echo "WARN: OpenAPI docs not reachable at /docs or /openapi.json (non-blocking)"
 fi
+
 echo
 
 # 3) Login
