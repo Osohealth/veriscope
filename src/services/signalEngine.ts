@@ -7,12 +7,13 @@ type SignalSeverity = "LOW" | "MEDIUM" | "HIGH";
 type BaselineRow = {
   portId: string;
   date: string;
-  arrivals: number;
   arrivals30dAvg: number | null;
   arrivals30dStd: number | null;
-  avgDwellHours: number | null;
   dwell30dAvg: number | null;
   dwell30dStd: number | null;
+  portName: string;
+  arrivalsToday: number;
+  avgDwellHoursToday: number | null;
 };
 
 type SignalCandidate = {
@@ -32,44 +33,87 @@ function formatDeltaPct(value: number) {
   return `${rounded}%`;
 }
 
-function severityFromZScore(zScore: number): SignalSeverity | null {
+function severityFromArrivalsZScore(zScore: number): SignalSeverity | null {
   const abs = Math.abs(zScore);
-  if (abs >= 2) return "HIGH";
-  if (abs >= 1.5) return "MEDIUM";
-  if (abs >= 1) return "LOW";
+  if (abs >= 3) return "HIGH";
+  if (abs >= 2) return "MEDIUM";
   return null;
 }
 
-function buildSignalForMetric(options: {
-  signalType: string;
-  entityId: string;
+function severityFromDwell(zScore: number): SignalSeverity | null {
+  if (zScore >= 3) return "HIGH";
+  if (zScore >= 2) return "MEDIUM";
+  return null;
+}
+
+function buildArrivalsSignal(options: {
+  portName: string;
   signalDate: string;
+  entityId: string;
   value: number;
   baselineAvg: number;
   baselineStd: number | null;
-  metricLabel: string;
 }) {
-  const { signalType, entityId, signalDate, value, baselineAvg, baselineStd, metricLabel } =
-    options;
+  const { portName, entityId, signalDate, value, baselineAvg, baselineStd } = options;
   if (!Number.isFinite(baselineAvg) || baselineAvg === 0) {
     return null;
   }
 
   const deltaPct = ((value - baselineAvg) / baselineAvg) * 100;
   const zScore = baselineStd && baselineStd > 0 ? (value - baselineAvg) / baselineStd : null;
-  const severity = zScore !== null ? severityFromZScore(zScore) : null;
+  const severity = zScore !== null ? severityFromArrivalsZScore(zScore) : null;
 
   if (!severity) {
     return null;
   }
 
-  const zPart = zScore !== null ? ` (z=${zScore.toFixed(2)})` : "";
-  const explanation = `${metricLabel} is ${value} vs 30d avg ${baselineAvg.toFixed(
-    2,
-  )}${zPart}, delta ${formatDeltaPct(deltaPct)}.`;
+  const direction = deltaPct >= 0 ? "increased" : "dropped";
+  const sigma = zScore !== null ? Math.abs(zScore).toFixed(1) : "n/a";
+  const explanation = `Port of ${portName} arrivals ${direction} ${Math.abs(
+    Math.round(deltaPct),
+  )}% vs 30-day average (σ=${sigma}). This may indicate congestion, weather disruption, or supply re-routing.`;
 
   return {
-    signalType,
+    signalType: "PORT_ARRIVALS_ANOMALY",
+    entityType: "port",
+    entityId,
+    severity,
+    value,
+    baseline: baselineAvg,
+    deltaPct,
+    explanation,
+    signalDate,
+  } satisfies SignalCandidate;
+}
+
+function buildDwellSignal(options: {
+  portName: string;
+  signalDate: string;
+  entityId: string;
+  value: number;
+  baselineAvg: number;
+  baselineStd: number | null;
+}) {
+  const { portName, signalDate, entityId, value, baselineAvg, baselineStd } = options;
+  if (!Number.isFinite(baselineAvg) || baselineAvg === 0 || !baselineStd || baselineStd <= 0) {
+    return null;
+  }
+  const zScore = (value - baselineAvg) / baselineStd;
+  const severity = severityFromDwell(zScore);
+
+  if (!severity) {
+    return null;
+  }
+
+  const deltaPct = ((value - baselineAvg) / baselineAvg) * 100;
+  const explanation = `Port of ${portName} average dwell time is ${value.toFixed(
+    1,
+  )}h vs 30-day average ${baselineAvg.toFixed(
+    1,
+  )}h (σ=${zScore.toFixed(1)}). This may indicate congestion, labor issues, or berth constraints.`;
+
+  return {
+    signalType: "PORT_DWELL_SPIKE",
     entityType: "port",
     entityId,
     severity,
@@ -85,27 +129,25 @@ function buildSignalsFromBaseline(row: BaselineRow): SignalCandidate[] {
   const signals: SignalCandidate[] = [];
 
   if (row.arrivals30dAvg !== null) {
-    const arrivalsSignal = buildSignalForMetric({
-      signalType: "PORT_ARRIVALS_ANOMALY",
+    const arrivalsSignal = buildArrivalsSignal({
+      portName: row.portName,
       entityId: row.portId,
       signalDate: row.date,
-      value: row.arrivals,
+      value: row.arrivalsToday,
       baselineAvg: row.arrivals30dAvg,
       baselineStd: row.arrivals30dStd,
-      metricLabel: "Arrivals",
     });
     if (arrivalsSignal) signals.push(arrivalsSignal);
   }
 
-  if (row.avgDwellHours !== null && row.dwell30dAvg !== null) {
-    const dwellSignal = buildSignalForMetric({
-      signalType: "PORT_DWELL_ANOMALY",
+  if (row.avgDwellHoursToday !== null && row.dwell30dAvg !== null) {
+    const dwellSignal = buildDwellSignal({
+      portName: row.portName,
       entityId: row.portId,
       signalDate: row.date,
-      value: row.avgDwellHours,
+      value: row.avgDwellHoursToday,
       baselineAvg: row.dwell30dAvg,
       baselineStd: row.dwell30dStd,
-      metricLabel: "Avg dwell hours",
     });
     if (dwellSignal) signals.push(dwellSignal);
   }
@@ -116,17 +158,34 @@ function buildSignalsFromBaseline(row: BaselineRow): SignalCandidate[] {
 export async function runSignalEngine(forDate?: string) {
   const dateExpr = forDate ? sql`${forDate}::date` : sql`current_date`;
   const rows = await db.execute<BaselineRow>(sql`
+    with today_metrics as (
+      select
+        p.id as port_id,
+        p.name as port_name,
+        coalesce(
+          count(*) filter (where pc.arrival_time_utc::date = ${dateExpr}),
+          0
+        ) as arrivals_today,
+        avg(
+          extract(epoch from (coalesce(pc.departure_time_utc, now()) - pc.arrival_time_utc)) / 3600.0
+        ) filter (where pc.arrival_time_utc::date = ${dateExpr}) as avg_dwell_hours_today
+      from ports p
+      left join port_calls pc on pc.port_id = p.id
+      group by p.id, p.name
+    )
     select
-      port_id as "portId",
-      date::text as "date",
-      arrivals,
-      arrivals_30d_avg as "arrivals30dAvg",
-      arrivals_30d_std as "arrivals30dStd",
-      avg_dwell_hours as "avgDwellHours",
-      dwell_30d_avg as "dwell30dAvg",
-      dwell_30d_std as "dwell30dStd"
-    from port_daily_baselines
-    where date = ${dateExpr}
+      b.port_id as "portId",
+      b.date::text as "date",
+      b.arrivals_30d_avg as "arrivals30dAvg",
+      b.arrivals_30d_std as "arrivals30dStd",
+      b.dwell_30d_avg as "dwell30dAvg",
+      b.dwell_30d_std as "dwell30dStd",
+      t.port_name as "portName",
+      t.arrivals_today as "arrivalsToday",
+      t.avg_dwell_hours_today as "avgDwellHoursToday"
+    from port_daily_baselines b
+    join today_metrics t on t.port_id = b.port_id
+    where b.date = ${dateExpr}
   `);
 
   const candidates = rows.rows.flatMap(buildSignalsFromBaseline);
