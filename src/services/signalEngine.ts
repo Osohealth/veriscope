@@ -14,6 +14,9 @@ type BaselineRow = {
   portName: string;
   arrivalsToday: number;
   avgDwellHoursToday: number | null;
+  openCalls30dAvg: number | null;
+  openCallsToday: number;
+  congestionDays: number;
 };
 
 type SignalCandidate = {
@@ -152,6 +155,28 @@ function buildSignalsFromBaseline(row: BaselineRow): SignalCandidate[] {
     if (dwellSignal) signals.push(dwellSignal);
   }
 
+  if (row.openCalls30dAvg !== null && row.openCalls30dAvg > 0) {
+    const exceedsThreshold = row.openCallsToday > row.openCalls30dAvg * 1.5;
+    if (exceedsThreshold) {
+      const deltaPct = ((row.openCallsToday - row.openCalls30dAvg) / row.openCalls30dAvg) * 100;
+      const severity: SignalSeverity = row.congestionDays >= 3 ? "HIGH" : "MEDIUM";
+      const explanation = `Port of ${row.portName} open calls are ${row.openCallsToday} vs 30-day average ${row.openCalls30dAvg.toFixed(
+        1,
+      )} (${formatDeltaPct(deltaPct)}). Congestion has persisted for ${row.congestionDays} day(s).`;
+      signals.push({
+        signalType: "PORT_CONGESTION_BUILDUP",
+        entityType: "port",
+        entityId: row.portId,
+        severity,
+        value: row.openCallsToday,
+        baseline: row.openCalls30dAvg,
+        deltaPct,
+        explanation,
+        signalDate: row.date,
+      });
+    }
+  }
+
   return signals;
 }
 
@@ -166,12 +191,26 @@ export async function runSignalEngine(forDate?: string) {
           count(*) filter (where pc.arrival_time_utc::date = ${dateExpr}),
           0
         ) as arrivals_today,
+        coalesce(
+          count(*) filter (where pc.departure_time_utc is null),
+          0
+        ) as open_calls_today,
         avg(
           extract(epoch from (coalesce(pc.departure_time_utc, now()) - pc.arrival_time_utc)) / 3600.0
         ) filter (where pc.arrival_time_utc::date = ${dateExpr}) as avg_dwell_hours_today
       from ports p
       left join port_calls pc on pc.port_id = p.id
       group by p.id, p.name
+    ),
+    congestion_streak as (
+      select
+        port_id,
+        count(*) as congestion_days
+      from port_daily_baselines
+      where date between (${dateExpr} - interval '2 day') and ${dateExpr}
+        and open_calls_30d_avg is not null
+        and open_calls > open_calls_30d_avg * 1.5
+      group by port_id
     )
     select
       b.port_id as "portId",
@@ -180,11 +219,15 @@ export async function runSignalEngine(forDate?: string) {
       b.arrivals_30d_std as "arrivals30dStd",
       b.dwell_30d_avg as "dwell30dAvg",
       b.dwell_30d_std as "dwell30dStd",
+      b.open_calls_30d_avg as "openCalls30dAvg",
       t.port_name as "portName",
       t.arrivals_today as "arrivalsToday",
-      t.avg_dwell_hours_today as "avgDwellHoursToday"
+      t.avg_dwell_hours_today as "avgDwellHoursToday",
+      t.open_calls_today as "openCallsToday",
+      coalesce(s.congestion_days, 0) as "congestionDays"
     from port_daily_baselines b
     join today_metrics t on t.port_id = b.port_id
+    left join congestion_streak s on s.port_id = b.port_id
     where b.date = ${dateExpr}
   `);
 
