@@ -311,7 +311,14 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
   if (
     req.method === "GET" &&
-    ["/docs", "/v1/docs", "/openapi.json", "/v1/openapi.json"].includes(url.pathname)
+    [
+      "/docs",
+      "/v1/docs",
+      "/api/docs",
+      "/openapi.json",
+      "/v1/openapi.json",
+      "/api/openapi.json",
+    ].includes(url.pathname)
   ) {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(buildOpenApiSpec()));
