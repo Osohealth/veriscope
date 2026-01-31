@@ -1,0 +1,3 @@
+date,brentPrice,rotterdamPrice,localSpread,arrivalsCount,departuresCount,avgTankerDwt,receipts,exports,imports,storageBbl,storageUtilization,berthedCount,anchoredCount,portWaitDays,congestionIndex,supplyPressureIndex,satelliteAnomalyFlag
+2025-10-01,86.2,85.7,-0.5,12,9,90000,420000,380000,40000,12000000,0.78,18,6,1.4,0.52,0.61,0
+2025-10-02,87.1,86.4,-0.7,14,11,92000,440000,395000,45000,12150000,0.79,19,5,1.5,0.55,0.62,0
