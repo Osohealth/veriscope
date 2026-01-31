@@ -63,6 +63,46 @@ export default function PortDetailPage() {
   });
 
   const calls = callsData?.items || [];
+  const hasServerMetrics = !!port?.metrics_7d &&
+    (port.metrics_7d.arrivals +
+      port.metrics_7d.departures +
+      port.metrics_7d.unique_vessels +
+      (port.metrics_7d.open_calls ?? 0) > 0);
+
+  const derivedMetrics = (() => {
+    const arrivals = calls.length;
+    const departures = calls.filter(call => !!call.departure_time_utc).length;
+    const uniqueVessels = new Set(calls.map(call => call.vessel_id)).size;
+    const openCalls = calls.filter(call => !call.departure_time_utc).length;
+    const dwellValues = calls
+      .map(call => call.dwell_hours)
+      .filter((value): value is number => typeof value === 'number' && !Number.isNaN(value));
+
+    const avgDwell = dwellValues.length
+      ? Math.round((dwellValues.reduce((sum, v) => sum + v, 0) / dwellValues.length) * 10) / 10
+      : 0;
+
+    const medianDwell = dwellValues.length
+      ? (() => {
+          const sorted = [...dwellValues].sort((a, b) => a - b);
+          const mid = Math.floor(sorted.length / 2);
+          return sorted.length % 2 === 0
+            ? Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 10) / 10
+            : sorted[mid];
+        })()
+      : undefined;
+
+    return {
+      arrivals,
+      departures,
+      unique_vessels: uniqueVessels,
+      avg_dwell_hours: avgDwell,
+      median_dwell_hours: medianDwell,
+      open_calls: openCalls,
+    };
+  })();
+
+  const metrics = hasServerMetrics ? port?.metrics_7d : derivedMetrics;
 
   if (portLoading) {
     return (
@@ -119,7 +159,7 @@ export default function PortDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{port.metrics_7d.arrivals}</div>
+              <div className="text-3xl font-bold">{metrics?.arrivals ?? 0}</div>
             </CardContent>
           </Card>
           
@@ -131,7 +171,7 @@ export default function PortDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{port.metrics_7d.departures}</div>
+              <div className="text-3xl font-bold">{metrics?.departures ?? 0}</div>
             </CardContent>
           </Card>
           
@@ -143,7 +183,7 @@ export default function PortDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{port.metrics_7d.unique_vessels}</div>
+              <div className="text-3xl font-bold">{metrics?.unique_vessels ?? 0}</div>
             </CardContent>
           </Card>
           
@@ -155,7 +195,7 @@ export default function PortDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{port.metrics_7d.avg_dwell_hours}h</div>
+              <div className="text-3xl font-bold">{metrics?.avg_dwell_hours ?? 0}h</div>
             </CardContent>
           </Card>
           
@@ -167,7 +207,7 @@ export default function PortDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{port.metrics_7d.median_dwell_hours ?? '-'}h</div>
+              <div className="text-3xl font-bold">{metrics?.median_dwell_hours ?? '-'}h</div>
             </CardContent>
           </Card>
           
@@ -179,7 +219,7 @@ export default function PortDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-500">{port.metrics_7d.open_calls ?? 0}</div>
+              <div className="text-3xl font-bold text-green-500">{metrics?.open_calls ?? 0}</div>
             </CardContent>
           </Card>
         </div>

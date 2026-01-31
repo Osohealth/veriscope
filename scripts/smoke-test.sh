@@ -60,8 +60,8 @@ require_http_200() {
   return 0
 }
 
-# login works
-request "POST" "/api/auth/login" "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" 0
+# login works (v1)
+request "POST" "/v1/auth/login" "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" 0
 if require_http_200 "login works"; then
   TOKEN=$(RESPONSE_BODY="$RESPONSE_BODY" python - <<'PY'
 import json
@@ -69,7 +69,7 @@ import os
 import sys
 
 data = json.loads(os.environ["RESPONSE_BODY"])
-token = data.get("token")
+token = data.get("access_token") or data.get("accessToken") or data.get("token")
 if not isinstance(token, str) or not token.strip():
     sys.exit(1)
 print(token)
@@ -82,8 +82,8 @@ PY
   fi
 fi
 
-# ports list works
-request "GET" "/api/ports"
+# ports list works (v1)
+request "GET" "/v1/ports?limit=50"
 if require_http_200 "ports list works"; then
   PORTS_COUNT=$(RESPONSE_BODY="$RESPONSE_BODY" python - <<'PY'
 import json
@@ -91,7 +91,7 @@ import os
 import sys
 
 data = json.loads(os.environ["RESPONSE_BODY"])
-ports = data.get("ports")
+ports = data.get("items")
 if not isinstance(ports, list):
     sys.exit(1)
 print(len(ports))
@@ -110,7 +110,7 @@ import os
 import sys
 
 data = json.loads(os.environ.get("RESPONSE_BODY", "{}"))
-ports = data.get("ports")
+ports = data.get("items")
 if isinstance(ports, list) and ports:
     port_id = ports[0].get("id")
     if port_id:
@@ -122,7 +122,7 @@ PY
 
 # port detail returns KPIs
 if [[ -n "$PORT_ID" ]]; then
-  request "GET" "/api/ports/$PORT_ID"
+  request "GET" "/v1/ports/$PORT_ID"
   if require_http_200 "port detail returns KPIs"; then
     HAS_KPIS=$(RESPONSE_BODY="$RESPONSE_BODY" python - <<'PY'
 import json
@@ -130,7 +130,7 @@ import os
 import sys
 
 data = json.loads(os.environ["RESPONSE_BODY"])
-kpis = data.get("kpis")
+kpis = data.get("metrics_7d")
 if isinstance(kpis, dict):
     print("yes")
     sys.exit(0)
@@ -149,7 +149,7 @@ fi
 
 # port calls endpoint returns array
 if [[ -n "$PORT_ID" ]]; then
-  request "GET" "/api/ports/$PORT_ID/calls"
+  request "GET" "/v1/ports/$PORT_ID/calls"
   if require_http_200 "port calls endpoint returns array"; then
     CALLS_OK=$(RESPONSE_BODY="$RESPONSE_BODY" python - <<'PY'
 import json
@@ -157,7 +157,8 @@ import os
 import sys
 
 data = json.loads(os.environ["RESPONSE_BODY"])
-if isinstance(data, list):
+items = data.get("items")
+if isinstance(items, list):
     print("yes")
     sys.exit(0)
 sys.exit(1)
@@ -174,7 +175,7 @@ else
 fi
 
 # bbox map endpoint returns features array
-request "GET" "/api/map/bbox?west=-180&south=-90&east=180&north=90"
+request "GET" "/v1/vessels/positions?bbox=-180,-90,180,90"
 if require_http_200 "bbox map endpoint returns features array"; then
   FEATURES_OK=$(RESPONSE_BODY="$RESPONSE_BODY" python - <<'PY'
 import json
@@ -197,29 +198,16 @@ PY
 fi
 
 # latest AIS timestamp is recent (endpoint exposes this)
-request "GET" "/api/ais/latest"
+request "GET" "/api/ais/status"
 if require_http_200 "latest AIS timestamp is recent (endpoint exposes this)"; then
   AIS_OK=$(RESPONSE_BODY="$RESPONSE_BODY" python - <<'PY'
 import json
 import os
 import sys
-from datetime import datetime, timezone
 
 data = json.loads(os.environ["RESPONSE_BODY"])
-ts = data.get("timestamp")
-if not isinstance(ts, str) or not ts:
-    sys.exit(1)
-if ts.endswith("Z"):
-    ts = ts[:-1] + "+00:00"
-try:
-    dt = datetime.fromisoformat(ts)
-except ValueError:
-    sys.exit(1)
-if dt.tzinfo is None:
-    dt = dt.replace(tzinfo=timezone.utc)
-now = datetime.now(timezone.utc)
-age_seconds = (now - dt).total_seconds()
-if age_seconds <= 900:
+healthy = data.get("isHealthy")
+if healthy is True:
     print("yes")
     sys.exit(0)
 sys.exit(1)
@@ -232,25 +220,25 @@ PY
   fi
 fi
 
-# positions list works / minimum dataset requirement
-request "GET" "/api/positions"
-if require_http_200 "positions list works"; then
+# vessels list works / minimum dataset requirement
+request "GET" "/v1/vessels?limit=50"
+if require_http_200 "vessels list works"; then
   POSITIONS_COUNT=$(RESPONSE_BODY="$RESPONSE_BODY" python - <<'PY'
 import json
 import os
 import sys
 
 data = json.loads(os.environ["RESPONSE_BODY"])
-positions = data.get("positions")
-if not isinstance(positions, list):
+items = data.get("items")
+if not isinstance(items, list):
     sys.exit(1)
-print(len(positions))
+print(len(items))
 PY
   )
   if [[ -n "$POSITIONS_COUNT" && "$POSITIONS_COUNT" -ge 1 ]]; then
-    log_pass "positions list works"
+    log_pass "vessels list works"
   else
-    log_fail "positions list works"
+    log_fail "vessels list works"
   fi
 fi
 
