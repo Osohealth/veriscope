@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Radio, Ship, MapPin, Activity, Search, Filter, RefreshCw, LogIn } from "lucide-react";
 import MapPanel from "@/components/MapPanel";
+import { getAuthToken } from "@/lib/queryClient";
 import type { Vessel } from "@shared/schema";
 
 interface VesselWithPosition extends Vessel {
@@ -28,11 +29,11 @@ export default function AisVesselTracking() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVesselType, setSelectedVesselType] = useState<string>("all");
   const [selectedVessel, setSelectedVessel] = useState<VesselWithPosition | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
+  const [mapFocus, setMapFocus] = useState<{ center: [number, number]; zoom?: number; token: number } | null>(null);
   const [, setLocation] = useLocation();
 
   // Check if user is logged in
-  const isLoggedIn = typeof window !== 'undefined' && !!localStorage.getItem('access_token');
+  const isLoggedIn = !!getAuthToken();
 
   // Fetch all vessels
   const { data: vessels = [], isLoading, error, refetch } = useQuery<VesselWithPosition[]>({
@@ -47,7 +48,7 @@ export default function AisVesselTracking() {
   // Fetch AIS positions for selected vessel
   const { data: positions = [] } = useQuery<any[]>({
     queryKey: ['/api/ais-positions', selectedVessel?.mmsi],
-    enabled: !!selectedVessel?.mmsi
+    enabled: isLoggedIn && !!selectedVessel?.mmsi
   });
 
   // Filter vessels based on search and type
@@ -76,7 +77,14 @@ export default function AisVesselTracking() {
   const handleVesselClick = (vessel: VesselWithPosition) => {
     setSelectedVessel(vessel);
     if (vessel.position?.latitude && vessel.position?.longitude) {
-      setMapCenter([vessel.position.latitude, vessel.position.longitude]);
+      const lat = parseFloat(String(vessel.position.latitude));
+      const lng = parseFloat(String(vessel.position.longitude));
+      if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+      setMapFocus({
+        center: [lat, lng],
+        zoom: 6,
+        token: Date.now()
+      });
     }
   };
 
@@ -293,8 +301,8 @@ export default function AisVesselTracking() {
               selectedPort=""
               timeRange="24h"
               scope="tankscope"
-              mapCenter={mapCenter}
-              onMapCenterReset={() => setMapCenter(undefined)}
+              mapFocus={mapFocus}
+              selectedVesselMmsi={selectedVessel?.mmsi}
             />
           </div>
 

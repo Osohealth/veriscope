@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { MethodologyBadge, ConfidenceBadge, UncertaintyBand, parseMethodology } from "./credibility-indicator";
+import { getAuthHeaders } from "@/lib/queryClient";
 
 interface StorageWidgetProps {
   portId: string;
@@ -22,7 +23,7 @@ export default function StorageWidget({ portId }: StorageWidgetProps) {
   const { data: sites, isLoading } = useQuery<StorageSite[]>({
     queryKey: ['/api/storage/sites'],
     queryFn: async () => {
-      const response = await fetch('/api/storage/sites');
+      const response = await fetch('/api/storage/sites', { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Failed to fetch storage sites');
       return response.json();
     }

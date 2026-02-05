@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getAuthHeaders } from "@/lib/queryClient";
 
 interface SignalExplainability {
   triggerReason: string;
@@ -26,7 +27,7 @@ export function useSignals() {
   return useQuery<Signal[]>({
     queryKey: ['/api/signals'],
     queryFn: async () => {
-      const response = await fetch('/api/signals');
+      const response = await fetch('/api/signals', { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Failed to fetch signals');
       return response.json();
     },

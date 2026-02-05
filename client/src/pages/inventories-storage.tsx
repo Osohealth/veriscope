@@ -18,6 +18,7 @@ import {
   parseMethodology
 } from "@/components/credibility-indicator";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { getAuthHeaders } from "@/lib/queryClient";
 
 interface StorageSite {
   id: string;
@@ -145,7 +146,16 @@ export default function InventoriesStoragePage() {
   const sprReserves = sprData?.allRecords || [];
 
   const { data: timeSeries, isLoading: timeSeriesLoading } = useQuery<StorageTimeSeries[]>({
-    queryKey: ['/api/storage/time-series', { region: timeSeriesRegion, storageType: timeSeriesStorageType }],
+    queryKey: ['/api/storage/time-series', timeSeriesRegion, timeSeriesStorageType],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (timeSeriesRegion) params.set("region", timeSeriesRegion);
+      if (timeSeriesStorageType) params.set("storageType", timeSeriesStorageType);
+      const url = `/api/storage/time-series?${params.toString()}`;
+      const response = await fetch(url, { headers: getAuthHeaders() });
+      if (!response.ok) throw new Error("Failed to fetch storage time series");
+      return response.json();
+    }
   });
 
   // Filter storage sites

@@ -11,6 +11,7 @@ import { Link } from "wouter";
 import type { SupplyDemandBalance } from "@shared/schema";
 import { Line, LineChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { MLPredictionCard } from "@/components/ml-prediction-card";
+import { getAuthHeaders } from "@/lib/queryClient";
 
 interface SdModelDaily {
   id: string;
@@ -40,7 +41,7 @@ export default function SupplyDemandPage() {
     queryKey: ['/api/supply-demand/models-daily', csvRegionFilter],
     queryFn: async () => {
       const params = csvRegionFilter !== "all" ? `?region=${csvRegionFilter}` : '';
-      const response = await fetch(`/api/supply-demand/models-daily${params}`);
+      const response = await fetch(`/api/supply-demand/models-daily${params}`, { headers: getAuthHeaders() });
       return response.json();
     }
   });

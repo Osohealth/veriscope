@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { BarChart3, TrendingUp, TrendingDown, Activity, DollarSign, AlertTriangle, Clock } from "lucide-react";
 import { useDelayAdjustedPredictions } from "@/hooks/use-delay-adjusted-predictions";
 import { useRotterdamData } from "@/hooks/use-rotterdam-data";
+import { getAuthHeaders } from "@/lib/queryClient";
 
 interface MarketAnalytics {
   id: string;
@@ -32,7 +33,7 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
   const { data: analytics, isLoading } = useQuery<MarketAnalytics[]>({
     queryKey: ['/api/market-analytics', dashboardType, region],
     queryFn: async () => {
-      const response = await fetch(`/api/market-analytics?type=${dashboardType}&region=${region}`);
+      const response = await fetch(`/api/market-analytics?type=${dashboardType}&region=${region}`, { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Failed to fetch market analytics');
       return response.json();
     },

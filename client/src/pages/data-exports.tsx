@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Download, Ship, Anchor, AlertTriangle, TrendingUp, FileSpreadsheet, CheckCircle } from "lucide-react";
+import { getAuthHeaders } from "@/lib/queryClient";
 
 const EXPORT_OPTIONS = [
   {
@@ -48,7 +49,7 @@ export default function DataExportsPage() {
   const handleDownload = async (option: typeof EXPORT_OPTIONS[0]) => {
     setDownloading(option.id);
     try {
-      const response = await fetch(option.endpoint);
+      const response = await fetch(option.endpoint, { headers: getAuthHeaders() });
       if (!response.ok) throw new Error("Export failed");
       
       const blob = await response.blob();

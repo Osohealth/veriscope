@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
 import { ArrowLeft, Anchor, Ship, Clock, TrendingUp, Calendar, MapPin } from "lucide-react";
 import type { PortCall, Port, Vessel } from "@shared/schema";
+import { getAuthToken } from "@/lib/queryClient";
 
 interface EnrichedPortCall extends PortCall {
   port?: Port;
@@ -18,15 +19,18 @@ interface EnrichedPortCall extends PortCall {
 export default function PortEventEngine() {
   const [selectedPort, setSelectedPort] = useState<string>("all");
   const [selectedVessel, setSelectedVessel] = useState<string | null>(null);
+  const isAuthed = !!getAuthToken();
 
   // Fetch ports
   const { data: ports = [] } = useQuery<Port[]>({
-    queryKey: ['/api/ports']
+    queryKey: ['/api/ports'],
+    enabled: isAuthed
   });
 
   // Fetch vessels
   const { data: vessels = [] } = useQuery<Vessel[]>({
-    queryKey: ['/api/vessels']
+    queryKey: ['/api/vessels'],
+    enabled: isAuthed
   });
 
   // Fetch port calls with proper port filtering
@@ -36,7 +40,7 @@ export default function PortEventEngine() {
   
   const { data: portCalls = [], isLoading } = useQuery<PortCall[]>({
     queryKey: [portCallsUrl],
-    enabled: true
+    enabled: isAuthed
   });
 
   // Enrich port calls with port and vessel data

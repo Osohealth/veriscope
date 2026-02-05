@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getAuthHeaders } from "@/lib/queryClient";
 
 interface PortStats {
   id: string;
@@ -21,7 +22,7 @@ export function usePortStats(portId: string) {
   return useQuery<PortStats>({
     queryKey: ['/api/ports', portId, 'stats'],
     queryFn: async () => {
-      const response = await fetch(`/api/ports/${portId}/stats`);
+      const response = await fetch(`/api/ports/${portId}/stats`, { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Failed to fetch port statistics');
       return response.json();
     },

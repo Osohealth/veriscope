@@ -46,6 +46,9 @@ import Documentation from "@/pages/documentation";
 import TankScope from "@/pages/tankscope";
 import WatchlistsPage from "@/pages/watchlists";
 import AlertRulesPage from "@/pages/alert-rules";
+import AlertsPage from "@/pages/alerts";
+import AlertsHealthPage from "@/pages/alerts-health";
+import AlertSubscriptionsPage from "@/pages/alert-subscriptions";
 import DataExportsPage from "@/pages/data-exports";
 import RefinerySatellite from "@/pages/refinery-satellite";
 import PortDetailPage from "@/pages/port-detail";
@@ -62,6 +65,9 @@ function Router() {
       <Route path="/landing" component={Home} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/signals" component={SignalsPage} />
+      <Route path="/alerts" component={AlertsPage} />
+      <Route path="/alerts/health" component={AlertsHealthPage} />
+      <Route path="/alerts/subscriptions" component={AlertSubscriptionsPage} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/careers" component={Careers} />

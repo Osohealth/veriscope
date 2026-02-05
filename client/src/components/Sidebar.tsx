@@ -14,6 +14,8 @@ const navigation = [
 
 const userTools = [
   { name: "Watchlists", href: "/watchlists", icon: List },
+  { name: "Alert Activity", href: "/alerts", icon: Bell },
+  { name: "Alert Subscriptions", href: "/alerts/subscriptions", icon: Bell },
   { name: "Alert Rules", href: "/alert-rules", icon: Bell },
   { name: "Exports", href: "/exports", icon: Download },
 ];
