@@ -11,7 +11,7 @@ export default function Careers() {
       title: "Senior Machine Learning Engineer",
       department: "Engineering",
       location: "San Francisco, CA",
-      type: "Full-time",
+      type: "Part-time",
       level: "Senior",
       description: "Build and optimize ML models for real-time price prediction and market signal detection",
       skills: ["Python", "TensorFlow", "Data Science", "AWS"]
