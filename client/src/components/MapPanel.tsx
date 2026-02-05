@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useVessels } from "@/hooks/use-vessels";
-import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
+import { getAuthHeaders } from "@/lib/queryClient";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -35,11 +36,26 @@ interface MapPanelProps {
   vesselTypes?: any;
   mapCenter?: [number, number] | null;
   onMapCenterReset?: () => void;
+  mapFocus?: { center: [number, number]; zoom?: number; token: number } | null;
+  selectedVesselMmsi?: string;
 }
 
-export default function MapPanel({ selectedPort, timeRange, scope, layers: externalLayers, vesselTypes: externalVesselTypes, mapCenter, onMapCenterReset }: MapPanelProps) {
+function MapFocus({ focus }: { focus: { center: [number, number]; zoom?: number; token: number } | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!focus?.center) return;
+    const zoom = focus.zoom ?? map.getZoom();
+    map.flyTo(focus.center, zoom, { duration: 1.2 });
+  }, [focus?.token, map]);
+
+  return null;
+}
+
+export default function MapPanel({ selectedPort, timeRange, scope, layers: externalLayers, vesselTypes: externalVesselTypes, mapCenter, onMapCenterReset, mapFocus, selectedVesselMmsi }: MapPanelProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [fallbackToken, setFallbackToken] = useState(0);
   const [, navigate] = useLocation();
   
   // Use external layers/vesselTypes if provided, otherwise use local state
@@ -71,7 +87,7 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
   const { data: portsData } = useQuery<{ items: ApiPort[] }>({
     queryKey: ['/v1/ports'],
     queryFn: async () => {
-      const res = await fetch('/v1/ports');
+      const res = await fetch('/v1/ports', { headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Failed to fetch ports');
       return res.json();
     }
@@ -93,22 +109,16 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
     return port ? [port.lat, port.lng] : [30, 30]; // Default center
   };
 
-  // Handle map centering when mapCenter prop changes
-  useEffect(() => {
-    if (mapCenter && onMapCenterReset) {
-      // Reset the mapCenter prop after using it to avoid stale centering
-      onMapCenterReset();
-    }
-  }, [mapCenter, onMapCenterReset]);
-
   // Create custom icons for vessels and ports
-  const createVesselIcon = (status?: string) => {
+  const createVesselIcon = (status?: string, isSelected?: boolean) => {
     const color = getVesselColor(status);
+    const size = isSelected ? 16 : 12;
+    const border = isSelected ? 3 : 2;
     return L.divIcon({
       className: 'custom-vessel-marker',
-      html: `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6]
+      html: `<div style="background-color: ${color}; width: ${size}px; height: ${size}px; border-radius: 50%; border: ${border}px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.4);"></div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2]
     });
   };
 
@@ -124,6 +134,18 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
   useEffect(() => {
     setMapLoaded(true);
   }, [selectedPort, vessels, scope]);
+
+  useEffect(() => {
+    if (mapCenter) {
+      setFallbackToken((token) => token + 1);
+    }
+  }, [mapCenter?.[0], mapCenter?.[1]]);
+
+  useEffect(() => {
+    if (mapCenter && onMapCenterReset) {
+      onMapCenterReset();
+    }
+  }, [fallbackToken, mapCenter, onMapCenterReset]);
 
   const getVesselColor = (status?: string) => {
     switch (status) {
@@ -146,12 +168,13 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
       <div className="w-full h-full" data-testid="map-container">
         {scope !== 'flightscope' ? (
           <MapContainer
-            key={`${selectedPort}-${Object.values(layers).join('-')}-${mapCenter ? mapCenter.join(',') : 'default'}`}
+            key={`${selectedPort}-${Object.values(layers).join('-')}`}
             center={getMapCenter()}
             zoom={selectedPort === 'fujairah' || selectedPort === 'rotterdam' ? 6 : 4}
             style={{ height: '100%', width: '100%' }}
             className="leaflet-container"
           >
+            <MapFocus focus={mapFocus ?? (mapCenter ? { center: mapCenter, zoom: undefined, token: fallbackToken } : null)} />
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -190,12 +213,13 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
               
               const lat = typeof vessel.position.latitude === 'string' ? parseFloat(vessel.position.latitude) : vessel.position.latitude;
               const lng = typeof vessel.position.longitude === 'string' ? parseFloat(vessel.position.longitude) : vessel.position.longitude;
+              const isSelected = selectedVesselMmsi && vessel.mmsi === selectedVesselMmsi;
               
               return (
                 <Marker
                   key={vessel.mmsi}
                   position={[lat, lng]}
-                  icon={createVesselIcon(vessel.position.navigationStatus)}
+                  icon={createVesselIcon(vessel.position.navigationStatus, isSelected)}
                 >
                   <Popup>
                     <div className="text-sm">

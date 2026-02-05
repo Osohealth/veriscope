@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Anchor, Ship, Clock, MapPin, Activity, Users } from "lucide-react";
+import { getAuthHeaders, getAuthToken } from "@/lib/queryClient";
 
 interface PortDetail {
   id: string;
@@ -35,31 +36,31 @@ interface PortCall {
 
 export default function PortDetailPage() {
   const { portId } = useParams<{ portId: string }>();
+  const token = getAuthToken();
+  const isAuthed = !!token;
   
   const { data: port, isLoading: portLoading } = useQuery<PortDetail>({
     queryKey: ['/v1/ports', portId],
     queryFn: async () => {
-      const token = localStorage.getItem('access_token');
       const res = await fetch(`/v1/ports/${portId}`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error('Failed to fetch port');
       return res.json();
     },
-    enabled: !!portId
+    enabled: isAuthed && !!portId
   });
 
   const { data: callsData, isLoading: callsLoading } = useQuery<{ items: PortCall[] }>({
     queryKey: ['/v1/ports', portId, 'calls'],
     queryFn: async () => {
-      const token = localStorage.getItem('access_token');
       const res = await fetch(`/v1/ports/${portId}/calls?limit=20`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error('Failed to fetch port calls');
       return res.json();
     },
-    enabled: !!portId
+    enabled: isAuthed && !!portId
   });
 
   const calls = callsData?.items || [];

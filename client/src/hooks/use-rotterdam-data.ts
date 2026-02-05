@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getAuthHeaders, getAuthToken } from "@/lib/queryClient";
 
 export interface RotterdamDataPoint {
   date: string;
@@ -38,35 +39,44 @@ export interface RotterdamDataResponse {
 }
 
 export function useRotterdamData(month?: string, enabled: boolean = true) {
+  const token = getAuthToken();
+  const isAuthed = !!token;
+
   return useQuery<RotterdamDataResponse>({
     queryKey: ['/api/rotterdam-data', month],
     queryFn: async () => {
       const url = month 
         ? `/api/rotterdam-data?month=${month}` 
         : '/api/rotterdam-data';
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Failed to fetch Rotterdam data');
       return response.json();
     },
-    enabled: enabled,
+    enabled: isAuthed && enabled,
   });
 }
 
 export function useRotterdamMonths(enabled: boolean = true) {
+  const token = getAuthToken();
+  const isAuthed = !!token;
+
   return useQuery<string[]>({
     queryKey: ['/api/rotterdam-data/months'],
     queryFn: async () => {
-      const response = await fetch('/api/rotterdam-data/months');
+      const response = await fetch('/api/rotterdam-data/months', { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Failed to fetch Rotterdam months');
       return response.json();
     },
-    enabled: enabled,
+    enabled: isAuthed && enabled,
   });
 }
 
 export function useLatestRotterdamData() {
+  const token = getAuthToken();
+  const isAuthed = !!token;
+
   return useQuery<RotterdamDataPoint>({
     queryKey: ['/api/rotterdam-data/latest'],
-    enabled: true,
+    enabled: isAuthed,
   });
 }

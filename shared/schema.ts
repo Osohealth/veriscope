@@ -1,4 +1,4 @@
-import { pgTable, varchar, text, integer, decimal, timestamp, boolean, jsonb, serial, date } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, integer, decimal, doublePrecision, timestamp, boolean, jsonb, serial, date, index, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -42,7 +42,7 @@ export const ports = pgTable("ports", {
   unlocode: varchar("unlocode", { length: 10 }), // UN/LOCODE e.g. NLRTM
   country: varchar("country", { length: 50 }).notNull(),
   countryCode: varchar("country_code", { length: 10 }), // ISO 2-letter country code
-  region: varchar("region", { length: 50 }).notNull(),
+  region: varchar("region", { length: 50 }).notNull().default("Unknown"),
   latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
   longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
   timezone: varchar("timezone", { length: 50 }), // e.g. Europe/Amsterdam
@@ -273,15 +273,22 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// API Keys (Phase One)
+// API Keys (Alerts Auth)
 export const apiKeys = pgTable("api_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  organizationId: varchar("organization_id").references(() => organizations.id).notNull(),
+  tenantId: uuid("tenant_id").notNull().default(sql`'00000000-0000-0000-0000-000000000001'`),
+  userId: varchar("user_id"),
+  organizationId: varchar("organization_id"),
   keyHash: varchar("key_hash", { length: 255 }).notNull(),
+  name: varchar("name", { length: 100 }),
   label: varchar("label", { length: 100 }),
   isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+}, (table) => ({
+  keyHashUnique: uniqueIndex("api_keys_key_hash_unique").on(table.keyHash),
+  tenantKeyHashIdx: index("api_keys_tenant_key_hash").on(table.tenantId, table.keyHash),
+}));
 
 // User Alerts and Notifications
 export const alerts = pgTable("alerts", {
@@ -325,6 +332,66 @@ export const portStats = pgTable("port_stats", {
   byClass: jsonb("by_class").notNull(), // VLCC, Suezmax, Aframax counts
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Port Daily Baselines (daily port activity baselines + rolling 30d stats)
+export const portDailyBaselines = pgTable("port_daily_baselines", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  portId: varchar("port_id").references(() => ports.id).notNull(),
+  day: date("day").notNull(),
+  arrivals: integer("arrivals").notNull().default(0),
+  departures: integer("departures").notNull().default(0),
+  uniqueVessels: integer("unique_vessels").notNull().default(0),
+  avgDwellHours: doublePrecision("avg_dwell_hours"),
+  openCalls: integer("open_calls").notNull().default(0),
+  arrivals30dAvg: doublePrecision("arrivals_30d_avg"),
+  arrivals30dStd: doublePrecision("arrivals_30d_std"),
+  dwell30dAvg: doublePrecision("dwell_30d_avg"),
+  dwell30dStd: doublePrecision("dwell_30d_std"),
+  openCalls30dAvg: doublePrecision("open_calls_30d_avg"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  portDayUnique: uniqueIndex("port_daily_baselines_port_day").on(table.portId, table.day),
+  dayDescIdx: index("port_daily_baselines_day_desc").on(table.day.desc()),
+  portDayDescIdx: index("port_daily_baselines_port_day_desc").on(table.portId, table.day.desc()),
+}));
+
+// Signals (persisted port-level anomaly signals)
+export const signals = pgTable("signals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  signalType: text("signal_type").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: varchar("entity_id").notNull(),
+  day: date("day").notNull(),
+  severity: text("severity").notNull(),
+  value: doublePrecision("value").notNull(),
+  baseline: doublePrecision("baseline"),
+  stddev: doublePrecision("stddev"),
+  zscore: doublePrecision("zscore"),
+  deltaPct: doublePrecision("delta_pct"),
+  confidenceScore: doublePrecision("confidence_score"),
+  confidenceBand: text("confidence_band"),
+  method: text("method"),
+  clusterId: text("cluster_id"),
+  clusterKey: text("cluster_key"),
+  clusterType: text("cluster_type"),
+  clusterSeverity: text("cluster_severity"),
+  clusterSummary: text("cluster_summary"),
+  explanation: text("explanation").notNull(),
+  metadata: jsonb("metadata").notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  uniqueSignal: uniqueIndex("signals_unique").on(
+    table.signalType,
+    table.entityType,
+    table.entityId,
+    table.day,
+  ),
+  dayIdx: index("signals_day").on(table.day),
+  entityDayIdx: index("signals_entity_day").on(table.entityId, table.day),
+  dayClusterIdx: index("signals_day_cluster").on(table.day, table.clusterId),
+  severityIdx: index("signals_severity").on(table.severity),
+  typeIdx: index("signals_signal_type").on(table.signalType),
+}));
 
 // Market Predictions (AI-powered price forecasts)
 export const predictions = pgTable("predictions", {
@@ -844,6 +911,127 @@ export const insertPortStatsSchema = createInsertSchema(portStats).omit({
   createdAt: true,
 });
 
+export const alertSubscriptions = pgTable("alert_subscriptions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull().default(sql`'00000000-0000-0000-0000-000000000001'`),
+  userId: uuid("user_id"),
+  scope: varchar("scope", { length: 20 }).notNull().default("PORT"),
+  entityType: varchar("entity_type", { length: 30 }).notNull().default("port"),
+  entityId: uuid("entity_id").notNull(),
+  severityMin: varchar("severity_min", { length: 20 }).notNull().default("HIGH"),
+  confidenceMin: varchar("confidence_min", { length: 20 }),
+  channel: varchar("channel", { length: 20 }).notNull().default("WEBHOOK"),
+  endpoint: text("endpoint").notNull(),
+  secret: text("secret"),
+  signatureVersion: varchar("signature_version", { length: 10 }).notNull().default("v1"),
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  lastTestAt: timestamp("last_test_at", { withTimezone: true }),
+  lastTestStatus: text("last_test_status"),
+  lastTestError: text("last_test_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  tenantUserEnabledIdx: index("idx_alert_subs_tenant_user_enabled").on(table.tenantId, table.userId, table.isEnabled),
+  tenantEntityIdx: index("idx_alert_subs_tenant_entity").on(table.tenantId, table.entityType, table.entityId),
+  tenantUserCreatedIdx: index("alert_subscriptions_tenant_user_created_id").on(table.tenantId, table.userId, table.createdAt.desc(), table.id.desc()),
+  uniqueIdx: uniqueIndex("alert_subscriptions_unique").on(table.tenantId, table.userId, table.channel, table.endpoint, table.entityId),
+}));
+
+export const alertRuns = pgTable("alert_runs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull().default(sql`'00000000-0000-0000-0000-000000000001'`),
+  day: date("day"),
+  startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  status: varchar("status", { length: 20 }).notNull(),
+  summary: jsonb("summary"),
+  error: jsonb("error"),
+}, (table) => ({
+  startedAtIdx: index("idx_alert_runs_started_at").on(table.startedAt),
+  tenantStartedAtIdx: index("idx_alert_runs_tenant_started_at").on(table.tenantId, table.startedAt),
+}));
+
+export const alertDedupe = pgTable("alert_dedupe", {
+  tenantId: uuid("tenant_id").notNull().default(sql`'00000000-0000-0000-0000-000000000001'`),
+  clusterId: text("cluster_id").notNull(),
+  channel: text("channel").notNull(),
+  endpoint: text("endpoint").notNull(),
+  lastSentAt: timestamp("last_sent_at", { withTimezone: true }).notNull(),
+  ttlHours: integer("ttl_hours").notNull().default(24),
+}, (table) => ({
+  uniqueIdx: uniqueIndex("alert_dedupe_unique").on(table.tenantId, table.clusterId, table.channel, table.endpoint),
+}));
+
+export const alertDeliveries = pgTable("alert_deliveries", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  runId: uuid("run_id").notNull(),
+  tenantId: uuid("tenant_id").notNull().default(sql`'00000000-0000-0000-0000-000000000001'`),
+  userId: uuid("user_id"),
+  subscriptionId: uuid("subscription_id").notNull(),
+  clusterId: text("cluster_id").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id").notNull(),
+  day: date("day").notNull(),
+  destinationType: text("destination_type").notNull(),
+  endpoint: text("endpoint").notNull(),
+  status: text("status").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  lastHttpStatus: integer("last_http_status"),
+  latencyMs: integer("latency_ms"),
+  error: text("error"),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  isTest: boolean("is_test").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  }, (table) => ({
+    runIdx: index("alert_deliveries_run_id").on(table.runId),
+    tenantUserCreatedIdx: index("alert_deliveries_tenant_user_created_id").on(table.tenantId, table.userId, table.createdAt.desc(), table.id.desc()),
+    subTimeIdx: index("alert_deliveries_sub_time").on(table.subscriptionId, table.createdAt.desc()),
+    dayEntityIdx: index("alert_deliveries_day_entity").on(table.day, table.entityId),
+    clusterIdx: index("alert_deliveries_cluster_id").on(table.clusterId),
+  }));
+
+export const alertDeliveryAttempts = pgTable("alert_delivery_attempts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull().default(sql`'00000000-0000-0000-0000-000000000001'`),
+  deliveryId: uuid("delivery_id").notNull(),
+  attemptNo: integer("attempt_no").notNull(),
+  status: text("status").notNull(),
+  latencyMs: integer("latency_ms"),
+  httpStatus: integer("http_status"),
+  error: text("error"),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  tenantDeliveryIdx: index("alert_delivery_attempts_tenant_delivery_id").on(table.tenantId, table.deliveryId),
+  createdIdx: index("alert_delivery_attempts_created_at").on(table.createdAt),
+}));
+
+export const alertDlq = pgTable("alert_dlq", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull().default(sql`'00000000-0000-0000-0000-000000000001'`),
+  deliveryId: uuid("delivery_id").notNull(),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull(),
+  attemptCount: integer("attempt_count").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(10),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueIdx: uniqueIndex("alert_dlq_unique").on(table.deliveryId),
+  nextAttemptIdx: index("alert_dlq_next_attempt").on(table.nextAttemptAt),
+  tenantNextAttemptIdx: index("alert_dlq_tenant_next_attempt").on(table.tenantId, table.nextAttemptAt),
+  tenantAttemptIdx: index("alert_dlq_tenant_attempt_count").on(table.tenantId, table.attemptCount),
+}));
+
+export const insertPortDailyBaselineSchema = createInsertSchema(portDailyBaselines).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertSignalSchema = createInsertSchema(signals).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertPredictionSchema = createInsertSchema(predictions).omit({
   id: true,
   createdAt: true,
@@ -1033,6 +1221,12 @@ export type Notification = typeof notifications.$inferSelect;
 
 export type PortStats = typeof portStats.$inferSelect;
 export type InsertPortStats = z.infer<typeof insertPortStatsSchema>;
+
+export type PortDailyBaseline = typeof portDailyBaselines.$inferSelect;
+export type InsertPortDailyBaseline = z.infer<typeof insertPortDailyBaselineSchema>;
+
+export type Signal = typeof signals.$inferSelect;
+export type InsertSignal = z.infer<typeof insertSignalSchema>;
 
 export type Prediction = typeof predictions.$inferSelect;
 export type InsertPrediction = z.infer<typeof insertPredictionSchema>;

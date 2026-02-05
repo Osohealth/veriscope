@@ -11,10 +11,15 @@ import {
   researchInsightsDaily 
 } from '@shared/schema';
 
-const CSV_DATA_PATH = path.join(process.cwd(), 'attached_assets', 'extracted_data');
+const DEFAULT_CSV_DATA_PATH = path.join(process.cwd(), 'attached_assets', 'extracted_data');
+const CSV_DATA_PATH = process.env.CSV_DATA_PATH || DEFAULT_CSV_DATA_PATH;
 
 function readCSV(filename: string): any[] {
   const filePath = path.join(CSV_DATA_PATH, filename);
+  if (!fs.existsSync(filePath)) {
+    console.warn(`[CSV IMPORT] Missing file: ${filePath}. Skipping.`);
+    return [];
+  }
   const fileContent = fs.readFileSync(filePath, 'utf-8');
   return parse(fileContent, {
     columns: true,
@@ -174,6 +179,7 @@ export async function importResearchInsightsDaily() {
 
 export async function importAllCSVData() {
   console.log('Starting CSV data import...');
+  console.log(`[CSV IMPORT] Using CSV_DATA_PATH=${CSV_DATA_PATH}`);
   
   await importRefineryUnits();
   await importRefineryUtilization();

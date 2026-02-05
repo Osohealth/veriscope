@@ -11,6 +11,7 @@ import { Link } from "wouter";
 import type { Refinery } from "@shared/schema";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { MLPredictionCard } from "@/components/ml-prediction-card";
+import { getAuthHeaders } from "@/lib/queryClient";
 
 interface RefineryUtilization {
   id: string;
@@ -33,7 +34,7 @@ export default function RefineryIntelligencePage() {
     queryKey: ['/api/refinery/utilization', selectedPlant],
     queryFn: async () => {
       const params = selectedPlant !== "all" ? `?plant=${selectedPlant}` : '';
-      const response = await fetch(`/api/refinery/utilization${params}`);
+      const response = await fetch(`/api/refinery/utilization${params}`, { headers: getAuthHeaders() });
       return response.json();
     }
   });

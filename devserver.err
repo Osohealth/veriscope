@@ -1,0 +1,1251 @@
+Browserslist: browsers data (caniuse-lite) is 16 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\refinery_units.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\refinery_utilization.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\refinery_crack_spreads.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\sd_models_daily.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\sd_forecasts_weekly.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\research_insights_daily.csv. Skipping.
+Signals monitoring error: TypeError: terminated
+    at Fetch.onAborted (node:internal/deps/undici/undici:12707:53)
+    at Fetch.emit (node:events:508:28)
+    at Fetch.terminate (node:internal/deps/undici/undici:11866:14)
+    at Object.onError (node:internal/deps/undici/undici:12831:38)
+    at Request.onError (node:internal/deps/undici/undici:3019:31)
+    at Object.errorRequest (node:internal/deps/undici/undici:1897:17)
+    at TLSSocket.onHttpSocketClose (node:internal/deps/undici/undici:7637:14)
+    at TLSSocket.emit (node:events:520:35)
+    at node:net:346:12
+    at TCP.done (node:_tls_wrap:666:7) {
+  [cause]: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20) {
+    errno: -4077,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+{"timestamp":"2026-02-02T00:18:31.400Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+Signals monitoring error: TypeError: terminated
+    at Fetch.onAborted (node:internal/deps/undici/undici:12707:53)
+    at Fetch.emit (node:events:508:28)
+    at Fetch.terminate (node:internal/deps/undici/undici:11866:14)
+    at Object.onError (node:internal/deps/undici/undici:12831:38)
+    at Request.onError (node:internal/deps/undici/undici:3019:31)
+    at Object.errorRequest (node:internal/deps/undici/undici:1897:17)
+    at TLSSocket.onHttpSocketClose (node:internal/deps/undici/undici:7637:14)
+    at TLSSocket.emit (node:events:520:35)
+    at node:net:346:12
+    at TCP.done (node:_tls_wrap:666:7) {
+  [cause]: Error: read ECONNRESET
+      at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20) {
+    errno: -4077,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+{"timestamp":"2026-02-02T00:18:31.527Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+{"timestamp":"2026-02-02T00:18:31.529Z","level":"error","message":"Port call detection error","metadata":{"error":"Error connecting to database: fetch failed"}}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:34:19)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:34:19)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: Error: getaddrinfo ENOTFOUND api.c-2.eu-central-1.aws.neon.tech
+        at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'api.c-2.eu-central-1.aws.neon.tech'
+    }
+  }
+}
+Error calculating port delays: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+    at async DelayService.calculatePortDelays (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:39:21)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:19:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+      at async DelayService.calculatePortDelays (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:39:21)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:19:9) {
+    [cause]: Error: getaddrinfo ENOTFOUND api.c-2.eu-central-1.aws.neon.tech
+        at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'api.c-2.eu-central-1.aws.neon.tech'
+    }
+  }
+}
+{"timestamp":"2026-02-02T06:18:31.346Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:34:19)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:34:19)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: Error: getaddrinfo ENOTFOUND api.c-2.eu-central-1.aws.neon.tech
+        at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'api.c-2.eu-central-1.aws.neon.tech'
+    }
+  }
+}
+{"timestamp":"2026-02-02T06:18:31.348Z","level":"error","message":"Port call detection error","metadata":{"error":"Error connecting to database: fetch failed"}}
+Prediction service error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getCommodities (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:343:12)
+    at async PredictionService.generatePredictions (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\predictionService.ts:38:25)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\predictionService.ts:16:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getCommodities (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:343:12)
+      at async PredictionService.generatePredictions (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\predictionService.ts:38:25)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\predictionService.ts:16:9) {
+    [cause]: Error: getaddrinfo ENOTFOUND api.c-2.eu-central-1.aws.neon.tech
+        at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'api.c-2.eu-central-1.aws.neon.tech'
+    }
+  }
+}
+Error calculating port delays: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+    at async DelayService.calculatePortDelays (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:39:21)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:19:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+      at async DelayService.calculatePortDelays (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:39:21)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:19:9) {
+    [cause]: Error: getaddrinfo ENOTFOUND api.c-2.eu-central-1.aws.neon.tech
+        at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'api.c-2.eu-central-1.aws.neon.tech'
+    }
+  }
+}
+{"timestamp":"2026-02-02T17:34:04.615Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+{"timestamp":"2026-02-02T17:34:04.615Z","level":"error","message":"Port call detection error","metadata":{"error":"Error connecting to database: fetch failed"}}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:34:19)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:34:19)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: Error: getaddrinfo ENOTFOUND api.c-2.eu-central-1.aws.neon.tech
+        at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'api.c-2.eu-central-1.aws.neon.tech'
+    }
+  }
+}
+Error calculating port delays: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+    at async DelayService.calculatePortDelays (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:39:21)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:19:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+      at async DelayService.calculatePortDelays (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:39:21)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:19:9) {
+    [cause]: Error: getaddrinfo ENOTFOUND api.c-2.eu-central-1.aws.neon.tech
+        at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'api.c-2.eu-central-1.aws.neon.tech'
+    }
+  }
+}
+Prediction service error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getCommodities (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:343:12)
+    at async PredictionService.generatePredictions (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\predictionService.ts:38:25)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\predictionService.ts:16:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getCommodities (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:343:12)
+      at async PredictionService.generatePredictions (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\predictionService.ts:38:25)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\predictionService.ts:16:9) {
+    [cause]: Error: getaddrinfo ENOTFOUND api.c-2.eu-central-1.aws.neon.tech
+        at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'api.c-2.eu-central-1.aws.neon.tech'
+    }
+  }
+}
+{"timestamp":"2026-02-02T17:34:34.625Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+{"timestamp":"2026-02-02T17:35:54.101Z","level":"warn","requestId":"706bf51a-a709-48f7-b2d6-08f08d49c903","route":"/api/trade-flows","method":"GET","statusCode":401,"latencyMs":1,"message":"GET /api/trade-flows 401 1ms"}
+{"timestamp":"2026-02-02T17:35:54.103Z","level":"warn","requestId":"d28250bc-ff8b-4085-8afa-c3e635ad65b6","route":"/api/flow-forecasts","method":"GET","statusCode":401,"latencyMs":1,"message":"GET /api/flow-forecasts 401 1ms"}
+{"timestamp":"2026-02-02T17:36:03.381Z","level":"error","requestId":"bd0582e3-ce9f-4cfc-8508-784a0ea693c5","route":"/api/storage/sites","method":"GET","statusCode":500,"latencyMs":13702,"message":"GET /api/storage/sites 500 13702ms"}
+{"timestamp":"2026-02-02T17:38:57.507Z","level":"warn","requestId":"e55544e0-85be-4f8b-9d28-b00b9c2331b6","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":1,"message":"GET /api/vessels 401 1ms"}
+{"timestamp":"2026-02-02T17:38:57.509Z","level":"warn","requestId":"b2fbfb7e-5bfc-450d-ba63-1835fea9f6a2","route":"/api/ports/fujairah/stats","method":"GET","statusCode":401,"latencyMs":1,"message":"GET /api/ports/fujairah/stats 401 1ms"}
+{"timestamp":"2026-02-02T17:38:57.511Z","level":"warn","requestId":"32d4f958-08e3-4eaa-ab6d-3bdb3667ab7b","route":"/api/predictions/delay-adjusted","method":"GET","statusCode":401,"latencyMs":2,"message":"GET /api/predictions/delay-adjusted 401 2ms"}
+V1 port calls error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getVessel (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:402:20)
+    at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:751:26)
+    at async Promise.all (index 7)
+    at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:749:21) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getVessel (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:402:20)
+      at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:751:26)
+      at async Promise.all (index 7)
+      at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:749:21) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+{"timestamp":"2026-02-02T17:39:16.245Z","level":"error","requestId":"9ce646bf-29f0-4524-8654-4f0d656c2ec0","route":"/v1/ports/283ec475-54ae-4f3b-9390-300c16239657/calls","method":"GET","statusCode":500,"latencyMs":10583,"message":"GET /v1/ports/283ec475-54ae-4f3b-9390-300c16239657/calls 500 10583ms"}
+{"timestamp":"2026-02-02T17:39:16.253Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+V1 port calls error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getVessel (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:402:20)
+    at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:751:26)
+    at async Promise.all (index 19)
+    at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:749:21) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getVessel (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:402:20)
+      at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:751:26)
+      at async Promise.all (index 19)
+      at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:749:21) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+{"timestamp":"2026-02-02T17:39:40.601Z","level":"error","requestId":"fa67bcb3-8be9-4785-827b-cca8a1bf9828","route":"/v1/ports/283ec475-54ae-4f3b-9390-300c16239657/calls","method":"GET","statusCode":500,"latencyMs":10634,"message":"GET /v1/ports/283ec475-54ae-4f3b-9390-300c16239657/calls 500 10634ms"}
+{"timestamp":"2026-02-02T17:39:40.617Z","level":"error","requestId":"1ac86043-e433-4a33-9346-c6cf422a8732","route":"/api/watchlists","method":"GET","statusCode":500,"latencyMs":10648,"message":"GET /api/watchlists 500 10648ms"}
+{"timestamp":"2026-02-02T17:39:45.690Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+V1 port detail error: ErrorEvent {
+  Symbol(kTarget): WebSocket {
+    _events: [Object: null prototype] {
+      error: [Function],
+      message: [Function],
+      close: [Function],
+      open: [Function]
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech/v2',
+    _req: null,
+    Symbol(shapeMode): false,
+    Symbol(kCapture): false
+  },
+  Symbol(kType): 'error',
+  Symbol(kError): Error: connect ETIMEDOUT 63.179.28.86:443
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16) {
+    errno: -4039,
+    code: 'ETIMEDOUT',
+    syscall: 'connect',
+    address: '63.179.28.86',
+    port: 443
+  },
+  Symbol(kMessage): 'connect ETIMEDOUT 63.179.28.86:443'
+}
+{"timestamp":"2026-02-02T17:39:51.131Z","level":"error","requestId":"34ed65a0-c32b-4059-8325-76d0bd05bbb7","route":"/v1/ports/283ec475-54ae-4f3b-9390-300c16239657","method":"GET","statusCode":500,"latencyMs":21166,"message":"GET /v1/ports/283ec475-54ae-4f3b-9390-300c16239657 500 21166ms"}
+{"timestamp":"2026-02-02T17:39:57.677Z","level":"warn","requestId":"7a4c9aa6-a4c8-44ce-8db0-f3c28f186f5a","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":2,"message":"GET /api/vessels 401 2ms"}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+{"timestamp":"2026-02-02T17:40:14.924Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+{"timestamp":"2026-02-02T17:40:14.925Z","level":"error","message":"Port call detection error","metadata":{"error":"Error connecting to database: fetch failed"}}
+Error calculating port delays: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+    at async DelayService.calculatePortDelays (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:39:21)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:19:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+      at async DelayService.calculatePortDelays (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:39:21)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:19:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getLatestPortStats (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:549:20)
+    at async SignalsService.checkPortCongestion (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:43:19)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:37:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getLatestPortStats (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:549:20)
+      at async SignalsService.checkPortCongestion (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:43:19)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:37:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+V1 port calls error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getVessel (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:402:20)
+    at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:751:26)
+    at async Promise.all (index 19)
+    at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:749:21) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getVessel (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:402:20)
+      at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:751:26)
+      at async Promise.all (index 19)
+      at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:749:21) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+{"timestamp":"2026-02-02T17:40:27.473Z","level":"error","requestId":"f0b12430-4223-4aeb-afae-3333f41d217f","route":"/v1/ports/283ec475-54ae-4f3b-9390-300c16239657/calls","method":"GET","statusCode":500,"latencyMs":10525,"message":"GET /v1/ports/283ec475-54ae-4f3b-9390-300c16239657/calls 500 10525ms"}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getStorageFacilities (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:439:12)
+    at async DrizzleStorage.getStorageSites (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:454:12)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:101:19)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getStorageFacilities (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:439:12)
+      at async DrizzleStorage.getStorageSites (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:454:12)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:101:19)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+{"timestamp":"2026-02-02T18:29:06.710Z","level":"warn","requestId":"967feb17-00d4-42aa-8d1f-0b3f5a47c228","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":2,"message":"GET /api/vessels 401 2ms"}
+{"timestamp":"2026-02-02T18:59:23.771Z","level":"warn","requestId":"e938770b-2c02-4f10-966d-ec5f44809bdb","route":"/api/trade-flows","method":"GET","statusCode":401,"latencyMs":5,"message":"GET /api/trade-flows 401 5ms"}
+{"timestamp":"2026-02-02T18:59:23.775Z","level":"warn","requestId":"3dff9095-2a1e-4f2c-ae02-9989b3d49eb1","route":"/api/flow-forecasts","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/flow-forecasts 401 3ms"}
+{"timestamp":"2026-02-02T18:59:26.329Z","level":"warn","requestId":"d79041e4-d8c5-4b1c-a5df-590261879852","route":"/api/crude-grades","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/crude-grades 401 3ms"}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+{"timestamp":"2026-02-02T19:00:42.279Z","level":"warn","requestId":"8099c62f-c674-4dc5-8fcf-33e4a350673d","route":"/api/trade-flows","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/trade-flows 401 3ms"}
+{"timestamp":"2026-02-02T19:00:42.286Z","level":"warn","requestId":"7e6def29-fd02-4ca7-88b9-f014e031aecf","route":"/api/flow-forecasts","method":"GET","statusCode":401,"latencyMs":4,"message":"GET /api/flow-forecasts 401 4ms"}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getStorageFacilities (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:439:12)
+    at async DrizzleStorage.getStorageSites (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:454:12)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:101:19)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getStorageFacilities (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:439:12)
+      at async DrizzleStorage.getStorageSites (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:454:12)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:101:19)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+{"timestamp":"2026-02-02T19:00:54.000Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+{"timestamp":"2026-02-02T19:01:24.290Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+{"timestamp":"2026-02-02T19:01:54.389Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+{"timestamp":"2026-02-02T19:20:34.476Z","level":"warn","requestId":"49ea0365-d814-4b3f-9ca7-f60295b8243a","route":"/api/trade-flows","method":"GET","statusCode":401,"latencyMs":4,"message":"GET /api/trade-flows 401 4ms"}
+{"timestamp":"2026-02-02T19:20:34.480Z","level":"warn","requestId":"6dcb1b4e-2a15-483d-a9d7-2e73e60f97d2","route":"/api/flow-forecasts","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/flow-forecasts 401 3ms"}
+{"timestamp":"2026-02-02T22:30:48.554Z","level":"warn","requestId":"b5d95030-86aa-404c-9775-8e6d3b38ec6f","route":"/v1/signals","method":"GET","statusCode":400,"latencyMs":1,"message":"GET /v1/signals 400 1ms"}
+{"timestamp":"2026-02-02T22:30:48.870Z","level":"warn","requestId":"8b609ca6-9515-4893-a0c1-1550d962e871","route":"/v1/signals","method":"GET","statusCode":400,"latencyMs":1,"message":"GET /v1/signals 400 1ms"}
+{"timestamp":"2026-02-02T22:31:33.781Z","level":"warn","requestId":"9ef6c2e9-3f98-429f-9d2d-884f19cc3e85","route":"/v1/signals","method":"GET","statusCode":400,"latencyMs":1,"message":"GET /v1/signals 400 1ms"}
+{"timestamp":"2026-02-02T22:31:34.254Z","level":"warn","requestId":"a1d758b9-3932-40ed-9eda-3509bf4eca88","route":"/v1/signals","method":"GET","statusCode":400,"latencyMs":0,"message":"GET /v1/signals 400 0ms"}
+{"timestamp":"2026-02-02T22:31:34.941Z","level":"warn","requestId":"3dd30a63-bcd4-486f-9977-934614c7848e","route":"/v1/signals","method":"GET","statusCode":400,"latencyMs":1,"message":"GET /v1/signals 400 1ms"}
+{"timestamp":"2026-02-02T22:31:37.127Z","level":"warn","requestId":"7093fa90-a73a-4003-a4b0-fdaecceb29d9","route":"/v1/signals","method":"GET","statusCode":400,"latencyMs":1,"message":"GET /v1/signals 400 1ms"}
+{"timestamp":"2026-02-02T22:37:21.076Z","level":"warn","requestId":"f581b1d6-be6e-4c05-b22f-5dc230b4eccf","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":4,"message":"GET /api/vessels 401 4ms"}
+{"timestamp":"2026-02-02T22:37:21.084Z","level":"warn","requestId":"cd0bb4d2-8f3e-46a2-928a-0da5614fd6fb","route":"/api/predictions/delay-adjusted","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions/delay-adjusted 401 3ms"}
+{"timestamp":"2026-02-02T22:37:21.087Z","level":"warn","requestId":"63036871-c625-4168-95c3-11f6ab064236","route":"/api/ports/fujairah/stats","method":"GET","statusCode":401,"latencyMs":2,"message":"GET /api/ports/fujairah/stats 401 2ms"}
+{"timestamp":"2026-02-02T22:37:21.091Z","level":"warn","requestId":"95345d2f-83b0-4e6f-872e-6e8ad0b4ed2d","route":"/api/signals","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/signals 401 3ms"}
+{"timestamp":"2026-02-02T22:37:21.096Z","level":"warn","requestId":"ba94f1f5-6be4-4e9e-af19-43f9a22cbece","route":"/api/predictions","method":"GET","statusCode":401,"latencyMs":2,"message":"GET /api/predictions 401 2ms"}
+{"timestamp":"2026-02-02T23:06:06.259Z","level":"warn","requestId":"a6b6a0be-2218-4068-ae54-6f44fa1c1488","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/vessels 401 3ms"}
+{"timestamp":"2026-02-02T23:13:32.139Z","level":"warn","requestId":"ef1591ab-c56c-43a2-867a-00f6a70d85d5","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":4,"message":"GET /api/vessels 401 4ms"}
+{"timestamp":"2026-02-02T23:13:47.603Z","level":"warn","requestId":"5d765baa-a712-4bab-bba3-6afab3504457","route":"/api/trade-flows","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/trade-flows 401 3ms"}
+{"timestamp":"2026-02-02T23:13:47.607Z","level":"warn","requestId":"d9d59d8c-2e36-4fb7-b93a-9d28799a6dac","route":"/api/flow-forecasts","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/flow-forecasts 401 3ms"}
+{"timestamp":"2026-02-02T23:14:07.445Z","level":"warn","requestId":"a623609c-d8c1-4979-91be-a0f095b82aa6","route":"/api/port-calls","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/port-calls 401 3ms"}
+{"timestamp":"2026-02-02T23:14:07.449Z","level":"warn","requestId":"0857e1d7-21d7-416a-a9c5-04965b59efe0","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/vessels 401 3ms"}
+{"timestamp":"2026-02-02T23:14:11.088Z","level":"error","requestId":"09dd7826-5e94-465e-aa2a-26e1157e16c2","route":"/api/storage/sites","method":"GET","statusCode":500,"latencyMs":19280,"message":"GET /api/storage/sites 500 19280ms"}
+{"timestamp":"2026-02-02T23:14:12.608Z","level":"error","requestId":"496c0676-4793-4207-b37c-42aa8b8127eb","route":"/api/ports","method":"GET","statusCode":500,"latencyMs":11431,"message":"GET /api/ports 500 11431ms"}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+{"timestamp":"2026-02-02T23:14:13.071Z","level":"error","message":"AIS simulation error","metadata":{"error":"Error connecting to database: fetch failed"}}
+{"timestamp":"2026-02-02T23:14:20.034Z","level":"warn","requestId":"44c83e54-00f7-489f-8ec1-77c81326d36f","route":"/api/communications","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/communications 401 3ms"}
+{"timestamp":"2026-02-02T23:14:29.553Z","level":"warn","requestId":"b2311614-7d1f-4e8a-a11e-dc0907f9aecf","route":"/api/container-operations","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/container-operations 401 3ms"}
+{"timestamp":"2026-02-02T23:14:29.557Z","level":"warn","requestId":"f5e89257-0d8f-4cdb-b077-3637dbadb6b0","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":2,"message":"GET /api/vessels 401 2ms"}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at runNextTicks (node:internal/process/task_queues:68:3)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at runNextTicks (node:internal/process/task_queues:68:3)
+      at process.processImmediate (node:internal/timers:472:9)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+Error calculating port delays: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+    at async DelayService.calculatePortDelays (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:39:21)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:19:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:373:12)
+      at async DelayService.calculatePortDelays (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:39:21)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\delayService.ts:19:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getStorageFacilities (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:439:12)
+    at async DrizzleStorage.getStorageSites (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:454:12)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:101:19)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getStorageFacilities (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:439:12)
+      at async DrizzleStorage.getStorageSites (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:454:12)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:101:19)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.c-2.eu-central-1.aws.neon.tech:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}
+Signals monitoring error: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+    at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+    at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+    at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+    at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:16416:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\node_modules\src\neon-http\session.ts:68:18)
+      at async DrizzleStorage.getLatestStorageFillData (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\storage.ts:597:20)
+      at async SignalsService.checkStorageAnomalies (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:105:24)
+      at async SignalsService.analyzeForSignals (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:38:7)
+      at async Timeout._onTimeout (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\signalsService.ts:15:9) {
+    [cause]: ConnectTimeoutError: Connect Timeout Error (attempted addresses: 63.178.215.242:443, 63.179.28.86:443, 3.69.34.233:443, timeout: 10000ms)
+        at onConnectTimeout (node:internal/deps/undici/undici:1946:23)
+        at Immediate._onImmediate (node:internal/deps/undici/undici:1912:35)
+        at process.processImmediate (node:internal/timers:504:21) {
+      code: 'UND_ERR_CONNECT_TIMEOUT'
+    }
+  }
+}

@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import swaggerUi from "swagger-ui-express";
+import { randomBytes, randomUUID } from "node:crypto";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { storage } from "./storage";
 import { aisService } from "./services/aisService";
 import { signalsService } from "./services/signalsService";
@@ -10,6 +12,19 @@ import { delayService } from "./services/delayService";
 import { mockDataService } from "./services/mockDataService";
 import { portCallService } from "./services/portCallService";
 import { rotterdamDataService } from "./services/rotterdamDataService";
+import { getPortDailyBaselines, startPortDailyBaselineScheduler } from "./services/portDailyBaselineService";
+import { evaluatePortSignalsForDay, formatSignalDay, getSignalById, getYesterdayUtcDay, listSignals, parseSignalDay } from "./services/signalEngine";
+import { buildSignalResponse, type SignalEntity } from "./services/signalResponse";
+import { buildSignalClusterAlertPayload } from "./services/signalAlertService";
+import { validateAlertSubscriptionInput } from "./services/alertSubscriptionService";
+import { runAlerts } from "./services/alertDispatcher";
+import { retryAlertDlq, retryDeliveryById } from "./services/alertDlqQueue";
+import { listAlertDeliveries } from "./services/alertDeliveries";
+import { getDeliveryHealthByDay, getDeliveryLatency, getEndpointHealth, getDlqHealth, getDlqOverdue } from "./services/alertMetrics";
+import { buildWebhookRequest, sendWebhook } from "./services/webhookSender";
+import { sendEmail } from "./services/emailSender";
+import { GLOBAL_SCOPE_ENTITY_ID, normalizeScope } from "./services/alertScope";
+import { TENANT_DEMO_ID } from "./config/tenancy";
 import { authService } from "./services/authService";
 import { sessionService } from "./services/sessionService";
 import { auditService } from "./services/auditService";
@@ -21,6 +36,41 @@ import { cacheService, CACHE_KEYS, CACHE_TTL } from "./services/cacheService";
 import { parsePaginationParams, paginateArray, parseGeoQueryParams, filterByGeoRadius } from "./utils/pagination";
 import { openApiSpec } from "./openapi";
 import { getAuthenticatedUser, createRepository, listRepositories } from "./services/githubService";
+import { db } from "./db";
+import { alertDedupe, alertDeliveries, alertDeliveryAttempts, alertDlq, alertRuns, alertSubscriptions, apiKeys, portCalls, portDailyBaselines, ports, signals, vessels } from "@shared/schema";
+import { SEVERITY_RANK } from "@shared/signalTypes";
+import { WEBHOOK_TIMEOUT_MS } from "./config/alerting";
+import { authenticateApiKey } from "./middleware/apiKeyAuth";
+import { generateApiKey, hashApiKey } from "./services/apiKeyService";
+
+type InitResult = {
+  portCount: number;
+  startedAt: string;
+  completedAt: string;
+};
+
+let initInProgress: Promise<InitResult> | null = null;
+let initCompleted: InitResult | null = null;
+
+const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
+const subscriptionTestRateLimit = new Map<string, number[]>();
+
+const normalizeEmail = (value: string) => value.trim().toLowerCase();
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+const isValidWebhookUrl = (value: string, allowHttp: boolean) => {
+  try {
+    const parsed = new URL(value);
+    if (!allowHttp && parsed.protocol !== "https:") return false;
+    if (allowHttp && !["https:", "http:"].includes(parsed.protocol)) return false;
+    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+      return allowHttp;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+const generateSecret = () => randomBytes(24).toString("base64url");
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -34,6 +84,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const status = getHealthStatus();
     res.status(status.status === 'healthy' ? 200 : status.status === 'degraded' ? 200 : 503).json(status);
   });
+
+  app.get('/health/alerts', async (req, res) => {
+    try {
+      await db.execute(sql`SELECT 1`);
+
+      const [runRow] = await db
+        .insert(alertRuns)
+        .values({ tenantId: TENANT_DEMO_ID, status: "SUCCESS", startedAt: new Date(), finishedAt: new Date() })
+        .returning();
+      if (runRow?.id) {
+        await db.delete(alertRuns).where(eq(alertRuns.id, runRow.id));
+      }
+
+      await db.execute(sql`SELECT 1 FROM alert_deliveries LIMIT 1`);
+      await db.execute(sql`SELECT 1 FROM alert_dlq LIMIT 1`);
+
+      res.json({ status: "ok" });
+    } catch (error: any) {
+      res.status(500).json({ status: "error", error: error.message || "Alert health check failed" });
+    }
+  });
+
+  app.get('/health/webhooks', (req, res) => {
+    try {
+      if (typeof fetch !== "function") {
+        return res.status(500).json({ status: "error", error: "fetch is unavailable" });
+      }
+      res.json({ status: "ok", timeout_ms: WEBHOOK_TIMEOUT_MS });
+    } catch (error: any) {
+      res.status(500).json({ status: "error", error: error.message || "Webhook health check failed" });
+    }
+  });
+
+  if (process.env.NODE_ENV === "development") {
+    setTimeout(async () => {
+      try {
+        const demoUserId = "00000000-0000-0000-0000-000000000001";
+        const [existing] = await db
+          .select()
+          .from(apiKeys)
+          .where(eq(apiKeys.userId, demoUserId))
+          .limit(1);
+        if (!existing) {
+          const rawKey = generateApiKey("vs_demo");
+          await db.insert(apiKeys).values({
+            tenantId: TENANT_DEMO_ID,
+            userId: demoUserId,
+            keyHash: hashApiKey(rawKey),
+            name: "dev-demo",
+          });
+          console.log(`DEMO_API_KEY=${rawKey}`);
+        }
+      } catch (error) {
+        console.warn("Failed to seed demo API key:", (error as Error).message);
+      }
+    }, 0);
+  }
 
   app.get('/ready', async (req, res) => {
     try {
@@ -72,6 +179,548 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message,
         timestamp: new Date().toISOString()
       });
+    }
+  });
+
+  // Port daily baselines (internal debugging)
+  app.get('/api/baselines/ports/:portId', optionalAuth, async (req, res) => {
+    try {
+      const { portId } = req.params;
+      const daysParam = parseInt(req.query.days as string);
+      const days = Number.isFinite(daysParam) ? daysParam : 30;
+      const items = await getPortDailyBaselines(portId, days);
+      res.json({ items });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Failed to fetch baselines' });
+    }
+  });
+
+  // Signal engine manual run (internal)
+  app.post('/api/signals/run', optionalAuth, async (req, res) => {
+    try {
+      const dayParam = req.query.day as string | undefined;
+      const parsedDay = dayParam ? parseSignalDay(dayParam) : null;
+
+      if (dayParam && !parsedDay) {
+        return res.status(400).json({ error: 'day must be YYYY-MM-DD' });
+      }
+
+      const targetDay = parsedDay ?? getYesterdayUtcDay();
+      const result = await evaluatePortSignalsForDay(targetDay);
+      res.json({ day: formatSignalDay(targetDay), count: result.upserted });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Failed to run signal engine' });
+    }
+  });
+
+  // Dev-only: seed an anomaly baseline row for deterministic signals
+  app.post('/api/dev/seed-anomaly', async (req, res) => {
+    try {
+      if (process.env.NODE_ENV === 'production') {
+        const expectedToken = process.env.DEV_SEED_TOKEN;
+        if (!expectedToken) {
+          return res.status(403).json({ error: 'Dev seeding disabled in production' });
+        }
+        const providedToken = (req.query.token as string | undefined) || (req.headers['x-dev-seed-token'] as string | undefined);
+        if (!providedToken || providedToken !== expectedToken) {
+          return res.status(403).json({ error: 'Invalid dev seed token' });
+        }
+      }
+
+      const dayParam = req.query.day as string | undefined;
+      const parsedDay = parseSignalDay(dayParam);
+      if (!dayParam || !parsedDay) {
+        return res.status(400).json({ error: 'day is required as YYYY-MM-DD' });
+      }
+
+      const requestedPortId = req.query.port_id as string | undefined;
+      let port = null as null | { id: string; name: string | null; code: string | null; unlocode: string | null };
+
+      if (requestedPortId) {
+        const [found] = await db.select().from(ports).where(eq(ports.id, requestedPortId)).limit(1);
+        if (!found) {
+          return res.status(404).json({ error: 'Port not found' });
+        }
+        port = found;
+      } else {
+        const [rotterdam] = await db
+          .select()
+          .from(ports)
+          .where(or(
+            eq(ports.unlocode, 'NLRTM'),
+            eq(ports.code, 'RTM'),
+            sql`${ports.name} ILIKE ${'%rotterdam%'}`
+          ))
+          .limit(1);
+
+        if (rotterdam) {
+          port = rotterdam;
+        } else {
+          const [firstPort] = await db.select().from(ports).orderBy(desc(ports.name)).limit(1);
+          port = firstPort ?? null;
+        }
+      }
+
+      if (!port) {
+        return res.status(400).json({ error: 'No ports available to seed' });
+      }
+
+      const historyDays = 10;
+      const historyRows = Array.from({ length: historyDays }, (_, index) => {
+        const day = new Date(parsedDay);
+        day.setUTCDate(day.getUTCDate() - (index + 1));
+        return {
+          portId: port.id,
+          day,
+          arrivals: 100,
+          departures: 90,
+          uniqueVessels: 80,
+          avgDwellHours: 6,
+          openCalls: 10,
+          arrivals30dAvg: 100,
+          arrivals30dStd: 10,
+          dwell30dAvg: 6,
+          dwell30dStd: 1,
+          openCalls30dAvg: 10,
+          updatedAt: new Date(),
+        };
+      });
+
+      if (historyRows.length > 0) {
+        await db
+          .insert(portDailyBaselines)
+          .values(historyRows)
+          .onConflictDoUpdate({
+            target: [portDailyBaselines.portId, portDailyBaselines.day],
+            set: {
+              arrivals: sql`excluded.arrivals`,
+              departures: sql`excluded.departures`,
+              uniqueVessels: sql`excluded.unique_vessels`,
+              avgDwellHours: sql`excluded.avg_dwell_hours`,
+              openCalls: sql`excluded.open_calls`,
+              arrivals30dAvg: sql`excluded.arrivals_30d_avg`,
+              arrivals30dStd: sql`excluded.arrivals_30d_std`,
+              dwell30dAvg: sql`excluded.dwell_30d_avg`,
+              dwell30dStd: sql`excluded.dwell_30d_std`,
+              openCalls30dAvg: sql`excluded.open_calls_30d_avg`,
+              updatedAt: sql`excluded.updated_at`,
+            },
+          });
+      }
+
+      const seed = {
+        portId: port.id,
+        day: parsedDay,
+        arrivals: 60,
+        departures: 20,
+        uniqueVessels: 18,
+        avgDwellHours: 12,
+        openCalls: 40,
+        arrivals30dAvg: 100,
+        arrivals30dStd: 10,
+        dwell30dAvg: 6,
+        dwell30dStd: 1,
+        openCalls30dAvg: 10,
+        updatedAt: new Date(),
+      };
+
+      const [baseline] = await db
+        .insert(portDailyBaselines)
+        .values(seed)
+        .onConflictDoUpdate({
+          target: [portDailyBaselines.portId, portDailyBaselines.day],
+          set: seed,
+        })
+        .returning();
+
+      res.json({
+        message: 'Seeded anomaly baseline row',
+        day: formatSignalDay(parsedDay),
+        port: {
+          id: port.id,
+          name: port.name,
+          code: port.code,
+          unlocode: port.unlocode,
+        },
+        baseline,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Failed to seed anomaly' });
+    }
+  });
+
+  // Dev-only: webhook sink for demo success
+  app.post('/api/dev/webhook-sink', (req, res) => {
+    if (process.env.NODE_ENV === "production" && process.env.DEV_ROUTES_ENABLED !== "true") {
+      return res.status(404).json({ error: "Not found" });
+    }
+    res.json({ ok: true });
+  });
+
+  // Dev-only: seed alert subscriptions for demo
+  app.post('/api/dev/alert-subscriptions/seed', async (req, res) => {
+    try {
+      if (process.env.NODE_ENV !== "development") {
+        return res.status(404).json({ error: "Not found" });
+      }
+      if (process.env.NODE_ENV === 'production') {
+        const expectedToken = process.env.DEV_SEED_TOKEN;
+        if (!expectedToken) {
+          return res.status(403).json({ error: 'Dev seeding disabled in production' });
+        }
+        const providedToken = (req.query.token as string | undefined) || (req.headers['x-dev-seed-token'] as string | undefined);
+        if (!providedToken || providedToken !== expectedToken) {
+          return res.status(403).json({ error: 'Invalid dev seed token' });
+        }
+      }
+
+      const [port] = await db
+        .select({ id: ports.id, name: ports.name, code: ports.code, unlocode: ports.unlocode })
+        .from(ports)
+        .where(or(
+          eq(ports.unlocode, 'NLRTM'),
+          eq(ports.code, 'RTM'),
+          sql`${ports.name} ILIKE ${'%rotterdam%'}`
+        ))
+        .limit(1);
+
+      if (!port) {
+        return res.status(400).json({ error: 'No ports available to seed subscriptions' });
+      }
+
+      const host = req.get('host') || 'localhost:5000';
+      const baseUrl = `${req.protocol}://${host}`;
+      const demoUserId = "00000000-0000-0000-0000-000000000001";
+      const demoTenantId = TENANT_DEMO_ID;
+
+      // Hard reset demo alert data for deterministic results.
+      await db.delete(alertDlq).where(eq(alertDlq.tenantId, demoTenantId));
+      await db.delete(alertDeliveries).where(eq(alertDeliveries.tenantId, demoTenantId));
+      await db.delete(alertDedupe).where(eq(alertDedupe.tenantId, demoTenantId));
+      await db.delete(alertRuns).where(eq(alertRuns.tenantId, demoTenantId));
+      await db.delete(alertSubscriptions).where(and(eq(alertSubscriptions.userId, demoUserId), eq(alertSubscriptions.tenantId, demoTenantId)));
+
+      const seedSubscriptions = [
+        {
+          tenantId: demoTenantId,
+          userId: demoUserId,
+          scope: "PORT",
+          entityType: "port",
+          entityId: port.id,
+          severityMin: "HIGH",
+          channel: "WEBHOOK",
+          endpoint: `${baseUrl}/api/dev/webhook-sink`,
+          isEnabled: true,
+          updatedAt: new Date(),
+        },
+        {
+          tenantId: demoTenantId,
+          userId: demoUserId,
+          scope: "PORT",
+          entityType: "port",
+          entityId: port.id,
+          severityMin: "HIGH",
+          channel: "WEBHOOK",
+          endpoint: "http://localhost:9999/webhook",
+          isEnabled: true,
+          updatedAt: new Date(),
+        },
+        {
+          tenantId: demoTenantId,
+          userId: demoUserId,
+          scope: "PORT",
+          entityType: "port",
+          entityId: port.id,
+          severityMin: "HIGH",
+          channel: "EMAIL",
+          endpoint: "alerts@veriscope.dev",
+          isEnabled: true,
+          updatedAt: new Date(),
+        },
+      ];
+
+      const created = await db
+        .insert(alertSubscriptions)
+        .values(seedSubscriptions)
+        .onConflictDoNothing()
+        .returning();
+
+      res.json({ ok: true, subscriptions_created: created.length });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Failed to seed alert subscriptions' });
+    }
+  });
+
+  // Dev-only: seed Rotterdam port calls for a week (>=30 vessels)
+    app.post('/api/dev/seed-rotterdam-week', async (req, res) => {
+      try {
+        if (process.env.NODE_ENV !== "development") {
+          return res.status(404).json({ error: "Not found" });
+        }
+        if (process.env.NODE_ENV === 'production') {
+          const expectedToken = process.env.DEV_SEED_TOKEN;
+        if (!expectedToken) {
+          return res.status(403).json({ error: 'Dev seeding disabled in production' });
+        }
+        const providedToken = (req.query.token as string | undefined) || (req.headers['x-dev-seed-token'] as string | undefined);
+        if (!providedToken || providedToken !== expectedToken) {
+          return res.status(403).json({ error: 'Invalid dev seed token' });
+        }
+      }
+
+      const daysRaw = Number(req.query.days ?? 7);
+      const vesselsRaw = Number(req.query.vessels ?? 30);
+      const days = Math.max(7, Math.min(31, Number.isFinite(daysRaw) ? daysRaw : 7));
+      const vesselCount = Math.max(30, Math.min(200, Number.isFinite(vesselsRaw) ? vesselsRaw : 30));
+
+      const [rotterdam] = await db
+        .select({ id: ports.id, name: ports.name, code: ports.code, unlocode: ports.unlocode })
+        .from(ports)
+        .where(or(
+          eq(ports.code, 'NLRTM'),
+          eq(ports.unlocode, 'NLRTM'),
+          sql`lower(${ports.name}) = 'rotterdam'`,
+        ))
+        .limit(1);
+
+      if (!rotterdam) {
+        return res.status(404).json({ error: 'Rotterdam port not found' });
+      }
+
+      const todayUtc = new Date();
+      const startUtc = new Date(Date.UTC(
+        todayUtc.getUTCFullYear(),
+        todayUtc.getUTCMonth(),
+        todayUtc.getUTCDate() - (days - 1),
+      ));
+
+      const mmsiList = Array.from({ length: vesselCount }, (_, idx) => String(200000000 + idx));
+      const existing = await db
+        .select({ id: vessels.id, mmsi: vessels.mmsi })
+        .from(vessels)
+        .where(inArray(vessels.mmsi, mmsiList));
+
+      const existingMap = new Map(existing.map((row) => [row.mmsi, row.id]));
+      const newVessels = mmsiList
+        .filter((mmsi) => !existingMap.has(mmsi))
+        .map((mmsi, idx) => ({
+          id: randomUUID(),
+          mmsi,
+          name: `DEV Rotterdam Vessel ${mmsi.slice(-4)}`,
+          vesselType: idx % 2 === 0 ? 'container' : 'tanker',
+          flag: 'NL',
+          owner: 'Dev Fleet',
+          operator: 'Dev Ops',
+          buildYear: 2000 + (idx % 20),
+        }));
+
+      if (newVessels.length > 0) {
+        await db.insert(vessels).values(newVessels);
+        for (const vessel of newVessels) {
+          existingMap.set(vessel.mmsi, vessel.id);
+        }
+      }
+
+      const seedTag = 'dev_rotterdam_week';
+      await db.execute(sql`
+        DELETE FROM port_calls
+        WHERE port_id = ${rotterdam.id}
+          AND metadata->>'seed' = ${seedTag}
+          AND arrival_time >= ${startUtc}
+      `);
+
+      const calls = mmsiList.map((mmsi, idx) => {
+        const vesselId = existingMap.get(mmsi)!;
+        const dayOffset = idx % days;
+        const arrival = new Date(startUtc);
+        arrival.setUTCDate(startUtc.getUTCDate() + dayOffset);
+        arrival.setUTCHours(6 + (idx % 12), (idx * 7) % 60, 0, 0);
+
+        const dwellHours = 8 + (idx % 24);
+        const shouldDepart = idx % 5 !== 0;
+        const departure = shouldDepart ? new Date(arrival.getTime() + dwellHours * 3600 * 1000) : null;
+
+        return {
+          vesselId,
+          portId: rotterdam.id,
+          callType: 'arrival',
+          status: shouldDepart ? 'completed' : 'in_progress',
+          arrivalTime: arrival,
+          departureTime: departure,
+          berthNumber: `B-${(idx % 20) + 1}`,
+          purpose: idx % 3 === 0 ? 'loading' : idx % 3 === 1 ? 'discharging' : 'bunkering',
+          waitTimeHours: (idx % 6) + 1,
+          berthTimeHours: dwellHours,
+          metadata: { seed: seedTag },
+        };
+      });
+
+      await db.insert(portCalls).values(calls);
+
+      res.json({
+        port: rotterdam,
+        days,
+        vessels: vesselCount,
+        callsInserted: calls.length,
+        startDate: startUtc.toISOString().slice(0, 10),
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Failed to seed Rotterdam week data' });
+    }
+  });
+
+  // Dev/admin: alert subscriptions
+  app.post('/api/dev/alert-subscriptions', optionalAuth, async (req, res) => {
+    try {
+      if (process.env.NODE_ENV === "production" && process.env.DEV_ROUTES_ENABLED !== "true") {
+        return res.status(404).json({ error: "Not found" });
+      }
+      const allowHttp = process.env.NODE_ENV !== "production";
+      const validation = validateAlertSubscriptionInput(req.body ?? {}, allowHttp);
+      if (!validation.ok) {
+        return res.status(400).json({ error: validation.errors[0] });
+      }
+
+      const [created] = await db
+        .insert(alertSubscriptions)
+        .values({
+          tenantId: TENANT_DEMO_ID,
+          ...validation.value,
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      res.json(created);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to create subscription" });
+    }
+  });
+
+  app.get('/api/dev/alert-subscriptions', optionalAuth, async (req, res) => {
+    try {
+      if (process.env.NODE_ENV === "production" && process.env.DEV_ROUTES_ENABLED !== "true") {
+        return res.status(404).json({ error: "Not found" });
+      }
+      const { user_id } = req.query;
+      if (!user_id) {
+        return res.status(400).json({ error: "user_id is required" });
+      }
+      const rows = await db
+        .select()
+        .from(alertSubscriptions)
+        .where(and(
+          eq(alertSubscriptions.userId, String(user_id)),
+          eq(alertSubscriptions.tenantId, TENANT_DEMO_ID),
+        ));
+      res.json({ items: rows });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to list subscriptions" });
+    }
+  });
+
+  app.post('/api/alerts/run', authenticateApiKey, async (req, res) => {
+      if (process.env.NODE_ENV !== "development") {
+        return res.status(404).json({ error: "Not found" });
+      }
+      try {
+        const dayParam = req.query.day as string | undefined;
+        const parsedDay = dayParam ? parseSignalDay(dayParam) : null;
+        if (dayParam && !parsedDay) {
+          return res.status(400).json({ error: 'day must be YYYY-MM-DD' });
+        }
+        const result = await runAlerts({
+          day: parsedDay ? formatSignalDay(parsedDay) : undefined,
+          userId: req.auth?.userId,
+          tenantId: req.auth?.tenantId,
+        });
+        res.json({ run_id: result.runId, status: result.status, summary: result.summary });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message || 'Failed to run alerts' });
+      }
+    });
+
+    app.post('/api/alerts/retry-dlq', authenticateApiKey, async (req, res) => {
+      if (process.env.NODE_ENV !== "development") {
+        return res.status(404).json({ error: "Not found" });
+      }
+      try {
+        const limit = Math.min(Number(req.query.limit ?? 50), 200);
+        const result = await retryAlertDlq({
+          limit: Number.isFinite(limit) ? limit : 50,
+          now: new Date(),
+          tenantId: req.auth?.tenantId,
+          userId: req.auth?.userId,
+        });
+        res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Failed to retry dlq' });
+    }
+  });
+
+    app.post('/api/alerts/retry-delivery/:delivery_id', authenticateApiKey, async (req, res) => {
+      try {
+        const deliveryId = req.params.delivery_id;
+        const [ownership] = await db
+          .select({ userId: alertSubscriptions.userId, tenantId: alertSubscriptions.tenantId })
+          .from(alertDeliveries)
+          .innerJoin(alertSubscriptions, eq(alertDeliveries.subscriptionId, alertSubscriptions.id))
+          .where(eq(alertDeliveries.id, deliveryId))
+          .limit(1);
+        if (!ownership || ownership.userId !== req.auth?.userId || ownership.tenantId !== req.auth?.tenantId) {
+          return res.status(404).json({ error: "Delivery not found" });
+        }
+        const result = await retryDeliveryById({
+          deliveryId,
+          tenantId: req.auth?.tenantId,
+          userId: req.auth?.userId,
+          now: new Date(),
+        });
+        if (result.status === "not_found") return res.status(404).json({ error: "Delivery not found" });
+        if (result.status === "already_sent") return res.status(409).json({ error: "Delivery already sent" });
+        if (result.status === "terminal") return res.status(409).json({ error: "Delivery is terminal" });
+      res.json({ version: "1", delivery: result.delivery, dlq: result.dlq ?? null, status: result.status });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to retry delivery" });
+    }
+  });
+
+  app.get('/api/alerts/metrics', authenticateApiKey, async (req, res) => {
+    try {
+      const userId = req.auth?.userId;
+      const tenantId = req.auth?.tenantId;
+      if (!userId || !tenantId) return res.status(401).json({ error: "API key required" });
+      const daysRaw = Number(req.query.days ?? 30);
+      const days = Number.isFinite(daysRaw) ? daysRaw : 30;
+      const [deliveryHealth, latency, endpointHealth] = await Promise.all([
+        getDeliveryHealthByDay(days, { tenantId, userId }),
+        getDeliveryLatency(days, { tenantId, userId }),
+        getEndpointHealth(days, { tenantId, userId }),
+      ]);
+      res.json({
+        version: "1",
+        days,
+        delivery_health: deliveryHealth,
+        latency,
+        endpoint_health: endpointHealth,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to fetch alert metrics" });
+    }
+  });
+
+  app.get('/api/alerts/dlq-health', authenticateApiKey, async (req, res) => {
+    try {
+      const userId = req.auth?.userId;
+      const tenantId = req.auth?.tenantId;
+      if (!userId || !tenantId) return res.status(401).json({ error: "API key required" });
+      const limit = Math.min(Number(req.query.limit ?? 20), 200);
+      const [health, overdue] = await Promise.all([
+        getDlqHealth({ tenantId, userId }),
+        getDlqOverdue(Number.isFinite(limit) ? limit : 20, { tenantId, userId }),
+      ]);
+      res.json({ version: "1", health, overdue });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to fetch dlq health" });
     }
   });
 
@@ -499,6 +1148,1101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('V1 top busy ports error:', error);
       res.status(500).json({ error: 'Failed to fetch top busy ports' });
+    }
+  });
+
+  // V1 Signals - List with filters
+  app.get('/v1/signals', optionalAuth, async (req, res) => {
+    try {
+      const {
+        port_id,
+        port,
+        signal_type,
+        severity,
+        severity_min,
+        clustered,
+        include_entity,
+        day,
+        day_from,
+        day_to,
+        limit = '50',
+        offset = '0',
+      } = req.query;
+
+      const dayExact = day ? parseSignalDay(String(day)) : null;
+      let dayFrom = dayExact ?? (day_from ? parseSignalDay(String(day_from)) : null);
+      let dayTo = dayExact ?? (day_to ? parseSignalDay(String(day_to)) : null);
+
+      if ((day && !dayExact) || (day_from && !dayFrom) || (day_to && !dayTo)) {
+        return res.status(400).json({ error: 'day/day_from/day_to must be YYYY-MM-DD' });
+      }
+
+      const limitNum = Math.min(parseInt(String(limit)) || 50, 500);
+      const offsetNum = Math.max(parseInt(String(offset)) || 0, 0);
+      const severityMin = severity_min ? String(severity_min).toUpperCase() : undefined;
+      const clusteredParam = clustered ? String(clustered).toLowerCase() : undefined;
+      const clusteredFlag = clusteredParam === undefined ? true : !['false', '0', 'no'].includes(clusteredParam);
+      const includeEntity = String(include_entity ?? "false").toLowerCase() === "true";
+
+      let resolvedPortId = port_id ? String(port_id) : undefined;
+      const portQuery = port ? String(port).trim() : undefined;
+      if (!resolvedPortId && portQuery) {
+        const normalized = portQuery.toLowerCase();
+        const exactMatches = await db
+          .select()
+          .from(ports)
+          .where(or(
+            sql`lower(${ports.id}) = ${normalized}`,
+            sql`lower(${ports.code}) = ${normalized}`,
+            sql`lower(${ports.unlocode}) = ${normalized}`,
+            sql`lower(${ports.name}) = ${normalized}`,
+          ))
+          .limit(2);
+
+        if (exactMatches.length === 1) {
+          resolvedPortId = exactMatches[0].id;
+        } else if (exactMatches.length > 1) {
+          return res.status(400).json({ error: 'Ambiguous port query (exact match)' });
+        } else {
+          const partialMatches = await db
+            .select()
+            .from(ports)
+            .where(sql`${ports.name} ILIKE ${`%${portQuery}%`}`)
+            .limit(2);
+
+          if (partialMatches.length === 0) {
+            return res.status(404).json({ error: 'Port not found for port filter' });
+          }
+          if (partialMatches.length > 1) {
+            return res.status(400).json({ error: 'Ambiguous port query (partial match)' });
+          }
+          resolvedPortId = partialMatches[0].id;
+        }
+      }
+
+      if (!day && !day_from && !day_to) {
+        const conditions = [] as any[];
+        if (resolvedPortId) {
+          conditions.push(eq(signals.entityType, 'port'));
+          conditions.push(eq(signals.entityId, resolvedPortId));
+        }
+        if (signal_type) {
+          conditions.push(eq(signals.signalType, String(signal_type).toUpperCase()));
+        }
+        if (severity) {
+          conditions.push(eq(signals.severity, String(severity).toUpperCase()));
+        }
+        if (severityMin) {
+          const rank = SEVERITY_RANK[severityMin as keyof typeof SEVERITY_RANK] ?? 0;
+          if (rank > 0) {
+            conditions.push(
+              sql`CASE ${signals.severity}
+                  WHEN 'LOW' THEN 1
+                  WHEN 'MEDIUM' THEN 2
+                  WHEN 'HIGH' THEN 3
+                  WHEN 'CRITICAL' THEN 4
+                  ELSE 0
+                END >= ${rank}`,
+            );
+          }
+        }
+
+        const whereSql = conditions.length > 0 ? sql`${sql.join(conditions, sql` AND `)}` : sql`1=1`;
+        const latestResult = await db.execute(sql`
+          SELECT max(day) AS max_day
+          FROM ${signals}
+          WHERE ${whereSql}
+        `);
+        const latestDay = (latestResult as any).rows?.[0]?.max_day;
+        if (latestDay) {
+          const latestDate = latestDay instanceof Date ? latestDay : new Date(latestDay);
+          dayFrom = latestDate;
+          dayTo = latestDate;
+        }
+      }
+
+      const { items, total } = await listSignals({
+        portId: resolvedPortId,
+        signalType: signal_type ? String(signal_type).toUpperCase() : undefined,
+        severity: severity ? String(severity).toUpperCase() : undefined,
+        severityMin,
+        dayFrom,
+        dayTo,
+        limit: limitNum,
+        offset: offsetNum,
+        clustered: clusteredFlag,
+      });
+
+      let entityMap: Map<string, { id: string; name: string; code: string; unlocode: string }> | null = null;
+      if (includeEntity) {
+        const portIds = Array.from(new Set(items
+          .filter((signal) => signal.entityType === 'port')
+          .map((signal) => signal.entityId)));
+        if (portIds.length > 0) {
+          const portRows = await db
+            .select({
+              id: ports.id,
+              name: ports.name,
+              code: ports.code,
+              unlocode: ports.unlocode,
+            })
+            .from(ports)
+            .where(inArray(ports.id, portIds));
+          entityMap = new Map(portRows.map((row) => [row.id, row]));
+        } else {
+          entityMap = new Map();
+        }
+      }
+
+      const compat = String(req.query.compat ?? "false").toLowerCase() === "true";
+      const mapped = items.map((signal) => buildSignalResponse(signal, {
+        compat,
+        includeEntity,
+        entityMap: entityMap ?? new Map<string, SignalEntity>(),
+      }));
+
+      res.json({ items: mapped, total });
+    } catch (error) {
+      console.error('V1 signals list error:', error);
+      res.status(500).json({ error: 'Failed to fetch signals' });
+    }
+  });
+
+  // V1 Signals - Get by ID
+  app.get('/v1/signals/:id', optionalAuth, async (req, res) => {
+    try {
+      const signal = await getSignalById(req.params.id);
+      if (!signal) {
+        return res.status(404).json({ error: 'Signal not found' });
+      }
+
+      const compat = String(req.query.compat ?? "false").toLowerCase() === "true";
+      const includeEntity = String(req.query.include_entity ?? "false").toLowerCase() === "true";
+      let entityMap: Map<string, SignalEntity> | undefined;
+      if (includeEntity && signal.entityType === 'port') {
+        const portRow = await db
+          .select({
+            id: ports.id,
+            name: ports.name,
+            code: ports.code,
+            unlocode: ports.unlocode,
+          })
+          .from(ports)
+          .where(eq(ports.id, signal.entityId))
+          .limit(1);
+        if (portRow.length > 0) {
+          entityMap = new Map([[portRow[0].id, {
+            id: portRow[0].id,
+            type: "port",
+            name: portRow[0].name,
+            code: portRow[0].code,
+            unlocode: portRow[0].unlocode,
+          }]]);
+        }
+      }
+
+      res.json(buildSignalResponse(signal, {
+        compat,
+        includeEntity,
+        entityMap,
+      }));
+    } catch (error) {
+      console.error('V1 signal detail error:', error);
+      res.status(500).json({ error: 'Failed to fetch signal' });
+    }
+  });
+
+  // V1 Alert Deliveries - List with filters (read-only)
+    app.get('/v1/alert-deliveries', authenticateApiKey, async (req, res) => {
+      try {
+        const {
+          day,
+          days,
+          port,
+          subscription_id,
+          run_id,
+          status,
+          destination,
+          severity_min,
+          is_test,
+          include_entity,
+          cursor,
+          limit = '50',
+        } = req.query;
+
+        const userId = req.auth?.userId;
+        const tenantId = req.auth?.tenantId;
+        if (!userId || !tenantId) return res.status(401).json({ error: "API key required" });
+
+      const dayExact = day ? parseSignalDay(String(day)) : null;
+      if (day && !dayExact) {
+        return res.status(400).json({ error: 'day must be YYYY-MM-DD' });
+      }
+
+      let resolvedPortId: string | undefined;
+      const portQuery = port ? String(port).trim() : undefined;
+      if (portQuery) {
+        const normalized = portQuery.toLowerCase();
+        const exactMatches = await db
+          .select()
+          .from(ports)
+          .where(or(
+            sql`lower(${ports.id}) = ${normalized}`,
+            sql`lower(${ports.code}) = ${normalized}`,
+            sql`lower(${ports.unlocode}) = ${normalized}`,
+            sql`lower(${ports.name}) = ${normalized}`,
+          ))
+          .limit(2);
+        if (exactMatches.length === 1) {
+          resolvedPortId = exactMatches[0].id;
+        } else if (exactMatches.length > 1) {
+          return res.status(400).json({ error: 'Ambiguous port query (exact match)' });
+        } else {
+          const partialMatches = await db
+            .select()
+            .from(ports)
+            .where(sql`${ports.name} ILIKE ${`%${portQuery}%`}`)
+            .limit(2);
+          if (partialMatches.length === 0) {
+            return res.status(404).json({ error: 'Port not found for port filter' });
+          }
+          if (partialMatches.length > 1) {
+            return res.status(400).json({ error: 'Ambiguous port query (partial match)' });
+          }
+          resolvedPortId = partialMatches[0].id;
+        }
+      }
+
+        const limitNum = Math.min(parseInt(String(limit)) || 50, 200);
+        const daysNum = days ? Math.min(Math.max(parseInt(String(days)) || 30, 1), 365) : undefined;
+        const includeEntity = String(include_entity ?? "false").toLowerCase() === "true";
+
+        let cursorCreatedAt: Date | null = null;
+        let cursorId: string | null = null;
+        if (cursor) {
+          try {
+            const decoded = Buffer.from(String(cursor), "base64").toString("utf8");
+            const [createdAtIso, id] = decoded.split("|");
+            const createdAt = new Date(createdAtIso);
+            if (createdAtIso && id && !Number.isNaN(createdAt.getTime())) {
+              cursorCreatedAt = createdAt;
+              cursorId = id;
+            } else {
+              return res.status(400).json({ error: "Invalid cursor" });
+            }
+          } catch {
+            return res.status(400).json({ error: "Invalid cursor" });
+          }
+        }
+
+        const { items, total } = await listAlertDeliveries({
+          days: daysNum,
+          day: dayExact ?? null,
+          tenantId,
+          userId,
+          entityId: resolvedPortId,
+          subscriptionId: subscription_id ? String(subscription_id) : undefined,
+          runId: run_id ? String(run_id) : undefined,
+          status: status && String(status).toUpperCase() === "DLQ" ? undefined : status ? String(status) : undefined,
+          destinationType: destination ? String(destination).toUpperCase() : undefined,
+          isTest: typeof is_test === "string" ? String(is_test).toLowerCase() === "true" : undefined,
+          cursorCreatedAt,
+          cursorId,
+          limit: limitNum,
+        });
+
+        const deliverySubscriptionIds = Array.from(new Set(items.map((row) => row.subscriptionId)));
+        const subscriptionRows = deliverySubscriptionIds.length > 0
+          ? await db.select({
+            id: alertSubscriptions.id,
+            scope: alertSubscriptions.scope,
+            entityId: alertSubscriptions.entityId,
+            entityType: alertSubscriptions.entityType,
+          })
+            .from(alertSubscriptions)
+            .where(and(
+              inArray(alertSubscriptions.id, deliverySubscriptionIds),
+              eq(alertSubscriptions.tenantId, tenantId),
+            ))
+          : [];
+        const subscriptionMap = new Map(subscriptionRows.map((row) => [row.id, row]));
+
+      const deliveryIds = items.map((row) => row.id);
+      const dlqRows = deliveryIds.length > 0
+        ? await db.select({
+          deliveryId: alertDlq.deliveryId,
+          attemptCount: alertDlq.attemptCount,
+          maxAttempts: alertDlq.maxAttempts,
+          nextAttemptAt: alertDlq.nextAttemptAt,
+        })
+          .from(alertDlq)
+          .where(and(
+            inArray(alertDlq.deliveryId, deliveryIds),
+            eq(alertDlq.tenantId, tenantId),
+          ))
+        : [];
+      const dlqMap = new Map(dlqRows.map((row) => [row.deliveryId, row]));
+
+      const clusterIds = Array.from(new Set(items.map((row) => row.clusterId).filter(Boolean))) as string[];
+      const signalRows = clusterIds.length > 0
+        ? await db
+          .select({
+            id: signals.id,
+            clusterId: signals.clusterId,
+            clusterType: signals.clusterType,
+            clusterSeverity: signals.clusterSeverity,
+            clusterSummary: signals.clusterSummary,
+            confidenceScore: signals.confidenceScore,
+            confidenceBand: signals.confidenceBand,
+            method: signals.method,
+            entityId: signals.entityId,
+            day: signals.day,
+            metadata: signals.metadata,
+            createdAt: signals.createdAt,
+          })
+          .from(signals)
+          .where(inArray(signals.clusterId, clusterIds))
+        : [];
+
+      const signalMap = new Map<string, typeof signalRows[number]>();
+      const rankSignal = (row: typeof signalRows[number]) => {
+        const severity = String(row.clusterSeverity ?? "LOW").toUpperCase();
+        const rank = SEVERITY_RANK[severity as keyof typeof SEVERITY_RANK] ?? 0;
+        const confidence = Number(row.confidenceScore ?? 0);
+        return { rank, confidence };
+      };
+      for (const row of signalRows) {
+        const key = `${row.clusterId}|${row.entityId}|${row.day instanceof Date ? formatSignalDay(row.day) : String(row.day)}`;
+        const existing = signalMap.get(key);
+        if (!existing) {
+          signalMap.set(key, row);
+          continue;
+        }
+        const currentRank = rankSignal(existing);
+        const nextRank = rankSignal(row);
+        if (nextRank.rank > currentRank.rank) {
+          signalMap.set(key, row);
+        } else if (nextRank.rank === currentRank.rank && nextRank.confidence > currentRank.confidence) {
+          signalMap.set(key, row);
+        }
+      }
+
+      let entityMap: Map<string, { id: string; name: string; code: string; unlocode: string }> | null = null;
+      if (includeEntity) {
+        const portIds = Array.from(new Set(items.map((row) => row.entityId)));
+        if (portIds.length > 0) {
+          const portRows = await db
+            .select({ id: ports.id, name: ports.name, code: ports.code, unlocode: ports.unlocode })
+            .from(ports)
+            .where(inArray(ports.id, portIds));
+          entityMap = new Map(portRows.map((row) => [row.id, row]));
+        } else {
+          entityMap = new Map();
+        }
+      }
+
+        const mapped = items.map((row) => {
+          const entityRow = includeEntity ? entityMap?.get(row.entityId) : undefined;
+          const key = `${row.clusterId}|${row.entityId}|${row.day instanceof Date ? formatSignalDay(row.day) : String(row.day)}`;
+          const signalRow = signalMap.get(key);
+          const alertPayload = signalRow ? buildSignalClusterAlertPayload({
+            day: signalRow.day,
+            entityType: "port",
+            entityId: signalRow.entityId,
+            clusterId: signalRow.clusterId,
+            clusterSeverity: signalRow.clusterSeverity,
+            confidenceScore: signalRow.confidenceScore,
+            confidenceBand: signalRow.confidenceBand,
+            clusterSummary: signalRow.clusterSummary,
+            metadata: signalRow.metadata ?? {},
+          }) : null;
+          const dlqRow = dlqMap.get(row.id);
+          const dlqPending = Boolean(dlqRow);
+          const dlqTerminal = dlqRow ? dlqRow.attemptCount >= dlqRow.maxAttempts : false;
+          const subRow = subscriptionMap.get(row.subscriptionId);
+          return {
+            id: row.id,
+            run_id: row.runId,
+            subscription_id: row.subscriptionId,
+            scope: subRow?.scope ?? "PORT",
+            cluster_id: row.clusterId,
+            cluster_type: signalRow?.clusterType ?? null,
+            cluster_summary: signalRow?.clusterSummary ?? null,
+            cluster_severity: signalRow?.clusterSeverity ?? null,
+            confidence_score: signalRow?.confidenceScore ?? null,
+            confidence_band: signalRow?.confidenceBand ?? null,
+            method: signalRow?.method ?? null,
+            entity_type: row.entityType,
+            entity_id: row.entityId,
+          day: row.day instanceof Date ? formatSignalDay(row.day) : String(row.day),
+          destination_type: row.destinationType,
+          endpoint: row.endpoint,
+          status: row.status,
+          is_test: row.isTest,
+          dlq_pending: dlqPending,
+          dlq_terminal: dlqTerminal,
+          dlq_attempts: dlqRow?.attemptCount ?? null,
+          dlq_next_attempt_at: dlqRow?.nextAttemptAt ?? null,
+          alert_payload: alertPayload,
+          attempts: row.attempts,
+          last_http_status: row.lastHttpStatus,
+          latency_ms: row.latencyMs,
+          error: row.error,
+          sent_at: row.sentAt,
+          created_at: row.createdAt,
+          ...(entityRow ? {
+            entity: {
+              id: entityRow.id,
+              type: "port",
+              name: entityRow.name,
+              code: entityRow.code,
+              unlocode: entityRow.unlocode,
+            },
+          } : {}),
+        };
+      });
+
+      let filtered = mapped;
+      const statusParam = status ? String(status).toUpperCase() : undefined;
+      if (statusParam === "DLQ") {
+        filtered = filtered.filter((row) => row.dlq_pending);
+      } else if (statusParam === "SKIPPED") {
+        filtered = filtered.filter((row) => String(row.status).startsWith("SKIPPED"));
+      }
+      if (severity_min) {
+        const required = SEVERITY_RANK[String(severity_min).toUpperCase() as keyof typeof SEVERITY_RANK] ?? 0;
+        filtered = filtered.filter((row) => {
+          const severity = String(row.cluster_severity ?? "LOW").toUpperCase();
+          const rank = SEVERITY_RANK[severity as keyof typeof SEVERITY_RANK] ?? 0;
+          return rank >= required;
+        });
+      }
+
+      const last = items.length > 0 ? items[items.length - 1] : null;
+      const nextCursor = items.length === limitNum && last?.createdAt
+        ? Buffer.from(`${new Date(last.createdAt as any).toISOString()}|${last.id}`).toString("base64")
+        : null;
+
+      res.json({
+        version: "1",
+        items: filtered,
+        total,
+        next_cursor: nextCursor,
+      });
+    } catch (error) {
+      console.error('V1 alert deliveries error:', error);
+      res.status(500).json({ error: 'Failed to fetch alert deliveries' });
+      }
+    });
+
+    app.get('/v1/alert-deliveries/:id', authenticateApiKey, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const includeEntity = String(req.query.include_entity ?? "false").toLowerCase() === "true";
+        const userId = req.auth?.userId;
+        const tenantId = req.auth?.tenantId;
+        if (!userId || !tenantId) return res.status(401).json({ error: "API key required" });
+        const [delivery] = await db
+          .select()
+          .from(alertDeliveries)
+          .innerJoin(alertSubscriptions, eq(alertDeliveries.subscriptionId, alertSubscriptions.id))
+          .where(and(
+            eq(alertDeliveries.id, id),
+            eq(alertSubscriptions.userId, userId),
+            eq(alertSubscriptions.tenantId, tenantId),
+          ))
+          .limit(1);
+        if (!delivery) return res.status(404).json({ error: "Delivery not found" });
+
+        const deliveryRow = (delivery as any).alert_deliveries ?? delivery;
+        const subscription = (delivery as any).alert_subscriptions;
+
+        const [dlqRow] = await db
+          .select({
+            deliveryId: alertDlq.deliveryId,
+            attemptCount: alertDlq.attemptCount,
+            maxAttempts: alertDlq.maxAttempts,
+            nextAttemptAt: alertDlq.nextAttemptAt,
+            lastError: alertDlq.lastError,
+          })
+            .from(alertDlq)
+            .where(and(
+              eq(alertDlq.deliveryId, deliveryRow.id),
+              eq(alertDlq.tenantId, tenantId),
+            ))
+          .limit(1);
+
+        const attempts = await db
+          .select()
+            .from(alertDeliveryAttempts)
+            .where(and(
+              eq(alertDeliveryAttempts.deliveryId, deliveryRow.id),
+              eq(alertDeliveryAttempts.tenantId, tenantId),
+            ))
+          .orderBy(alertDeliveryAttempts.createdAt);
+
+        const [signalRow] = await db
+          .select({
+            id: signals.id,
+            clusterId: signals.clusterId,
+            clusterType: signals.clusterType,
+            clusterSeverity: signals.clusterSeverity,
+            clusterSummary: signals.clusterSummary,
+            confidenceScore: signals.confidenceScore,
+            confidenceBand: signals.confidenceBand,
+            method: signals.method,
+            entityId: signals.entityId,
+            day: signals.day,
+            metadata: signals.metadata,
+            createdAt: signals.createdAt,
+          })
+            .from(signals)
+            .where(eq(signals.clusterId, deliveryRow.clusterId))
+          .limit(1);
+
+        const alertPayload = signalRow ? buildSignalClusterAlertPayload({
+          day: signalRow.day,
+          entityType: "port",
+          entityId: signalRow.entityId,
+          clusterId: signalRow.clusterId,
+          clusterSeverity: signalRow.clusterSeverity,
+          confidenceScore: signalRow.confidenceScore,
+          confidenceBand: signalRow.confidenceBand,
+          clusterSummary: signalRow.clusterSummary,
+          metadata: signalRow.metadata ?? {},
+        }) : null;
+
+        let entity = null as any;
+        if (includeEntity) {
+            if (subscription?.scope === "GLOBAL" || deliveryRow.entityId === GLOBAL_SCOPE_ENTITY_ID) {
+            entity = { id: GLOBAL_SCOPE_ENTITY_ID, type: "port", name: "All ports", code: "ALL", unlocode: "ALL" };
+          } else {
+            const [portRow] = await db
+              .select({ id: ports.id, name: ports.name, code: ports.code, unlocode: ports.unlocode })
+              .from(ports)
+                .where(eq(ports.id, deliveryRow.entityId))
+              .limit(1);
+            if (portRow) {
+              entity = { id: portRow.id, type: "port", name: portRow.name, code: portRow.code, unlocode: portRow.unlocode };
+            }
+          }
+        }
+
+        const response = {
+            id: deliveryRow.id,
+            run_id: deliveryRow.runId,
+            subscription_id: deliveryRow.subscriptionId,
+          scope: subscription?.scope ?? "PORT",
+            cluster_id: deliveryRow.clusterId,
+          cluster_type: signalRow?.clusterType ?? null,
+          cluster_summary: signalRow?.clusterSummary ?? null,
+          cluster_severity: signalRow?.clusterSeverity ?? null,
+          confidence_score: signalRow?.confidenceScore ?? null,
+          confidence_band: signalRow?.confidenceBand ?? null,
+          method: signalRow?.method ?? null,
+            entity_type: deliveryRow.entityType,
+            entity_id: deliveryRow.entityId,
+            day: deliveryRow.day instanceof Date ? formatSignalDay(deliveryRow.day) : String(deliveryRow.day),
+            destination_type: deliveryRow.destinationType,
+            endpoint: deliveryRow.endpoint,
+            status: deliveryRow.status,
+            is_test: deliveryRow.isTest,
+          dlq_pending: Boolean(dlqRow),
+          dlq_terminal: dlqRow ? dlqRow.attemptCount >= dlqRow.maxAttempts : false,
+          dlq_attempts: dlqRow?.attemptCount ?? null,
+          dlq_next_attempt_at: dlqRow?.nextAttemptAt ?? null,
+          alert_payload: alertPayload,
+            attempts: deliveryRow.attempts,
+            last_http_status: deliveryRow.lastHttpStatus,
+            latency_ms: deliveryRow.latencyMs,
+            error: deliveryRow.error,
+            sent_at: deliveryRow.sentAt,
+            created_at: deliveryRow.createdAt,
+          attempt_history: attempts.map((row) => ({
+            attempt_no: row.attemptNo,
+            status: row.status,
+            latency_ms: row.latencyMs,
+            http_status: row.httpStatus,
+            error: row.error,
+            sent_at: row.sentAt,
+            created_at: row.createdAt,
+          })),
+          ...(entity ? { entity } : {}),
+        };
+
+        res.json({ version: "1", item: response });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to load delivery" });
+      }
+    });
+
+  // V1 Alert Subscriptions
+    app.get('/v1/alert-subscriptions', authenticateApiKey, async (req, res) => {
+      try {
+        const userId = req.auth?.userId;
+        const tenantId = req.auth?.tenantId;
+        if (!userId || !tenantId) return res.status(401).json({ error: "API key required" });
+        const includeEntity = String(req.query?.include_entity ?? "false") === "true";
+        const limitNum = Math.min(parseInt(String(req.query?.limit ?? "50")) || 50, 200);
+        const cursor = req.query?.cursor;
+        let cursorCreatedAt: string | null = null;
+        let cursorId: string | null = null;
+        if (cursor) {
+          try {
+            const decoded = Buffer.from(String(cursor), "base64").toString("utf8");
+            const [createdAtIso, id] = decoded.split("|");
+            const createdAtMs = Date.parse(createdAtIso);
+            if (createdAtIso && id && !Number.isNaN(createdAtMs)) {
+              cursorCreatedAt = createdAtIso;
+              cursorId = id;
+            } else {
+              return res.status(400).json({ error: "Invalid cursor" });
+            }
+          } catch {
+            return res.status(400).json({ error: "Invalid cursor" });
+          }
+        }
+
+        const conditions = [
+          eq(alertSubscriptions.tenantId, tenantId),
+          eq(alertSubscriptions.userId, userId),
+        ];
+        if (cursorCreatedAt && cursorId) {
+          conditions.push(
+            sql`(${alertSubscriptions.createdAt} < ${cursorCreatedAt}::timestamptz OR (${alertSubscriptions.createdAt} = ${cursorCreatedAt}::timestamptz AND ${alertSubscriptions.id} < ${cursorId}))`,
+          );
+        }
+
+        const rows = await db
+          .select({
+            id: alertSubscriptions.id,
+            tenantId: alertSubscriptions.tenantId,
+            userId: alertSubscriptions.userId,
+            scope: alertSubscriptions.scope,
+            entityType: alertSubscriptions.entityType,
+            entityId: alertSubscriptions.entityId,
+            severityMin: alertSubscriptions.severityMin,
+            confidenceMin: alertSubscriptions.confidenceMin,
+            channel: alertSubscriptions.channel,
+            endpoint: alertSubscriptions.endpoint,
+            secret: alertSubscriptions.secret,
+            signatureVersion: alertSubscriptions.signatureVersion,
+            isEnabled: alertSubscriptions.isEnabled,
+            lastTestAt: alertSubscriptions.lastTestAt,
+            lastTestStatus: alertSubscriptions.lastTestStatus,
+            lastTestError: alertSubscriptions.lastTestError,
+            createdAt: alertSubscriptions.createdAt,
+            updatedAt: alertSubscriptions.updatedAt,
+            createdAtRaw: sql<string>`to_char(${alertSubscriptions.createdAt}, 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"')`,
+          })
+          .from(alertSubscriptions)
+          .where(and(...conditions))
+          .orderBy(desc(alertSubscriptions.createdAt), desc(alertSubscriptions.id))
+          .limit(limitNum);
+
+        let entityMap = new Map<string, { id: string; type: "port"; name: string; code: string; unlocode: string }>();
+        if (includeEntity) {
+          const ids = rows
+            .map((row) => row.entityId)
+            .filter((id) => id && id !== GLOBAL_SCOPE_ENTITY_ID);
+          if (ids.length) {
+            const portRows = await db
+              .select({ id: ports.id, name: ports.name, code: ports.code, unlocode: ports.unlocode })
+              .from(ports)
+              .where(inArray(ports.id, ids));
+            for (const port of portRows) {
+              entityMap.set(port.id, {
+                id: port.id,
+                type: "port",
+                name: port.name,
+                code: port.code ?? port.unlocode ?? "",
+                unlocode: port.unlocode ?? port.code ?? "",
+              });
+            }
+          }
+        }
+
+        const items = rows.map((row) => ({
+          id: row.id,
+          user_id: row.userId,
+          scope: row.scope ?? "PORT",
+          destination_type: row.channel,
+          destination: row.endpoint,
+          entity_type: row.entityType,
+          entity_id: row.entityId,
+          ...(includeEntity
+            ? {
+                entity:
+                  row.scope === "GLOBAL" || row.entityId === GLOBAL_SCOPE_ENTITY_ID
+                    ? { id: GLOBAL_SCOPE_ENTITY_ID, type: "port", name: "All ports", code: "ALL", unlocode: "ALL" }
+                    : entityMap.get(row.entityId) ?? null,
+              }
+            : {}),
+          severity_min: row.severityMin,
+          enabled: row.isEnabled,
+          signature_version: row.signatureVersion,
+          has_secret: Boolean(row.secret),
+          created_at: row.createdAt?.toISOString?.() ?? row.createdAt,
+        updated_at: row.updatedAt?.toISOString?.() ?? row.updatedAt,
+        last_test_at: row.lastTestAt?.toISOString?.() ?? null,
+        last_test_status: row.lastTestStatus ?? null,
+        last_test_error: row.lastTestError ?? null,
+      }));
+
+      const last = rows.length > 0 ? rows[rows.length - 1] : null;
+      const nextCursor = rows.length === limitNum && last?.createdAtRaw
+        ? Buffer.from(`${last.createdAtRaw}|${last.id}`).toString("base64")
+        : null;
+
+      res.json({ version: "1", items, next_cursor: nextCursor });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to list subscriptions" });
+    }
+  });
+
+    app.post('/v1/alert-subscriptions', authenticateApiKey, async (req, res) => {
+      try {
+      const allowHttp = process.env.NODE_ENV !== "production";
+      const userId = req.auth?.userId;
+      const tenantId = req.auth?.tenantId;
+      if (!userId || !tenantId) return res.status(401).json({ error: "API key required" });
+        const destinationType = String(req.body?.destination_type ?? req.body?.channel ?? "WEBHOOK").toUpperCase();
+        const destination = String(req.body?.destination ?? req.body?.endpoint ?? "").trim();
+        const severityMin = String(req.body?.severity_min ?? "HIGH").toUpperCase();
+        const enabled = req.body?.enabled !== false;
+      const signatureVersion = String(req.body?.signature_version ?? "v1");
+      const providedSecret = req.body?.secret ? String(req.body?.secret) : null;
+      const scope = normalizeScope(req.body?.scope);
+      let entityId = req.body?.entity_id ? String(req.body?.entity_id) : null;
+
+        if (!destination) {
+          return res.status(400).json({ error: "destination is required" });
+        }
+        if (!["WEBHOOK", "EMAIL"].includes(destinationType)) {
+          return res.status(400).json({ error: "destination_type must be WEBHOOK or EMAIL" });
+      }
+      if (!["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(severityMin)) {
+        return res.status(400).json({ error: "invalid severity_min" });
+      }
+
+      if (destinationType === "WEBHOOK") {
+        if (!isValidWebhookUrl(destination, allowHttp)) {
+          return res.status(400).json({ error: "invalid webhook url" });
+        }
+      } else {
+        const email = normalizeEmail(destination);
+        if (!isValidEmail(email)) {
+          return res.status(400).json({ error: "invalid email" });
+        }
+      }
+
+      const secret = destinationType === "WEBHOOK"
+        ? (providedSecret ?? generateSecret())
+        : null;
+
+      if (scope === "GLOBAL") {
+        entityId = GLOBAL_SCOPE_ENTITY_ID;
+      } else if (!entityId) {
+        return res.status(400).json({ error: "entity_id is required when scope=PORT" });
+      }
+
+        const [created] = await db
+          .insert(alertSubscriptions)
+          .values({
+            tenantId,
+            userId,
+            scope,
+            entityType: "port",
+            entityId,
+            severityMin,
+            channel: destinationType,
+            endpoint: destinationType === "EMAIL" ? normalizeEmail(destination) : destination,
+            secret,
+            signatureVersion,
+            isEnabled: enabled,
+            updatedAt: new Date(),
+          })
+        .returning();
+
+      res.status(201).json({
+        version: "1",
+        id: created.id,
+        user_id: created.userId,
+        scope: created.scope ?? "PORT",
+        destination_type: created.channel,
+        destination: created.endpoint,
+        entity_type: created.entityType,
+        entity_id: created.entityId,
+        severity_min: created.severityMin,
+        enabled: created.isEnabled,
+        signature_version: created.signatureVersion,
+        has_secret: Boolean(created.secret),
+        created_at: created.createdAt?.toISOString?.(),
+        updated_at: created.updatedAt?.toISOString?.(),
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to create subscription" });
+    }
+  });
+
+    app.patch('/v1/alert-subscriptions/:id', authenticateApiKey, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const allowHttp = process.env.NODE_ENV !== "production";
+        const userId = req.auth?.userId;
+        const tenantId = req.auth?.tenantId;
+        if (!userId || !tenantId) return res.status(401).json({ error: "API key required" });
+        const [existing] = await db
+          .select()
+          .from(alertSubscriptions)
+          .where(and(
+            eq(alertSubscriptions.id, id),
+            eq(alertSubscriptions.userId, userId),
+            eq(alertSubscriptions.tenantId, tenantId),
+          ))
+          .limit(1);
+        if (!existing) return res.status(404).json({ error: "subscription not found" });
+
+        const updates: any = { updatedAt: new Date() };
+
+        if (req.body?.scope) {
+          const scope = normalizeScope(req.body.scope);
+          updates.scope = scope;
+          if (scope === "GLOBAL") {
+            updates.entityId = GLOBAL_SCOPE_ENTITY_ID;
+          }
+          if (scope === "PORT" && !req.body?.entity_id) {
+            return res.status(400).json({ error: "entity_id is required when scope=PORT" });
+          }
+        }
+
+        if (req.body?.entity_id) {
+          updates.entityId = String(req.body.entity_id);
+        }
+
+        if (req.body?.severity_min) {
+          const severityMin = String(req.body.severity_min).toUpperCase();
+          if (!["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(severityMin)) {
+            return res.status(400).json({ error: "invalid severity_min" });
+          }
+        updates.severityMin = severityMin;
+      }
+
+      if (req.body?.enabled !== undefined) {
+        updates.isEnabled = Boolean(req.body.enabled);
+      }
+
+        if (req.body?.destination) {
+          const destination = String(req.body.destination).trim();
+          if (existing.channel === "WEBHOOK") {
+            if (!isValidWebhookUrl(destination, allowHttp)) {
+              return res.status(400).json({ error: "invalid webhook url" });
+            }
+            updates.endpoint = destination;
+          } else {
+          const email = normalizeEmail(destination);
+          if (!isValidEmail(email)) return res.status(400).json({ error: "invalid email" });
+          updates.endpoint = email;
+        }
+      }
+
+        const [updated] = await db
+          .update(alertSubscriptions)
+          .set(updates)
+          .where(and(
+            eq(alertSubscriptions.id, id),
+            eq(alertSubscriptions.userId, userId),
+            eq(alertSubscriptions.tenantId, tenantId),
+          ))
+          .returning();
+
+      if (!updated) return res.status(404).json({ error: "subscription not found" });
+
+      res.json({
+        version: "1",
+        id: updated.id,
+        user_id: updated.userId,
+        destination_type: updated.channel,
+        destination: updated.endpoint,
+        severity_min: updated.severityMin,
+        enabled: updated.isEnabled,
+        signature_version: updated.signatureVersion,
+        has_secret: Boolean(updated.secret),
+        created_at: updated.createdAt?.toISOString?.(),
+        updated_at: updated.updatedAt?.toISOString?.(),
+        last_test_at: updated.lastTestAt?.toISOString?.() ?? null,
+        last_test_status: updated.lastTestStatus ?? null,
+        last_test_error: updated.lastTestError ?? null,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to update subscription" });
+    }
+  });
+
+    app.post('/v1/alert-subscriptions/:id/rotate-secret', authenticateApiKey, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const userId = req.auth?.userId;
+        const tenantId = req.auth?.tenantId;
+        if (!userId || !tenantId) return res.status(401).json({ error: "API key required" });
+        const newSecret = generateSecret();
+        const [updated] = await db
+          .update(alertSubscriptions)
+          .set({ secret: newSecret, updatedAt: new Date() })
+          .where(and(
+            eq(alertSubscriptions.id, id),
+            eq(alertSubscriptions.userId, userId),
+            eq(alertSubscriptions.tenantId, tenantId),
+          ))
+          .returning();
+
+        if (!updated) return res.status(404).json({ error: "subscription not found" });
+
+        res.json({ version: "1", rotated: true, secret: newSecret });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to rotate secret" });
+      }
+    });
+
+    app.post('/v1/alert-subscriptions/:id/test', authenticateApiKey, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const mode = String(req.body?.mode ?? "synthetic");
+        const severity = String(req.body?.severity ?? "HIGH").toUpperCase();
+        const now = new Date();
+        const userId = req.auth?.userId;
+        const tenantId = req.auth?.tenantId;
+        if (!userId || !tenantId) return res.status(401).json({ error: "API key required" });
+
+        const [subscription] = await db
+          .select()
+          .from(alertSubscriptions)
+          .where(and(
+            eq(alertSubscriptions.id, id),
+            eq(alertSubscriptions.userId, userId),
+            eq(alertSubscriptions.tenantId, tenantId),
+          ))
+          .limit(1);
+
+        if (!subscription) {
+          return res.status(404).json({ error: "subscription not found" });
+        }
+
+      const rateKey = subscription.id;
+      const windowMs = 60_000;
+      const timestamps = (subscriptionTestRateLimit.get(rateKey) ?? []).filter((ts) => now.getTime() - ts < windowMs);
+      if (timestamps.length >= 5) {
+        return res.status(429).json({ error: "rate limit exceeded" });
+      }
+      timestamps.push(now.getTime());
+      subscriptionTestRateLimit.set(rateKey, timestamps);
+
+      const payload = {
+        event_type: "TEST_ALERT",
+        sent_at: now.toISOString(),
+        subscription_id: subscription.id,
+        severity,
+        mode,
+        sample: req.body?.include_sample_signal ? { note: "Sample signal included" } : undefined,
+      };
+
+      let status: "SENT" | "FAILED" = "SENT";
+      let latencyMs: number | null = null;
+      let httpStatus: number | null = null;
+      let errorMessage: string | null = null;
+
+      if (subscription.channel === "WEBHOOK") {
+        const { body, headers } = buildWebhookRequest({
+          payload,
+          secret: subscription.secret ?? null,
+          subscriptionId: subscription.id,
+          clusterId: `TEST:${subscription.id}`,
+          day: now.toISOString().slice(0, 10),
+          now,
+        });
+        try {
+          const result = await sendWebhook({ endpoint: subscription.endpoint, body, headers });
+          const attemptLogs = (result as any)?.attemptLogs ?? [];
+          const last = attemptLogs.length ? attemptLogs[attemptLogs.length - 1] : null;
+          latencyMs = last?.latency_ms ?? null;
+          httpStatus = last?.http_status ?? (result as any)?.status ?? null;
+        } catch (error: any) {
+          status = "FAILED";
+          errorMessage = error?.message ?? "Test delivery failed";
+        }
+      } else {
+        try {
+          await sendEmail({
+            to: subscription.endpoint,
+            subject: "[Veriscope] TEST ALERT",
+            text: "Test alert delivery.",
+          });
+        } catch (error: any) {
+          status = "FAILED";
+          errorMessage = error?.message ?? "Test email failed";
+        }
+      }
+
+      const [testRun] = await db.insert(alertRuns).values({
+        tenantId,
+        status: "TEST",
+        startedAt: now,
+        finishedAt: now,
+        summary: { mode: "test" },
+      }).returning();
+
+        const [delivery] = await db.insert(alertDeliveries).values({
+          runId: testRun.id,
+          tenantId,
+          userId: subscription.userId,
+          subscriptionId: subscription.id,
+          clusterId: `TEST:${subscription.id}`,
+          entityType: subscription.entityType,
+          entityId: subscription.entityId,
+          day: now,
+          destinationType: subscription.channel,
+          endpoint: subscription.endpoint,
+          status,
+          attempts: 1,
+          lastHttpStatus: httpStatus,
+          latencyMs: latencyMs,
+          error: errorMessage,
+          sentAt: status === "SENT" ? now : null,
+          isTest: true,
+          createdAt: now,
+        }).returning();
+
+        await db.insert(alertDeliveryAttempts).values({
+          tenantId,
+          deliveryId: delivery.id,
+          attemptNo: 1,
+          status,
+          latencyMs: latencyMs,
+          httpStatus: httpStatus,
+          error: errorMessage,
+          sentAt: status === "SENT" ? now : null,
+          createdAt: now,
+        });
+
+      await db.update(alertSubscriptions)
+        .set({
+          lastTestAt: now,
+          lastTestStatus: status,
+          lastTestError: errorMessage,
+          updatedAt: now,
+        })
+        .where(and(eq(alertSubscriptions.id, subscription.id), eq(alertSubscriptions.tenantId, tenantId)));
+
+      res.json({
+        version: "1",
+        status,
+        latency_ms: latencyMs,
+        http_status: httpStatus,
+        error: errorMessage,
+        delivery_id: delivery?.id,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to send test" });
     }
   });
 
@@ -1598,39 +3342,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize services and start mock data generation (no auth required for auto-start)
   app.post('/api/init', async (req, res) => {
     try {
-      console.log('Initializing Veriscope services...');
-      
-      // Seed global ports database
-      const { seedGlobalPorts, getPortCount, seedPortCalls, getPortCallCount } = await import('./services/portSeedService');
-      await seedGlobalPorts();
-      const portCount = await getPortCount();
-      console.log(`Total ports in database: ${portCount}`);
-      
-      // Initialize mock data (creates vessels needed for port calls)
-      await mockDataService.initializeBaseData();
-      
-      // Seed port call data for arrivals/departures/dwell time (after vessels exist)
-      await seedPortCalls();
-      const portCallCount = await getPortCallCount();
-      console.log(`Total port calls in database: ${portCallCount}`);
-      
-      // Initialize refinery satellite data
-      const { initializeRefineryAois, generateMockSatelliteData } = await import('./services/refinerySatelliteService');
-      await initializeRefineryAois();
-      await generateMockSatelliteData();
-      
-      // Initialize storage data (floating storage, SPR reserves, time series)
-      const { initializeStorageData } = await import('./services/storageDataService');
-      await initializeStorageData();
-      
-      // Start services
-      aisService.startSimulation(wss);
-      signalsService.startMonitoring(wss);
-      predictionService.startPredictionService();
-      delayService.start(wss);
-      portCallService.start();
-      
-      res.json({ message: 'Veriscope services initialized successfully', portCount });
+      if (initCompleted) {
+        return res.json({
+          message: 'Veriscope services already initialized',
+          portCount: initCompleted.portCount,
+          initializedAt: initCompleted.completedAt,
+          status: 'already_initialized'
+        });
+      }
+
+      const waitingForInit = !!initInProgress;
+      if (!initInProgress) {
+        initInProgress = (async () => {
+          const startedAt = new Date().toISOString();
+          console.log('Initializing Veriscope services...');
+          
+          // Seed global ports database
+          const { seedGlobalPorts, getPortCount, seedPortCalls, getPortCallCount } = await import('./services/portSeedService');
+          await seedGlobalPorts();
+          const portCount = await getPortCount();
+          console.log(`Total ports in database: ${portCount}`);
+          
+          // Initialize mock data (creates vessels needed for port calls)
+          await mockDataService.initializeBaseData();
+          
+          // Seed port call data for arrivals/departures/dwell time (after vessels exist)
+          await seedPortCalls();
+          const portCallCount = await getPortCallCount();
+          console.log(`Total port calls in database: ${portCallCount}`);
+          
+          // Initialize refinery satellite data
+          const { initializeRefineryAois, generateMockSatelliteData } = await import('./services/refinerySatelliteService');
+          await initializeRefineryAois();
+          await generateMockSatelliteData();
+          
+          // Initialize storage data (floating storage, SPR reserves, time series)
+          const { initializeStorageData } = await import('./services/storageDataService');
+          await initializeStorageData();
+          
+          // Start services
+          aisService.startSimulation(wss);
+          signalsService.startMonitoring(wss);
+          predictionService.startPredictionService();
+          delayService.start(wss);
+          portCallService.start();
+          startPortDailyBaselineScheduler();
+
+          const result = {
+            portCount,
+            startedAt,
+            completedAt: new Date().toISOString()
+          };
+          initCompleted = result;
+          return result;
+        })();
+
+        initInProgress.finally(() => {
+          initInProgress = null;
+        });
+      }
+
+      const result = await initInProgress;
+      res.json({
+        message: 'Veriscope services initialized successfully',
+        portCount: result.portCount,
+        initializedAt: result.completedAt,
+        status: waitingForInit ? 'initialized_after_wait' : 'initialized'
+      });
     } catch (error) {
       console.error('Initialization error:', error);
       res.status(500).json({ error: 'Failed to initialize services' });

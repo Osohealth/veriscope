@@ -36,47 +36,153 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-8">
-            <Link href="/" className="flex items-center">
-              <img src={veriscopeLogo} alt="Veriscope AI" className="h-10" data-testid="logo-veriscope" />
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center gap-3">
+              <img src={veriscopeLogo} alt="Veriscope AI" className="h-14 w-auto" data-testid="logo-veriscope" />
+              <span className="text-lg md:text-2xl font-semibold tracking-tight text-foreground">
+                Veriscope AI
+              </span>
             </Link>
-            <nav className="hidden md:flex items-center space-x-6 text-sm">
+          </div>
+          <nav className="hidden md:flex flex-1 items-center justify-start gap-10 pl-12 text-base md:text-lg font-medium">
               <Link href="/platform" className="text-muted-foreground hover:text-primary transition-colors" data-testid="nav-dashboard">
                 Dashboard
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors cursor-pointer bg-transparent border-none p-0 text-sm" data-testid="nav-products">
+                  <button className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors cursor-pointer bg-transparent border-none p-0 text-base md:text-lg" data-testid="nav-products">
                     Products
                     <ChevronDown className="w-4 h-4" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
-                  <Link href="/commodities">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Commodities Intelligence
-                    </DropdownMenuItem>
-                  </Link>
-                  <Link href="/maritime">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Ship className="w-4 h-4 mr-2" />
-                      Maritime Intelligence
-                    </DropdownMenuItem>
-                  </Link>
-                  <Link href="/energy">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Zap className="w-4 h-4 mr-2" />
-                      Energy Transition
-                    </DropdownMenuItem>
-                  </Link>
-                  <Link href="/signals">
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Activity className="w-4 h-4 mr-2" />
-                      Alerts & Active Events
-                    </DropdownMenuItem>
-                  </Link>
+                <DropdownMenuContent align="start" className="w-[60vw] max-w-5xl p-6">
+                  <div className="grid grid-cols-4 gap-8">
+                    <div className="col-span-3 grid grid-cols-3 gap-8">
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                          <BarChart3 className="w-5 h-5 mt-0.5 text-primary" />
+                          <div>
+                            <p className="text-base font-semibold">Commodities</p>
+                            <p className="text-sm text-muted-foreground">
+                              Real-time market intelligence across crude, products, and storage.
+                            </p>
+                          </div>
+                        </div>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li>Crude & Products</li>
+                          <li>Inventories</li>
+                          <li>Supply & Demand</li>
+                          <li>Pricing & Spreads</li>
+                          <li>Risk & Compliance</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                          <Ship className="w-5 h-5 mt-0.5 text-primary" />
+                          <div>
+                            <p className="text-base font-semibold">Maritime</p>
+                            <p className="text-sm text-muted-foreground">
+                              Vessel tracking, port congestion, and voyage analytics.
+                            </p>
+                          </div>
+                        </div>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li>Ship Tracking</li>
+                          <li>Port Congestion</li>
+                          <li>ETA Forecasts</li>
+                          <li>Route Analytics</li>
+                          <li>Marine Traffic Inbox</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                          <Zap className="w-5 h-5 mt-0.5 text-primary" />
+                          <div>
+                            <p className="text-base font-semibold">Energy Transition</p>
+                            <p className="text-sm text-muted-foreground">
+                              Power, carbon, and renewables intelligence for the new grid.
+                            </p>
+                          </div>
+                        </div>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li>Power Markets</li>
+                          <li>Carbon Markets</li>
+                          <li>Renewables</li>
+                          <li>Fuel Switching</li>
+                          <li>Regulatory Signals</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                          <Activity className="w-5 h-5 mt-0.5 text-primary" />
+                          <div>
+                            <p className="text-base font-semibold">Signals & Alerts</p>
+                            <p className="text-sm text-muted-foreground">
+                              Explainable anomaly detection with clustered event context.
+                            </p>
+                          </div>
+                        </div>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li>Port Disruption Signals</li>
+                          <li>Delay Risk Alerts</li>
+                          <li>Inventory Shocks</li>
+                          <li>Market Event Clusters</li>
+                          <li>Confidence Scoring</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                          <BarChart3 className="w-5 h-5 mt-0.5 text-primary" />
+                          <div>
+                            <p className="text-base font-semibold">Analytics & Reporting</p>
+                            <p className="text-sm text-muted-foreground">
+                              Dashboards, exports, and decision-ready reporting.
+                            </p>
+                          </div>
+                        </div>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li>Custom Dashboards</li>
+                          <li>Data Exports</li>
+                          <li>API Access</li>
+                          <li>Weekly Briefs</li>
+                          <li>Alert Routing</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                          <Globe className="w-5 h-5 mt-0.5 text-primary" />
+                          <div>
+                            <p className="text-base font-semibold">Coverage & Integrations</p>
+                            <p className="text-sm text-muted-foreground">
+                              Global coverage with data feeds and workflow integrations.
+                            </p>
+                          </div>
+                        </div>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li>Global Port Network</li>
+                          <li>Data API</li>
+                          <li>Python SDK</li>
+                          <li>Excel Add-in</li>
+                          <li>Slack / Email Alerts</li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="col-span-1 rounded-xl border border-border bg-muted/40 p-4">
+                      <div className="aspect-[4/3] overflow-hidden rounded-lg bg-muted">
+                        <img src={tankerImage} alt="Market brief" className="h-full w-full object-cover" />
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Featured brief</p>
+                        <p className="text-sm font-semibold">
+                          Rotterdam congestion builds as arrivals dip and dwell spikes
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          See the drivers behind the latest port disruption signal.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
               <span className="text-muted-foreground hover:text-primary transition-colors cursor-pointer" data-testid="nav-markets">
@@ -85,9 +191,8 @@ export default function Home() {
               <span className="text-muted-foreground hover:text-primary transition-colors cursor-pointer" data-testid="nav-company">
                 Company
               </span>
-            </nav>
-          </div>
-          <div className="flex items-center space-x-4">
+          </nav>
+          <div className="flex items-center space-x-4 pl-6">
             <Link href="/auth/login">
               <Button variant="outline" size="sm" data-testid="button-login">
                 Sign In
