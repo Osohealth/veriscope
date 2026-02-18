@@ -6,6 +6,8 @@ type CreateInput = {
   entity_id?: string;
   severity_min?: string;
   confidence_min?: string | null;
+  min_quality_band?: string | null;
+  min_quality_score?: number | string | null;
   channel?: string;
   endpoint?: string;
   secret?: string | null;
@@ -41,6 +43,26 @@ export const validateAlertSubscriptionInput = (input: CreateInput, allowHttp: bo
     }
   }
 
+  let minQualityBand: AlertConfidence | null = null;
+  if (input.min_quality_band !== undefined && input.min_quality_band !== null && String(input.min_quality_band).trim() !== "") {
+    const bandValue = String(input.min_quality_band).toUpperCase();
+    if (!["LOW", "MEDIUM", "HIGH"].includes(bandValue)) {
+      errors.push("invalid min_quality_band");
+    } else {
+      minQualityBand = bandValue as AlertConfidence;
+    }
+  }
+
+  let minQualityScore: number | null = null;
+  if (input.min_quality_score !== undefined && input.min_quality_score !== null && String(input.min_quality_score).trim() !== "") {
+    const scoreValue = Number(input.min_quality_score);
+    if (!Number.isInteger(scoreValue) || scoreValue < 0 || scoreValue > 100) {
+      errors.push("invalid min_quality_score");
+    } else {
+      minQualityScore = scoreValue;
+    }
+  }
+
   const isValidEndpoint = (value: string) => {
     try {
       const parsed = new URL(value);
@@ -67,6 +89,8 @@ export const validateAlertSubscriptionInput = (input: CreateInput, allowHttp: bo
       entityId,
       severityMin: severityValue as AlertSeverity,
       confidenceMin: input.confidence_min ? String(input.confidence_min).toUpperCase() as AlertConfidence : null,
+      minQualityBand,
+      minQualityScore,
       channel: channelValue as AlertChannel,
       endpoint,
       secret: input.secret ? String(input.secret) : null,

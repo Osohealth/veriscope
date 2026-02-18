@@ -2,9 +2,12 @@ import { and, eq, lte, sql } from "drizzle-orm";
 import { db } from "../db";
 import { alertDeliveries, alertDeliveryAttempts, alertDlq, alertSubscriptions } from "@shared/schema";
 import { getAlertCandidates } from "./alertQuery";
-import { buildWebhookPayload, buildWebhookRequest, sendWebhook } from "./webhookSender";
+import { buildWebhookPayload, buildWebhookRequest, computeBundleIdempotencyKey, sendWebhook } from "./webhookSender";
 import { computeNextAttempt } from "./alertDlq";
 import { DLQ_MAX_ATTEMPTS } from "../config/alerting";
+import { makeDestinationKey } from "./destinationKey";
+import { getDestinationGate } from "./alertDestinationGate";
+import { resolveNoiseBudget } from "./alertDestinationOverridesService";
 
 type RetryDlqOptions = {
   limit?: number;
@@ -87,32 +90,89 @@ export async function retryAlertDlq(options: RetryDlqOptions = {}) {
       continue;
     }
 
-    const candidates = await getAlertCandidates({
-      day: delivery.day instanceof Date ? delivery.day.toISOString().slice(0, 10) : String(delivery.day),
-      entityType: subscription.entityType as "port",
-      entityId: String(delivery.entityId),
-      severityMin: subscription.severityMin as any,
+    const destinationKey = makeDestinationKey(subscription.channel, subscription.endpoint);
+    const gate = await getDestinationGate({
+      tenantId: subscription.tenantId,
+      destinationKey,
+      now,
     });
-    const candidate = candidates.find((c) => String(c.cluster_id) === String(delivery.clusterId));
-    if (!candidate) {
-      await db.update(alertDeliveries)
-        .set({ status: "FAILED", error: "Candidate missing" })
+    if (gate.state === "DISABLED" || gate.state === "PAUSED" || (gate.state === "AUTO_PAUSED" && !gate.readyToResume)) {
+      const resumeReadyAt = gate.details?.resume_ready_at ? new Date(String(gate.details.resume_ready_at)) : null;
+      const nextAttemptAt = resumeReadyAt && resumeReadyAt.getTime() > now.getTime()
+        ? resumeReadyAt
+        : computeNextAttempt(now, dlqRow.attemptCount ?? 0);
+      await db.update(alertDlq)
+        .set({
+          nextAttemptAt,
+          lastError: gate.reason ?? "DESTINATION_BLOCKED",
+        })
         .where(and(
-          eq(alertDeliveries.id, delivery.id),
-          options.tenantId ? eq(alertDeliveries.tenantId, options.tenantId) : undefined,
+          eq(alertDlq.id, dlqRow.id),
+          options.tenantId ? eq(alertDlq.tenantId, options.tenantId) : undefined,
         ));
       continue;
     }
 
+    const noiseBudget = await resolveNoiseBudget({
+      tenantId: subscription.tenantId,
+      destinationType: subscription.channel as any,
+      destinationKey,
+      destination: subscription.endpoint,
+      now,
+    });
+    if (!noiseBudget.allowed) {
+      const windowMinutes = noiseBudget.window_minutes ?? 60;
+      const windowStart = noiseBudget.window_start ?? now;
+      const nextAttemptAt = new Date(windowStart.getTime() + windowMinutes * 60 * 1000);
+      await db.update(alertDlq)
+        .set({
+          nextAttemptAt,
+          lastError: "NOISE_BUDGET_EXCEEDED",
+        })
+        .where(and(
+          eq(alertDlq.id, dlqRow.id),
+          options.tenantId ? eq(alertDlq.tenantId, options.tenantId) : undefined,
+        ));
+      continue;
+    }
+
+    const bundlePayload = (delivery as any).bundlePayload ?? null;
+    let payload: any = null;
+    let payloadDay = delivery.day instanceof Date ? delivery.day.toISOString().slice(0, 10) : String(delivery.day);
+    if (bundlePayload) {
+      payload = bundlePayload;
+    } else {
+      const candidates = await getAlertCandidates({
+        day: payloadDay,
+        entityType: subscription.entityType as "port",
+        entityId: String(delivery.entityId),
+        severityMin: subscription.severityMin as any,
+      });
+      const candidate = candidates.find((c) => String(c.cluster_id) === String(delivery.clusterId));
+      if (!candidate) {
+        await db.update(alertDeliveries)
+          .set({ status: "FAILED", error: "Candidate missing" })
+          .where(and(
+            eq(alertDeliveries.id, delivery.id),
+            options.tenantId ? eq(alertDeliveries.tenantId, options.tenantId) : undefined,
+          ));
+        continue;
+      }
+      payloadDay = String(candidate.day);
+      payload = buildWebhookPayload(candidate, { sentAt: now, version: "1.1" });
+    }
+
     try {
-      const payload = buildWebhookPayload(candidate, { sentAt: now, version: "1.1" });
       const { body, headers } = buildWebhookRequest({
         payload,
         secret: subscription.secret ?? null,
         subscriptionId: subscription.id,
-        clusterId: String(candidate.cluster_id),
-        day: String(candidate.day),
+        clusterId: String(delivery.clusterId),
+        day: payloadDay,
         now,
+        idempotencyKey: bundlePayload
+          ? computeBundleIdempotencyKey(subscription.id, delivery.runId, payloadDay)
+          : undefined,
       });
       const result = await sendWebhook({ endpoint: subscription.endpoint, body, headers });
       const attemptLogs = (result as any)?.attemptLogs ?? [];
@@ -198,7 +258,7 @@ export async function retryAlertDlq(options: RetryDlqOptions = {}) {
   return { processed, sent, failed };
 }
 
-export async function retryDeliveryById(options: { deliveryId: string; tenantId?: string; userId?: string; now?: Date }) {
+export async function retryDeliveryById(options: { deliveryId: string; tenantId?: string; userId?: string; now?: Date; force?: boolean }) {
   const now = options.now ?? new Date();
   const [delivery] = await db
     .select()
@@ -229,6 +289,47 @@ export async function retryDeliveryById(options: { deliveryId: string; tenantId?
     return { status: "subscription_missing" as const, delivery };
   }
 
+  const destinationKey = makeDestinationKey(subscription.channel, subscription.endpoint);
+  const gate = await getDestinationGate({
+    tenantId: subscription.tenantId,
+    destinationKey,
+    now,
+  });
+  const forceAllowed = Boolean(options.force) && gate.state === "AUTO_PAUSED";
+  if (gate.state === "DISABLED" || gate.state === "PAUSED" || (gate.state === "AUTO_PAUSED" && !gate.readyToResume && !forceAllowed)) {
+    return {
+      status: "destination_blocked" as const,
+      delivery,
+      gate: {
+        state: gate.state,
+        reason: gate.reason ?? "DESTINATION_AUTO_PAUSED",
+        ready_to_resume: gate.readyToResume ?? false,
+        details: gate.details ?? {},
+      },
+    };
+  }
+
+  if (forceAllowed && delivery?.decision) {
+    const decision = delivery.decision as any;
+    const nextDecision = {
+      ...decision,
+      gates: {
+        ...decision.gates,
+        destination_state: {
+          ...(decision.gates?.destination_state ?? {}),
+          force_retry: true,
+          ready_to_resume: gate.readyToResume ?? false,
+        },
+      },
+    };
+    await db.update(alertDeliveries)
+      .set({ decision: nextDecision })
+      .where(and(
+        eq(alertDeliveries.id, options.deliveryId),
+        eq(alertDeliveries.tenantId, options.tenantId ?? delivery.tenantId),
+      ));
+  }
+
   let [dlqRow] = await db
     .select()
     .from(alertDlq)
@@ -254,32 +355,43 @@ export async function retryDeliveryById(options: { deliveryId: string; tenantId?
     dlqRow = createdDlq;
   }
 
-  const candidates = await getAlertCandidates({
-    day: delivery.day instanceof Date ? delivery.day.toISOString().slice(0, 10) : String(delivery.day),
-    entityType: subscription.entityType as "port",
-    entityId: String(delivery.entityId),
-    severityMin: subscription.severityMin as any,
-  });
-  const candidate = candidates.find((c) => String(c.cluster_id) === String(delivery.clusterId));
-  if (!candidate) {
-    await db.update(alertDeliveries)
-      .set({ status: "FAILED", error: "Candidate missing" })
-      .where(and(
-        eq(alertDeliveries.id, options.deliveryId),
-        options.tenantId ? eq(alertDeliveries.tenantId, options.tenantId) : undefined,
-      ));
-    return { status: "candidate_missing" as const, delivery };
+  const bundlePayload = (delivery as any).bundlePayload ?? null;
+  let payload: any = null;
+  let payloadDay = delivery.day instanceof Date ? delivery.day.toISOString().slice(0, 10) : String(delivery.day);
+  if (bundlePayload) {
+    payload = bundlePayload;
+  } else {
+    const candidates = await getAlertCandidates({
+      day: payloadDay,
+      entityType: subscription.entityType as "port",
+      entityId: String(delivery.entityId),
+      severityMin: subscription.severityMin as any,
+    });
+    const candidate = candidates.find((c) => String(c.cluster_id) === String(delivery.clusterId));
+    if (!candidate) {
+      await db.update(alertDeliveries)
+        .set({ status: "FAILED", error: "Candidate missing" })
+        .where(and(
+          eq(alertDeliveries.id, options.deliveryId),
+          options.tenantId ? eq(alertDeliveries.tenantId, options.tenantId) : undefined,
+        ));
+      return { status: "candidate_missing" as const, delivery };
+    }
+    payloadDay = String(candidate.day);
+    payload = buildWebhookPayload(candidate, { sentAt: now, version: "1.1" });
   }
 
   try {
-    const payload = buildWebhookPayload(candidate, { sentAt: now, version: "1.1" });
     const { body, headers } = buildWebhookRequest({
       payload,
       secret: subscription.secret ?? null,
       subscriptionId: subscription.id,
-      clusterId: String(candidate.cluster_id),
-      day: String(candidate.day),
+      clusterId: String(delivery.clusterId),
+      day: payloadDay,
       now,
+      idempotencyKey: bundlePayload
+        ? computeBundleIdempotencyKey(subscription.id, delivery.runId, payloadDay)
+        : undefined,
     });
     const result = await sendWebhook({ endpoint: subscription.endpoint, body, headers });
     const attemptLogs = (result as any)?.attemptLogs ?? [];
@@ -302,7 +414,7 @@ export async function retryDeliveryById(options: { deliveryId: string; tenantId?
     const baseAttempt = delivery.attempts ?? 0;
     const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "SUCCESS", latency_ms: last?.latency_ms ?? null, http_status: last?.http_status ?? result?.status ?? null }])
       .map((log) => ({
-        deliveryId: deliveryId,
+        deliveryId: delivery.id,
         attemptNo: baseAttempt + log.attempt,
         status: log.status === "SUCCESS" ? "SENT" : "FAILED",
         latencyMs: log.latency_ms ?? null,

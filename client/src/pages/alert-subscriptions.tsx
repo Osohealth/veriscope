@@ -14,10 +14,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { apiFetchJson } from "@/lib/apiFetch";
+import { useAuth } from "@/auth/useAuth";
+import AlertsSubnav from "@/components/alerts-subnav";
 import { ArrowLeft, Plus, RefreshCcw, RotateCw, Send } from "lucide-react";
 
 type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 type DestinationType = "WEBHOOK" | "EMAIL";
+type DestinationState = "ACTIVE" | "PAUSED" | "AUTO_PAUSED" | "DISABLED";
 
 type AlertSubscription = {
   id: string;
@@ -27,7 +30,10 @@ type AlertSubscription = {
   entity_id: string;
   destination_type: DestinationType;
   destination: string;
+  destination_key?: string | null;
   severity_min: Severity;
+  min_quality_band?: "LOW" | "MEDIUM" | "HIGH" | null;
+  min_quality_score?: number | null;
   enabled: boolean;
   signature_version: string;
   has_secret: boolean;
@@ -49,6 +55,17 @@ type AlertDelivery = {
   cluster_severity?: Severity | null;
   cluster_type?: string | null;
   endpoint: string;
+};
+
+type DestinationStateRow = {
+  destination_type: DestinationType;
+  destination_key: string;
+  destination?: string | null;
+  state: DestinationState;
+  reason?: string | null;
+  paused_at?: string | null;
+  auto_paused_at?: string | null;
+  resume_ready_at?: string | null;
 };
 
 type PortOption = {
@@ -73,6 +90,13 @@ const STATUS_STYLES: Record<string, string> = {
   DISABLED: "bg-slate-500/10 text-slate-300 border-slate-500/30",
 };
 
+const DESTINATION_STATE_STYLES: Record<DestinationState, string> = {
+  ACTIVE: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+  PAUSED: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+  AUTO_PAUSED: "bg-orange-500/10 text-orange-400 border-orange-500/30",
+  DISABLED: "bg-slate-500/10 text-slate-300 border-slate-500/30",
+};
+
 const DOT = "\u00B7";
 
 
@@ -94,6 +118,8 @@ type CreateFormState = {
   destination_type: DestinationType;
   destination: string;
   severity_min: Severity;
+  min_quality_band: "OFF" | "LOW" | "MEDIUM" | "HIGH";
+  min_quality_score: string;
   enabled: boolean;
   secret: string;
   scope: "PORT" | "GLOBAL";
@@ -104,6 +130,8 @@ const defaultCreateForm: CreateFormState = {
   destination_type: "WEBHOOK",
   destination: "",
   severity_min: "HIGH",
+  min_quality_band: "OFF",
+  min_quality_score: "",
   enabled: true,
   secret: "",
   scope: "PORT",
@@ -120,6 +148,16 @@ export default function AlertSubscriptionsPage() {
   const [selected, setSelected] = useState<AlertSubscription | null>(null);
   const [deliveries, setDeliveries] = useState<AlertDelivery[]>([]);
   const [deliveriesLoading, setDeliveriesLoading] = useState(false);
+  const [destinationStates, setDestinationStates] = useState<Record<string, DestinationStateRow>>({});
+  const [summary, setSummary] = useState<{
+    total: number;
+    enabled: number;
+    disabled: number;
+    webhook: number;
+    email: number;
+    scope_global: number;
+    scope_port: number;
+  } | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateFormState>(defaultCreateForm);
@@ -128,6 +166,9 @@ export default function AlertSubscriptionsPage() {
   const [ports, setPorts] = useState<PortOption[]>([]);
   const [portSearch, setPortSearch] = useState("");
   const [portsLoading, setPortsLoading] = useState(false);
+  const { role } = useAuth();
+  const canManage = role === "OWNER";
+  const canOperate = role === "OWNER" || role === "OPERATOR";
 
   const loadSubscriptions = async (cursor?: string | null, append = false) => {
     if (append) {
@@ -145,6 +186,9 @@ export default function AlertSubscriptionsPage() {
       const items = Array.isArray(payload?.items) ? payload.items : [];
       setSubscriptions((prev) => (append ? [...prev, ...items] : items));
       setNextCursor(payload?.next_cursor ?? null);
+      if (payload?.summary) {
+        setSummary(payload.summary);
+      }
     } catch (err: any) {
       if (!append) {
         setError(err?.message ?? "Unable to load subscriptions");
@@ -173,6 +217,21 @@ export default function AlertSubscriptionsPage() {
     }
   };
 
+  const loadDestinationStates = async () => {
+    try {
+      const payload = await apiFetchJson("/v1/alert-destinations?window=1h");
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+      const next: Record<string, DestinationStateRow> = {};
+      items.forEach((item: DestinationStateRow) => {
+        if (!item.destination_key || !item.destination_type) return;
+        next[`${item.destination_type}:::${item.destination_key}`] = item;
+      });
+      setDestinationStates(next);
+    } catch {
+      setDestinationStates({});
+    }
+  };
+
   const loadDeliveries = async (subscriptionId: string) => {
     setDeliveriesLoading(true);
     try {
@@ -187,6 +246,7 @@ export default function AlertSubscriptionsPage() {
 
   useEffect(() => {
     loadSubscriptions();
+    loadDestinationStates();
   }, []);
 
   useEffect(() => {
@@ -211,6 +271,10 @@ export default function AlertSubscriptionsPage() {
 
   const handleCreate = async () => {
     try {
+      if (!canManage) {
+        toast({ title: "Permission denied", description: "Requires OWNER role.", variant: "destructive" });
+        return;
+      }
       if (createForm.scope === "PORT" && !createForm.entity_id) {
         toast({ title: "Port required", description: "Select a port for a PORT-scoped subscription.", variant: "destructive" });
         return;
@@ -223,6 +287,14 @@ export default function AlertSubscriptionsPage() {
         signature_version: "v1",
         scope: createForm.scope,
       };
+      const qualityBand = createForm.min_quality_band === "OFF" ? null : createForm.min_quality_band;
+      const qualityScore = createForm.min_quality_score.trim() === "" ? null : Number(createForm.min_quality_score);
+      if (qualityBand !== null) {
+        body.min_quality_band = qualityBand;
+      }
+      if (qualityScore !== null) {
+        body.min_quality_score = qualityScore;
+      }
       if (createForm.scope === "PORT") {
         body.entity_id = createForm.entity_id;
       }
@@ -247,6 +319,10 @@ export default function AlertSubscriptionsPage() {
   const handleEdit = async () => {
     if (!selected) return;
     try {
+      if (!canManage) {
+        toast({ title: "Permission denied", description: "Requires OWNER role.", variant: "destructive" });
+        return;
+      }
       if (editForm.scope === "PORT" && !editForm.entity_id) {
         toast({ title: "Port required", description: "Select a port for a PORT-scoped subscription.", variant: "destructive" });
         return;
@@ -257,6 +333,10 @@ export default function AlertSubscriptionsPage() {
         enabled: editForm.enabled,
         scope: editForm.scope,
       };
+      const qualityBand = editForm.min_quality_band === "OFF" ? null : editForm.min_quality_band;
+      const qualityScore = editForm.min_quality_score.trim() === "" ? null : Number(editForm.min_quality_score);
+      body.min_quality_band = qualityBand;
+      body.min_quality_score = qualityScore;
       if (editForm.scope === "PORT") {
         body.entity_id = editForm.entity_id;
       }
@@ -275,6 +355,10 @@ export default function AlertSubscriptionsPage() {
 
   const handleToggle = async (sub: AlertSubscription) => {
     try {
+      if (!canManage) {
+        toast({ title: "Permission denied", description: "Requires OWNER role.", variant: "destructive" });
+        return;
+      }
       await apiFetchJson(`/v1/alert-subscriptions/${sub.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -286,12 +370,38 @@ export default function AlertSubscriptionsPage() {
     }
   };
 
+  const updateDestinationState = async (sub: AlertSubscription, state: DestinationState, reason: string) => {
+    if (!sub.destination_key) {
+      toast({ title: "Destination key missing", description: "Unable to update destination state.", variant: "destructive" });
+      return;
+    }
+    try {
+      await apiFetchJson("/v1/alert-destinations/state", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destination_type: sub.destination_type,
+          destination_key: sub.destination_key,
+          state,
+          reason,
+        }),
+      });
+      loadDestinationStates();
+    } catch (err: any) {
+      toast({ title: "Update failed", description: err?.message ?? "Unable to update destination state.", variant: "destructive" });
+    }
+  };
+
   const openEdit = (sub: AlertSubscription) => {
     setSelected(sub);
     setEditForm({
       destination_type: sub.destination_type,
       destination: sub.destination,
       severity_min: sub.severity_min,
+      min_quality_band: sub.min_quality_band ? sub.min_quality_band : "OFF",
+      min_quality_score: sub.min_quality_score !== null && sub.min_quality_score !== undefined
+        ? String(sub.min_quality_score)
+        : "",
       enabled: sub.enabled,
       secret: "",
       scope: sub.scope ?? "PORT",
@@ -302,6 +412,10 @@ export default function AlertSubscriptionsPage() {
 
   const handleTest = async (sub: AlertSubscription) => {
     try {
+      if (!canManage) {
+        toast({ title: "Permission denied", description: "Requires OWNER role.", variant: "destructive" });
+        return;
+      }
       await apiFetchJson(`/v1/alert-subscriptions/${sub.id}/test`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -319,6 +433,10 @@ export default function AlertSubscriptionsPage() {
 
   const handleRotateSecret = async (sub: AlertSubscription) => {
     try {
+      if (!canManage) {
+        toast({ title: "Permission denied", description: "Requires OWNER role.", variant: "destructive" });
+        return;
+      }
       const payload = await apiFetchJson(`/v1/alert-subscriptions/${sub.id}/rotate-secret`, { method: "POST" });
       const newSecret = payload?.secret ?? null;
       setRotatedSecret(newSecret);
@@ -333,6 +451,13 @@ export default function AlertSubscriptionsPage() {
     if (!selected?.last_test_status) return "--";
     return selected.last_test_status;
   }, [selected]);
+
+  const selectedDestinationState = useMemo(() => getDestinationState(selected), [selected, destinationStates]);
+
+  const getDestinationState = (sub?: AlertSubscription | null) => {
+    if (!sub?.destination_key) return null;
+    return destinationStates[`${sub.destination_type}:::${sub.destination_key}`] ?? null;
+  };
 
   return (
     <TooltipProvider>
@@ -351,9 +476,10 @@ export default function AlertSubscriptionsPage() {
                 <p className="text-sm text-muted-foreground">
                   Create and test delivery targets for Veriscope signals.
                 </p>
+                <AlertsSubnav />
               </div>
               <div className="flex items-center gap-3">
-                <Button onClick={() => setIsCreateOpen(true)}>
+                <Button onClick={() => setIsCreateOpen(true)} disabled={!canManage} title={!canManage ? "Requires OWNER role" : undefined}>
                   <Plus className="mr-2 h-4 w-4" />
                   New subscription
                 </Button>
@@ -363,6 +489,28 @@ export default function AlertSubscriptionsPage() {
         </div>
 
         <div className="container mx-auto px-6 py-8">
+          <div className="mb-6 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+            {[
+              { label: "Total", value: summary?.total ?? 0 },
+              { label: "Enabled", value: summary?.enabled ?? 0 },
+              { label: "Disabled", value: summary?.disabled ?? 0 },
+              { label: "Webhook", value: summary?.webhook ?? 0 },
+              { label: "Email", value: summary?.email ?? 0 },
+              { label: "All ports", value: summary?.scope_global ?? 0 },
+              { label: "Port scoped", value: summary?.scope_port ?? 0 },
+            ].map((item) => (
+              <Card key={item.label} className="border-border/60 bg-card/70">
+                <CardContent className="py-4">
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  {loading ? (
+                    <Skeleton className="mt-2 h-5 w-16" />
+                  ) : (
+                    <p className="text-xl font-semibold">{item.value}</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
           {loading ? (
             <Card className="border-border/60 bg-card/70">
               <CardContent className="py-10">
@@ -393,6 +541,7 @@ export default function AlertSubscriptionsPage() {
                       <TableHead>Scope</TableHead>
                       <TableHead>Severity min</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Destination state</TableHead>
                       <TableHead>Last test</TableHead>
                       <TableHead>Last result</TableHead>
                       <TableHead>Last error</TableHead>
@@ -401,7 +550,10 @@ export default function AlertSubscriptionsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {subscriptions.map((sub) => (
+                    {subscriptions.map((sub) => {
+                      const destinationState = getDestinationState(sub);
+                      const stateValue: DestinationState = destinationState?.state ?? "ACTIVE";
+                      return (
                       <TableRow key={sub.id} className="cursor-pointer" onClick={() => setSelected(sub)}>
                         <TableCell>
                           <div className="text-xs text-muted-foreground">{sub.destination_type}</div>
@@ -425,6 +577,29 @@ export default function AlertSubscriptionsPage() {
                           <Badge className={cn("border text-xs", sub.enabled ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : STATUS_STYLES.DISABLED)}>
                             {sub.enabled ? "ENABLED" : "DISABLED"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {stateValue === "AUTO_PAUSED" ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge className={cn("border text-xs w-fit", DESTINATION_STATE_STYLES[stateValue])}>
+                                    {stateValue}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">System paused due to endpoint health; auto-resumes when healthy.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <Badge className={cn("border text-xs w-fit", DESTINATION_STATE_STYLES[stateValue])}>
+                                {stateValue}
+                              </Badge>
+                            )}
+                            {destinationState?.resume_ready_at && stateValue === "AUTO_PAUSED" && (
+                              <span className="text-[11px] text-muted-foreground">Ready to resume</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {formatRelativeTime(sub.last_test_at)}
@@ -459,18 +634,55 @@ export default function AlertSubscriptionsPage() {
                         </TableCell>
                       <TableCell onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleTest(sub)}>
+                          <Button size="sm" variant="outline" onClick={() => handleTest(sub)} disabled={!canManage} title={!canManage ? "Requires OWNER role" : undefined}>
                             <Send className="mr-2 h-3 w-3" />
                             Test
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(sub)}>
+                          <Button size="sm" variant="ghost" onClick={() => openEdit(sub)} disabled={!canManage} title={!canManage ? "Requires OWNER role" : undefined}>
                             Edit
                           </Button>
-                          <Switch checked={sub.enabled} onCheckedChange={() => handleToggle(sub)} />
+                          <Switch checked={sub.enabled} onCheckedChange={() => handleToggle(sub)} disabled={!canManage} />
+                          {canOperate && stateValue === "ACTIVE" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                updateDestinationState(sub, "PAUSED", "manual pause");
+                              }}
+                            >
+                              Pause
+                            </Button>
+                          )}
+                          {canOperate && (stateValue === "PAUSED" || stateValue === "AUTO_PAUSED") && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                updateDestinationState(sub, "ACTIVE", "manual resume");
+                              }}
+                            >
+                              Resume
+                            </Button>
+                          )}
+                          {stateValue === "DISABLED" && role === "OWNER" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                updateDestinationState(sub, "ACTIVE", "manual enable");
+                              }}
+                            >
+                              Enable
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
                 {nextCursor && (
@@ -526,10 +738,38 @@ export default function AlertSubscriptionsPage() {
                 {selected.destination_type === "WEBHOOK" && (
                   <div className="text-sm text-muted-foreground flex items-center gap-3">
                     Secret: <span className="text-foreground">{selected.has_secret ? "set" : "none"}</span>
-                    <Button size="sm" variant="outline" onClick={() => handleRotateSecret(selected)}>
+                    <Button size="sm" variant="outline" onClick={() => handleRotateSecret(selected)} disabled={!canManage} title={!canManage ? "Requires OWNER role" : undefined}>
                       <RotateCw className="mr-2 h-3 w-3" />
                       Rotate
                     </Button>
+                  </div>
+                )}
+                <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-2">
+                  Destination state:
+                  <Badge className={cn("border text-xs", DESTINATION_STATE_STYLES[selectedDestinationState?.state ?? "ACTIVE"])}>
+                    {selectedDestinationState?.state ?? "ACTIVE"}
+                  </Badge>
+                  {selectedDestinationState?.reason && (
+                    <span className="text-xs text-muted-foreground">({selectedDestinationState.reason})</span>
+                  )}
+                </div>
+                {canOperate && selected.destination_key && (
+                  <div className="flex flex-wrap gap-2">
+                    {(selectedDestinationState?.state ?? "ACTIVE") === "ACTIVE" && (
+                      <Button size="sm" variant="outline" onClick={() => updateDestinationState(selected, "PAUSED", "manual pause")}>
+                        Pause destination
+                      </Button>
+                    )}
+                    {["PAUSED", "AUTO_PAUSED"].includes(selectedDestinationState?.state ?? "") && (
+                      <Button size="sm" variant="outline" onClick={() => updateDestinationState(selected, "ACTIVE", "manual resume")}>
+                        Resume destination
+                      </Button>
+                    )}
+                    {(selectedDestinationState?.state ?? "") === "DISABLED" && role === "OWNER" && (
+                      <Button size="sm" variant="outline" onClick={() => updateDestinationState(selected, "ACTIVE", "manual enable")}>
+                        Enable destination
+                      </Button>
+                    )}
                   </div>
                 )}
                 {rotatedSecret && (
@@ -545,11 +785,11 @@ export default function AlertSubscriptionsPage() {
                   Last test: {formatRelativeTime(selected.last_test_at)} {DOT} Result: {lastResult}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => handleTest(selected)}>
+                  <Button size="sm" variant="outline" onClick={() => handleTest(selected)} disabled={!canManage} title={!canManage ? "Requires OWNER role" : undefined}>
                     <RefreshCcw className="mr-2 h-3 w-3" />
                     Send test alert
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => openEdit(selected)}>
+                  <Button size="sm" variant="ghost" onClick={() => openEdit(selected)} disabled={!canManage} title={!canManage ? "Requires OWNER role" : undefined}>
                     Edit subscription
                   </Button>
                 </div>
@@ -642,7 +882,7 @@ export default function AlertSubscriptionsPage() {
               </Select>
               {createForm.scope === "GLOBAL" && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  You’ll receive alerts for any port meeting your severity threshold.
+                  You'll receive alerts for any port meeting your severity threshold.
                 </p>
               )}
             </div>
@@ -699,6 +939,36 @@ export default function AlertSubscriptionsPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Minimum quality</label>
+              <Select
+                value={createForm.min_quality_band}
+                onValueChange={(value) => setCreateForm((prev) => ({ ...prev, min_quality_band: value as CreateFormState["min_quality_band"] }))}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Off" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OFF">Off</SelectItem>
+                  <SelectItem value="HIGH">High</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="LOW">Low</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="mt-3">
+                <label className="text-xs font-medium text-muted-foreground">Min quality score (optional)</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  className="mt-2"
+                  placeholder="0-100"
+                  value={createForm.min_quality_score}
+                  onChange={(event) => setCreateForm((prev) => ({ ...prev, min_quality_score: event.target.value }))}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">Score overrides band when set.</p>
+              </div>
+            </div>
             <div className="flex items-center justify-between rounded-lg border border-slate-700 px-4 py-3">
               <div className="text-sm text-slate-200">Enabled</div>
               <Switch
@@ -709,7 +979,7 @@ export default function AlertSubscriptionsPage() {
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate}>Create</Button>
+            <Button onClick={handleCreate} disabled={!canManage} title={!canManage ? "Requires OWNER role" : undefined}>Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -793,6 +1063,36 @@ export default function AlertSubscriptionsPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Minimum quality</label>
+              <Select
+                value={editForm.min_quality_band}
+                onValueChange={(value) => setEditForm((prev) => ({ ...prev, min_quality_band: value as CreateFormState["min_quality_band"] }))}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Off" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OFF">Off</SelectItem>
+                  <SelectItem value="HIGH">High</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="LOW">Low</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="mt-3">
+                <label className="text-xs font-medium text-muted-foreground">Min quality score (optional)</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  className="mt-2"
+                  placeholder="0-100"
+                  value={editForm.min_quality_score}
+                  onChange={(event) => setEditForm((prev) => ({ ...prev, min_quality_score: event.target.value }))}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">Score overrides band when set.</p>
+              </div>
+            </div>
             <div className="flex items-center justify-between rounded-lg border border-slate-700 px-4 py-3">
               <div className="text-sm text-slate-200">Enabled</div>
               <Switch
@@ -803,7 +1103,7 @@ export default function AlertSubscriptionsPage() {
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEdit}>Save</Button>
+            <Button onClick={handleEdit} disabled={!canManage} title={!canManage ? "Requires OWNER role" : undefined}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

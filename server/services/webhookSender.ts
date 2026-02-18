@@ -34,6 +34,11 @@ export const computeIdempotencyKey = (subscriptionId: string, clusterId: string,
   return createHash("sha1").update(raw).digest("hex");
 };
 
+export const computeBundleIdempotencyKey = (subscriptionId: string, runId: string, day: string) => {
+  const raw = `${subscriptionId}|${runId}|${day}`;
+  return createHash("sha1").update(raw).digest("hex");
+};
+
 export const buildWebhookPayload = (signalDto: any, options: WebhookPayloadOptions = {}) => {
   const base = buildSignalClusterAlertPayload(signalDto);
   return {
@@ -50,8 +55,9 @@ export const buildWebhookRequest = (args: {
   clusterId: string;
   day: string;
   now: Date;
+  idempotencyKey?: string;
 }) => {
-  const idempotencyKey = computeIdempotencyKey(args.subscriptionId, args.clusterId, args.day);
+  const idempotencyKey = args.idempotencyKey ?? computeIdempotencyKey(args.subscriptionId, args.clusterId, args.day);
   const payload = {
     ...args.payload,
     idempotency_key: idempotencyKey,

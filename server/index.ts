@@ -1,10 +1,14 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { requestIdMiddleware, auditContextMiddleware } from "./middleware/requestContext";
+import { startIncidentAutomationScheduler } from "./services/incidentAutomationScheduler";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(requestIdMiddleware);
+app.use(auditContextMiddleware);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -38,6 +42,7 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+  startIncidentAutomationScheduler();
 
   // Ensure unmatched API routes return JSON, not the Vite HTML fallback.
   app.use("/api", (_req, res) => {

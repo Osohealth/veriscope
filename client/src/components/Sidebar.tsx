@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Ship, Plane, Zap, FileText, TrendingUp, List, Bell, Download } from "lucide-react";
+import { Ship, Plane, Zap, FileText, TrendingUp, List, Bell, Download, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +16,8 @@ const userTools = [
   { name: "Watchlists", href: "/watchlists", icon: List },
   { name: "Alert Activity", href: "/alerts", icon: Bell },
   { name: "Alert Subscriptions", href: "/alerts/subscriptions", icon: Bell },
+  { name: "Team & Access", href: "/settings/team", icon: Users },
+  { name: "Audit Log", href: "/settings/audit", icon: FileText },
   { name: "Alert Rules", href: "/alert-rules", icon: Bell },
   { name: "Exports", href: "/exports", icon: Download },
 ];

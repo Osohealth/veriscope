@@ -33,3 +33,12 @@
 ## Health checks
 - Alerts: `GET /health/alerts`
 - Webhooks: `GET /health/webhooks`
+
+## SLA compute scheduler
+- Dev: set `DEV_SLA_SCHEDULER=true` to enable in-process compute.
+  - 24h window: every 10 minutes
+  - 7d window: every 2 hours
+- Prod: schedule HTTP calls:
+  - `POST /api/admin/alerts/sla/compute?window=24h`
+  - `POST /api/admin/alerts/sla/compute?window=7d`
+  - Use an OWNER API key.

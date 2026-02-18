@@ -10,6 +10,8 @@ export type AlertSubscriptionDTO = {
   entity_id: string;
   severity_min: AlertSeverity;
   confidence_min?: AlertConfidence | null;
+  min_quality_band?: "LOW" | "MEDIUM" | "HIGH" | null;
+  min_quality_score?: number | null;
   channel: AlertChannel;
   endpoint: string;
   secret?: string | null;
@@ -29,6 +31,8 @@ export type CreateAlertSubscriptionDTO = {
   entity_id: string;
   severity_min?: AlertSeverity;
   confidence_min?: AlertConfidence | null;
+  min_quality_band?: "LOW" | "MEDIUM" | "HIGH" | null;
+  min_quality_score?: number | null;
   channel?: AlertChannel;
   endpoint: string;
   secret?: string | null;

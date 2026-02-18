@@ -1,4 +1,4 @@
-import { pgTable, varchar, text, integer, decimal, doublePrecision, timestamp, boolean, jsonb, serial, date, index, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, integer, decimal, doublePrecision, timestamp, boolean, jsonb, serial, date, index, uniqueIndex, uuid, primaryKey } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -282,12 +282,169 @@ export const apiKeys = pgTable("api_keys", {
   keyHash: varchar("key_hash", { length: 255 }).notNull(),
   name: varchar("name", { length: 100 }),
   label: varchar("label", { length: 100 }),
+  role: varchar("role", { length: 20 }).notNull().default("OWNER"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
 }, (table) => ({
   keyHashUnique: uniqueIndex("api_keys_key_hash_unique").on(table.keyHash),
   tenantKeyHashIdx: index("api_keys_tenant_key_hash").on(table.tenantId, table.keyHash),
+}));
+
+export const tenantUsers = pgTable("tenant_users", {
+  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
+  tenantId: uuid("tenant_id").notNull().default(sql`'00000000-0000-0000-0000-000000000001'`),
+  userId: uuid("user_id").notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  displayName: varchar("display_name", { length: 200 }),
+  role: varchar("role", { length: 20 }).notNull().default("VIEWER"),
+  status: varchar("status", { length: 20 }).notNull().default("INVITED"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  createdBy: uuid("created_by"),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  revokedBy: uuid("revoked_by"),
+}, (table) => ({
+  tenantEmailIdx: uniqueIndex("tenant_users_tenant_email").on(table.tenantId, table.email),
+  tenantUserIdx: uniqueIndex("tenant_users_tenant_user").on(table.tenantId, table.userId),
+  tenantStatusIdx: index("tenant_users_tenant_status_created").on(table.tenantId, table.status, table.createdAt),
+}));
+
+export const tenantInvites = pgTable("tenant_invites", {
+  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
+  tenantId: uuid("tenant_id").notNull().default(sql`'00000000-0000-0000-0000-000000000001'`),
+  email: varchar("email", { length: 255 }).notNull(),
+  role: varchar("role", { length: 20 }).notNull().default("VIEWER"),
+  tokenHash: varchar("token_hash", { length: 255 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  createdBy: uuid("created_by").notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  acceptedByUserId: uuid("accepted_by_user_id"),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  revokedBy: uuid("revoked_by"),
+}, (table) => ({
+  tokenUnique: uniqueIndex("tenant_invites_token_unique").on(table.tokenHash),
+  tenantEmailIdx: index("tenant_invites_tenant_email").on(table.tenantId, table.email),
+  tenantStatusIdx: index("tenant_invites_tenant_status").on(table.tenantId, table.acceptedAt, table.revokedAt),
+}));
+
+export const tenantSettings = pgTable("tenant_settings", {
+  tenantId: uuid("tenant_id").primaryKey(),
+  auditRetentionDays: integer("audit_retention_days").notNull().default(90),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const auditExports = pgTable("audit_exports", {
+  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
+  tenantId: uuid("tenant_id").notNull(),
+  requestedByUserId: uuid("requested_by_user_id").notNull(),
+  format: text("format").notNull(),
+  filters: jsonb("filters").notNull(),
+  rowCount: integer("row_count").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, (table) => ({
+  tenantCreatedIdx: index("audit_exports_tenant_created").on(table.tenantId, table.createdAt, table.id),
+}));
+
+export const auditEvents = pgTable("audit_events", {
+  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
+  tenantId: uuid("tenant_id").notNull(),
+  actorType: text("actor_type").notNull(),
+  actorUserId: uuid("actor_user_id"),
+  actorApiKeyId: uuid("actor_api_key_id"),
+  actorLabel: text("actor_label"),
+  action: text("action").notNull(),
+  resourceType: text("resource_type").notNull(),
+  resourceId: text("resource_id"),
+  severity: text("severity").notNull(),
+  status: text("status").notNull(),
+  message: text("message").notNull(),
+  metadata: jsonb("metadata").notNull().default({}),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  requestId: text("request_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  tenantCreatedIdx: index("audit_events_tenant_created_id").on(table.tenantId, table.createdAt, table.id),
+  tenantActionIdx: index("audit_events_tenant_action_created").on(table.tenantId, table.action, table.createdAt, table.id),
+  tenantResourceIdx: index("audit_events_tenant_resource_created").on(table.tenantId, table.resourceType, table.resourceId, table.createdAt, table.id),
+  tenantActorIdx: index("audit_events_tenant_actor_created").on(table.tenantId, table.actorType, table.actorUserId, table.actorApiKeyId, table.createdAt, table.id),
+}));
+
+export const incidents = pgTable("incidents", {
+  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
+  tenantId: uuid("tenant_id").notNull(),
+  type: text("type").notNull(),
+  destinationKey: text("destination_key"),
+  status: text("status").notNull().default("OPEN"),
+  severity: text("severity").notNull(),
+  title: text("title").notNull(),
+  summary: text("summary").notNull(),
+  openedAt: timestamp("opened_at", { withTimezone: true }).notNull().defaultNow(),
+  ackedAt: timestamp("acked_at", { withTimezone: true }),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  openedByActorType: text("opened_by_actor_type").notNull(),
+  openedByActorId: uuid("opened_by_actor_id"),
+  ackedByActorType: text("acked_by_actor_type"),
+  ackedByActorId: uuid("acked_by_actor_id"),
+  resolvedByActorType: text("resolved_by_actor_type"),
+  resolvedByActorId: uuid("resolved_by_actor_id"),
+}, (table) => ({
+  tenantStatusOpenedIdx: index("incidents_tenant_status_opened").on(table.tenantId, table.status, table.openedAt.desc()),
+  tenantDestinationIdx: index("incidents_tenant_destination").on(table.tenantId, table.destinationKey, table.openedAt.desc()),
+}));
+
+export const incidentEscalationPolicies = pgTable("incident_escalation_policies", {
+  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
+  tenantId: uuid("tenant_id").notNull(),
+  incidentType: text("incident_type").notNull(),
+  severityMin: text("severity_min").notNull(),
+  level: integer("level").notNull(),
+  afterMinutes: integer("after_minutes").notNull(),
+  targetType: text("target_type").notNull(),
+  targetRef: text("target_ref").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  uniquePolicy: uniqueIndex("incident_escalation_policies_unique").on(
+    table.tenantId,
+    table.incidentType,
+    table.severityMin,
+    table.level,
+  ),
+  lookupIdx: index("incident_escalation_policies_lookup").on(
+    table.tenantId,
+    table.incidentType,
+    table.enabled,
+    table.severityMin,
+    table.afterMinutes,
+  ),
+}));
+
+export const incidentEscalations = pgTable("incident_escalations", {
+  incidentId: uuid("incident_id").primaryKey(),
+  tenantId: uuid("tenant_id").notNull(),
+  currentLevel: integer("current_level").notNull().default(0),
+  lastEscalatedAt: timestamp("last_escalated_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("incident_escalations_tenant").on(table.tenantId),
+}));
+
+export const rateLimitBuckets = pgTable("rate_limit_buckets", {
+  tenantId: uuid("tenant_id").notNull(),
+  keyHash: text("key_hash").notNull(),
+  scope: text("scope").notNull(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  count: integer("count").notNull().default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.tenantId, table.keyHash, table.scope, table.windowStart] }),
+  tenantScopeWindowIdx: index("rate_limit_buckets_tenant_scope_window").on(table.tenantId, table.scope, table.windowStart.desc()),
 }));
 
 // User Alerts and Notifications
@@ -920,6 +1077,8 @@ export const alertSubscriptions = pgTable("alert_subscriptions", {
   entityId: uuid("entity_id").notNull(),
   severityMin: varchar("severity_min", { length: 20 }).notNull().default("HIGH"),
   confidenceMin: varchar("confidence_min", { length: 20 }),
+  minQualityBand: varchar("min_quality_band", { length: 20 }),
+  minQualityScore: integer("min_quality_score"),
   channel: varchar("channel", { length: 20 }).notNull().default("WEBHOOK"),
   endpoint: text("endpoint").notNull(),
   secret: text("secret"),
@@ -974,7 +1133,18 @@ export const alertDeliveries = pgTable("alert_deliveries", {
   day: date("day").notNull(),
   destinationType: text("destination_type").notNull(),
   endpoint: text("endpoint").notNull(),
+  destinationKey: text("destination_key").notNull(),
   status: text("status").notNull(),
+  skipReason: text("skip_reason"),
+  isBundle: boolean("is_bundle").notNull().default(true),
+  bundleSize: integer("bundle_size").notNull().default(1),
+  bundleOverflow: integer("bundle_overflow").notNull().default(0),
+  bundlePayload: jsonb("bundle_payload"),
+  decision: jsonb("decision"),
+  qualityScore: integer("quality_score"),
+  qualityBand: text("quality_band"),
+  qualityReasons: jsonb("quality_reasons"),
+  qualityVersion: text("quality_version"),
   attempts: integer("attempts").notNull().default(0),
   lastHttpStatus: integer("last_http_status"),
   latencyMs: integer("latency_ms"),
@@ -985,10 +1155,47 @@ export const alertDeliveries = pgTable("alert_deliveries", {
   }, (table) => ({
     runIdx: index("alert_deliveries_run_id").on(table.runId),
     tenantUserCreatedIdx: index("alert_deliveries_tenant_user_created_id").on(table.tenantId, table.userId, table.createdAt.desc(), table.id.desc()),
+    tenantDestinationCreatedIdx: index("alert_deliveries_tenant_destination_created").on(table.tenantId, table.destinationType, table.createdAt.desc()),
+    tenantDestinationKeyCreatedIdx: index("alert_deliveries_tenant_destination_key_created").on(table.tenantId, table.destinationKey, table.createdAt.desc(), table.id.desc()),
     subTimeIdx: index("alert_deliveries_sub_time").on(table.subscriptionId, table.createdAt.desc()),
     dayEntityIdx: index("alert_deliveries_day_entity").on(table.day, table.entityId),
     clusterIdx: index("alert_deliveries_cluster_id").on(table.clusterId),
   }));
+
+export const alertNoiseBudgets = pgTable("alert_noise_budgets", {
+  tenantId: uuid("tenant_id").notNull(),
+  destinationType: text("destination_type").notNull(),
+  window: text("window").notNull(),
+  maxDeliveries: integer("max_deliveries").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.tenantId, table.destinationType, table.window] }),
+  tenantWindowIdx: index("alert_noise_budgets_tenant_window").on(table.tenantId, table.window),
+}));
+
+export const alertNoiseBudgetBreaches = pgTable("alert_noise_budget_breaches", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  destinationType: text("destination_type").notNull(),
+  window: text("window").notNull(),
+  bucketMinute: timestamp("bucket_minute", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueIdx: uniqueIndex("alert_noise_budget_breaches_unique").on(table.tenantId, table.destinationType, table.window, table.bucketMinute),
+  tenantBucketIdx: index("alert_noise_budget_breaches_tenant_bucket").on(table.tenantId, table.bucketMinute.desc()),
+}));
+
+export const alertQualityGateBreaches = pgTable("alert_quality_gate_breaches", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  subscriptionId: uuid("subscription_id").notNull(),
+  day: date("day").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueIdx: uniqueIndex("alert_quality_gate_breaches_unique").on(table.tenantId, table.subscriptionId, table.day),
+  tenantDayIdx: index("alert_quality_gate_breaches_tenant_day").on(table.tenantId, table.day.desc()),
+}));
 
 export const alertDeliveryAttempts = pgTable("alert_delivery_attempts", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1004,6 +1211,112 @@ export const alertDeliveryAttempts = pgTable("alert_delivery_attempts", {
 }, (table) => ({
   tenantDeliveryIdx: index("alert_delivery_attempts_tenant_delivery_id").on(table.tenantId, table.deliveryId),
   createdIdx: index("alert_delivery_attempts_created_at").on(table.createdAt),
+}));
+
+export const alertDeliverySlaWindows = pgTable("alert_delivery_sla_windows", {
+  tenantId: uuid("tenant_id").notNull(),
+  destinationType: text("destination_type").notNull(),
+  destinationKey: text("destination_key").notNull(),
+  window: text("window").notNull(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  attemptsTotal: integer("attempts_total").notNull(),
+  attemptsSuccess: integer("attempts_success").notNull(),
+  attemptsFailed: integer("attempts_failed").notNull(),
+  latencyP50Ms: integer("latency_p50_ms").notNull(),
+  latencyP95Ms: integer("latency_p95_ms").notNull(),
+  successRate: decimal("success_rate", { precision: 5, scale: 2 }).notNull(),
+  status: text("status").notNull(),
+  computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.tenantId, table.window, table.destinationType, table.destinationKey, table.windowStart] }),
+  tenantWindowIdx: index("alert_delivery_sla_windows_tenant_window").on(table.tenantId, table.window, table.windowStart.desc()),
+  tenantWindowDestKeyUpdatedIdx: index("alert_sla_windows_tenant_window_destkey_updated").on(table.tenantId, table.window, table.destinationType, table.destinationKey, table.computedAt.desc()),
+  tenantWindowUpdatedIdx: index("alert_sla_windows_tenant_window_updated").on(table.tenantId, table.window, table.computedAt.desc()),
+}));
+
+export const alertEndpointHealth = pgTable("alert_endpoint_health", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  window: text("window").notNull(),
+  destinationType: text("destination_type").notNull(),
+  destination: text("destination").notNull(),
+  status: text("status").notNull(),
+  attemptsTotal: integer("attempts_total").notNull().default(0),
+  attemptsSuccess: integer("attempts_success").notNull().default(0),
+  successRate: doublePrecision("success_rate").notNull().default(1),
+  p50Ms: integer("p50_ms"),
+  p95Ms: integer("p95_ms"),
+  consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+  lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
+  lastFailureAt: timestamp("last_failure_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  uniqueIdx: uniqueIndex("alert_endpoint_health_unique").on(table.tenantId, table.window, table.destinationType, table.destination),
+  tenantWindowStatusIdx: index("alert_endpoint_health_tenant_window_status").on(table.tenantId, table.window, table.status),
+  tenantWindowUpdatedIdx: index("alert_endpoint_health_tenant_window_updated").on(table.tenantId, table.window, table.updatedAt.desc()),
+}));
+
+export const alertDestinationStates = pgTable("alert_destination_states", {
+  tenantId: uuid("tenant_id").notNull(),
+  destinationType: text("destination_type").notNull(),
+  destinationKey: text("destination_key").notNull(),
+  state: text("state").notNull(),
+  reason: text("reason"),
+  pausedByUserId: uuid("paused_by_user_id"),
+  pausedAt: timestamp("paused_at", { withTimezone: true }),
+  autoPausedAt: timestamp("auto_paused_at", { withTimezone: true }),
+  resumeReadyAt: timestamp("resume_ready_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  }, (table) => ({
+    pk: primaryKey({ columns: [table.tenantId, table.destinationType, table.destinationKey] }),
+    tenantStateIdx: index("alert_destination_states_tenant_state").on(table.tenantId, table.state),
+    tenantDestinationStateIdx: index("alert_destination_states_tenant_dest_state").on(table.tenantId, table.destinationType, table.destinationKey, table.state),
+    tenantDestinationIdx: index("alert_destination_states_tenant_destination").on(table.tenantId, table.destinationKey),
+    tenantStateUpdatedIdx: index("alert_destination_states_tenant_state_updated").on(table.tenantId, table.state, table.updatedAt.desc()),
+  }));
+
+export const alertDestinationOverrides = pgTable("alert_destination_overrides", {
+  tenantId: uuid("tenant_id").notNull(),
+  destinationKey: text("destination_key").notNull(),
+  destinationType: text("destination_type").notNull(),
+  noiseBudgetEnabled: boolean("noise_budget_enabled").notNull().default(true),
+  noiseBudgetWindowMinutes: integer("noise_budget_window_minutes"),
+  noiseBudgetMaxDeliveries: integer("noise_budget_max_deliveries"),
+  slaEnabled: boolean("sla_enabled").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedByUserId: uuid("updated_by_user_id"),
+  updatedByKeyId: uuid("updated_by_key_id"),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.tenantId, table.destinationKey] }),
+  tenantTypeIdx: index("alert_destination_overrides_tenant_type").on(table.tenantId, table.destinationType),
+}));
+
+export const alertDestinationSlaOverrides = pgTable("alert_destination_sla_overrides", {
+  tenantId: uuid("tenant_id").notNull(),
+  destinationKey: text("destination_key").notNull(),
+  window: text("window").notNull(),
+  p95Ms: integer("p95_ms"),
+  successRateMinPct: integer("success_rate_min_pct"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedByUserId: uuid("updated_by_user_id"),
+  updatedByKeyId: uuid("updated_by_key_id"),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.tenantId, table.destinationKey, table.window] }),
+  tenantWindowIdx: index("alert_destination_sla_overrides_tenant_window").on(table.tenantId, table.window),
+}));
+
+export const alertSlaThresholds = pgTable("alert_sla_thresholds", {
+  tenantId: uuid("tenant_id").notNull(),
+  window: text("window").notNull(),
+  destinationType: text("destination_type").notNull(),
+  p95MsThreshold: integer("p95_ms_threshold").notNull(),
+  successRateThreshold: decimal("success_rate_threshold", { precision: 5, scale: 4 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.tenantId, table.window, table.destinationType] }),
+  tenantWindowIdx: index("alert_sla_thresholds_tenant_window").on(table.tenantId, table.window),
 }));
 
 export const alertDlq = pgTable("alert_dlq", {

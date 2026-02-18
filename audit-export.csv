@@ -1,0 +1,2 @@
+id,tenant_id,actor_type,actor_user_id,actor_api_key_id,actor_label,action,resource_type,resource_id,severity,status,message,metadata,ip,user_agent,request_id,created_at
+16d833d6-6d6c-4540-be87-12f30bd10bc2,00000000-0000-0000-0000-000000000001,API_KEY,00000000-0000-0000-0000-000000000001,,,TEST.NEW_EVENT,AUDIT_EVENTS,,INFO,SUCCESS,New audit event,{},,,,2026-02-07T18:33:24.140Z
