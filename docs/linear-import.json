@@ -1,0 +1,255 @@
+{
+  "labels": [
+    { "name": "epic" },
+    { "name": "story" },
+    { "name": "phase-5" },
+    { "name": "phase-6" },
+    { "name": "phase-7" },
+    { "name": "phase-8" },
+    { "name": "phase-9" },
+    { "name": "phase-10" },
+    { "name": "phase-11" },
+    { "name": "technical" }
+  ],
+  "projects": [
+    { "name": "Phase 5 - Dashboard Core" },
+    { "name": "Phase 6 - Flows Intelligence" },
+    { "name": "Phase 7 - Congestion Intelligence" },
+    { "name": "Phase 8 - Alerts Integration" },
+    { "name": "Phase 9 - Saved Views" },
+    { "name": "Phase 10 - Investigation Mode" },
+    { "name": "Phase 11 - Command Mode" },
+    { "name": "Technical - Cross Cutting" }
+  ],
+  "issues": [
+    {
+      "id": "EPIC-5.1",
+      "title": "Epic 5.1 - App Shell and Global State",
+      "description": "Build the persistent shell, global filters, signal rail, and URL state sync.",
+      "labels": ["epic", "phase-5"],
+      "project": "Phase 5 - Dashboard Core"
+    },
+    {
+      "id": "STORY-5.1.1",
+      "title": "Story 5.1.1 - Persistent App Shell",
+      "description": "Deliver:\n- GlobalHeader\n- FilterDrawer\n- SignalRail\n- URL state sync\n\nAcceptance Criteria:\n- Filters encoded in URL\n- Reload restores state\n- Mode/Commodity/Time persist across routes\n- No full-page reload on route change",
+      "labels": ["story", "phase-5"],
+      "project": "Phase 5 - Dashboard Core",
+      "parent": "EPIC-5.1"
+    },
+    {
+      "id": "STORY-5.1.2",
+      "title": "Story 5.1.2 - Global Filter Engine",
+      "description": "Deliver:\n- Unified DashboardFilters model\n- Cross-widget reactivity\n- Debounced API queries\n\nAcceptance Criteria:\n- Changing any filter updates map/table/charts\n- Query deduplication works\n- No redundant API calls",
+      "labels": ["story", "phase-5"],
+      "project": "Phase 5 - Dashboard Core",
+      "parent": "EPIC-5.1"
+    },
+    {
+      "id": "EPIC-5.2",
+      "title": "Epic 5.2 - Overview Page",
+      "description": "Overview page with KPI strip, map interactions, and top signals table.",
+      "labels": ["epic", "phase-5"],
+      "project": "Phase 5 - Dashboard Core"
+    },
+    {
+      "id": "STORY-5.2.1",
+      "title": "Story 5.2.1 - KPI Strip",
+      "description": "Deliver:\n- Global exports\n- Imports\n- Net balance\n- Top congestion entity\n- Top anomaly\n\nAcceptance Criteria:\n- Updates live in LIVE mode\n- Shows freshness timestamp\n- Shows confidence if provided",
+      "labels": ["story", "phase-5"],
+      "project": "Phase 5 - Dashboard Core",
+      "parent": "EPIC-5.2"
+    },
+    {
+      "id": "STORY-5.2.2",
+      "title": "Story 5.2.2 - Map with Entity Interaction",
+      "description": "Deliver:\n- Port layer\n- Click to select\n- Hover tooltip\n- Lasso select\n\nAcceptance Criteria:\n- Clicking entity updates selection store\n- Selection filters all widgets\n- Multi-select works",
+      "labels": ["story", "phase-5"],
+      "project": "Phase 5 - Dashboard Core",
+      "parent": "EPIC-5.2"
+    },
+    {
+      "id": "STORY-5.2.3",
+      "title": "Story 5.2.3 - Top Signals Table",
+      "description": "Deliver:\n- Ranked by anomaly score\n- Sortable\n- Virtualized\n\nAcceptance Criteria:\n- Table click highlights on map\n- Export includes visible rows only",
+      "labels": ["story", "phase-5"],
+      "project": "Phase 5 - Dashboard Core",
+      "parent": "EPIC-5.2"
+    },
+    {
+      "id": "EPIC-6.1",
+      "title": "Epic 6.1 - Flow Aggregation Engine (UI Integration)",
+      "description": "Flows intelligence widgets for terminal mode.",
+      "labels": ["epic", "phase-6"],
+      "project": "Phase 6 - Flows Intelligence"
+    },
+    {
+      "id": "STORY-6.1.1",
+      "title": "Story 6.1.1 - Flow Timeseries Chart",
+      "description": "Deliver:\n- Exports/imports over time\n- Compare vs previous period\n- Anomaly band overlay\n\nAcceptance Criteria:\n- Range selection updates chart\n- Hover shows precise values\n- Live mode appends new datapoints",
+      "labels": ["story", "phase-6"],
+      "project": "Phase 6 - Flows Intelligence",
+      "parent": "EPIC-6.1"
+    },
+    {
+      "id": "STORY-6.1.2",
+      "title": "Story 6.1.2 - Origin to Destination Sankey",
+      "description": "Deliver:\n- Commodity filtered\n- Cross-modal ready schema\n\nAcceptance Criteria:\n- Clicking node filters table\n- Clicking link filters origin/destination",
+      "labels": ["story", "phase-6"],
+      "project": "Phase 6 - Flows Intelligence",
+      "parent": "EPIC-6.1"
+    },
+    {
+      "id": "STORY-6.1.3",
+      "title": "Story 6.1.3 - Top Lanes Table",
+      "description": "Deliver:\n- Origin\n- Destination\n- Volume\n- Delta vs prior period\n- Z-score\n\nAcceptance Criteria:\n- Column pinning supported\n- Export matches current filter state",
+      "labels": ["story", "phase-6"],
+      "project": "Phase 6 - Flows Intelligence",
+      "parent": "EPIC-6.1"
+    },
+    {
+      "id": "EPIC-7.1",
+      "title": "Epic 7.1 - Congestion Leaderboard",
+      "description": "Port congestion table and drilldown view.",
+      "labels": ["epic", "phase-7"],
+      "project": "Phase 7 - Congestion Intelligence"
+    },
+    {
+      "id": "STORY-7.1.1",
+      "title": "Story 7.1.1 - Port Congestion Table",
+      "description": "Columns:\n- Vessel count\n- Avg wait\n- Dwell time\n- Throughput estimate\n- Risk score\n\nAcceptance Criteria:\n- Sorted by risk score by default\n- Drilldown opens right rail detail",
+      "labels": ["story", "phase-7"],
+      "project": "Phase 7 - Congestion Intelligence",
+      "parent": "EPIC-7.1"
+    },
+    {
+      "id": "STORY-7.1.2",
+      "title": "Story 7.1.2 - Port Drilldown View",
+      "description": "Deliver:\n- Queue timeseries\n- Arrivals vs departures\n- Explain panel (delta drivers)\n\nAcceptance Criteria:\n- Selecting time range recalculates baseline\n- Explain shows drivers (arrivals spike, berth utilization)",
+      "labels": ["story", "phase-7"],
+      "project": "Phase 7 - Congestion Intelligence",
+      "parent": "EPIC-7.1"
+    },
+    {
+      "id": "EPIC-8.1",
+      "title": "Epic 8.1 - Alert Command UI",
+      "description": "Dashboard UX integration for alerting.",
+      "labels": ["epic", "phase-8"],
+      "project": "Phase 8 - Alerts Integration"
+    },
+    {
+      "id": "STORY-8.1.1",
+      "title": "Story 8.1.1 - Alert Queue",
+      "description": "Deliver:\n- Severity filter\n- Status filter\n- Region/commodity filter\n- Real-time updates\n\nAcceptance Criteria:\n- New alerts appear without reload\n- Ack updates instantly\n- Resolve removes from OPEN filter",
+      "labels": ["story", "phase-8"],
+      "project": "Phase 8 - Alerts Integration",
+      "parent": "EPIC-8.1"
+    },
+    {
+      "id": "STORY-8.1.2",
+      "title": "Story 8.1.2 - Alert Detail Drawer",
+      "description": "Deliver:\n- Trigger metric\n- Threshold vs baseline\n- Explain section\n- Linked chart preview\n\nAcceptance Criteria:\n- Drill opens relevant dashboard route with filters pre-applied\n- Evidence links to timeseries",
+      "labels": ["story", "phase-8"],
+      "project": "Phase 8 - Alerts Integration",
+      "parent": "EPIC-8.1"
+    },
+    {
+      "id": "STORY-8.1.3",
+      "title": "Story 8.1.3 - Rule Builder UI",
+      "description": "Deliver:\n- Create rule with threshold\n- Enable/disable\n- Tied to escalation engine\n\nAcceptance Criteria:\n- Can create rule with threshold\n- Can enable/disable\n- Linked to escalation engine",
+      "labels": ["story", "phase-8"],
+      "project": "Phase 8 - Alerts Integration",
+      "parent": "EPIC-8.1"
+    },
+    {
+      "id": "EPIC-9.1",
+      "title": "Epic 9.1 - Views Engine",
+      "description": "Save and shareable view capabilities.",
+      "labels": ["epic", "phase-9"],
+      "project": "Phase 9 - Saved Views"
+    },
+    {
+      "id": "STORY-9.1.1",
+      "title": "Story 9.1.1 - Save Current View",
+      "description": "Stores:\n- Route\n- Filters\n- Selection\n- Layout config\n\nAcceptance Criteria:\n- Opening view restores state exactly\n- Multi-tenant safe\n- User-scoped",
+      "labels": ["story", "phase-9"],
+      "project": "Phase 9 - Saved Views",
+      "parent": "EPIC-9.1"
+    },
+    {
+      "id": "STORY-9.1.2",
+      "title": "Story 9.1.2 - Shareable URL",
+      "description": "Acceptance Criteria:\n- URL reconstructs state\n- No server dependency required\n- Works across sessions",
+      "labels": ["story", "phase-9"],
+      "project": "Phase 9 - Saved Views",
+      "parent": "EPIC-9.1"
+    },
+    {
+      "id": "EPIC-10.1",
+      "title": "Epic 10.1 - Entity Graph",
+      "description": "Investigation mode entity graph and case workspace.",
+      "labels": ["epic", "phase-10"],
+      "project": "Phase 10 - Investigation Mode"
+    },
+    {
+      "id": "STORY-10.1.1",
+      "title": "Story 10.1.1 - Entity Graph Canvas",
+      "description": "Nodes:\n- Ports\n- Vessels\n- Corridors\n- Companies\n\nEdges:\n- Flow\n- Ownership\n- Routing\n\nAcceptance Criteria:\n- Clicking node filters workspace\n- Graph and charts cross-filter",
+      "labels": ["story", "phase-10"],
+      "project": "Phase 10 - Investigation Mode",
+      "parent": "EPIC-10.1"
+    },
+    {
+      "id": "STORY-10.1.2",
+      "title": "Story 10.1.2 - Case Workspace",
+      "description": "Deliver:\n- Hypothesis field\n- Evidence list\n- Confidence score\n- Export evidence pack (PDF later)",
+      "labels": ["story", "phase-10"],
+      "project": "Phase 10 - Investigation Mode",
+      "parent": "EPIC-10.1"
+    },
+    {
+      "id": "EPIC-11.1",
+      "title": "Epic 11.1 - Live Wall View",
+      "description": "Command mode wall view with hotspots and health panel.",
+      "labels": ["epic", "phase-11"],
+      "project": "Phase 11 - Command Mode"
+    },
+    {
+      "id": "STORY-11.1.1",
+      "title": "Story 11.1.1 - Global Hotspot Map",
+      "description": "Deliver:\n- Heat overlay\n- Critical alerts pinned",
+      "labels": ["story", "phase-11"],
+      "project": "Phase 11 - Command Mode",
+      "parent": "EPIC-11.1"
+    },
+    {
+      "id": "STORY-11.1.2",
+      "title": "Story 11.1.2 - System Health Panel",
+      "description": "Deliver:\n- Freshness p95\n- False positive rate\n- Coverage percent by mode",
+      "labels": ["story", "phase-11"],
+      "project": "Phase 11 - Command Mode",
+      "parent": "EPIC-11.1"
+    },
+    {
+      "id": "EPIC-T1",
+      "title": "EPIC T1 - Realtime Engine Stabilization",
+      "description": "WebSocket reconnection, event buffering, idempotent updates.",
+      "labels": ["epic", "technical"],
+      "project": "Technical - Cross Cutting"
+    },
+    {
+      "id": "EPIC-T2",
+      "title": "EPIC T2 - Performance Optimization",
+      "description": "Query caching, table virtualization, debounced updates.",
+      "labels": ["epic", "technical"],
+      "project": "Technical - Cross Cutting"
+    },
+    {
+      "id": "EPIC-T3",
+      "title": "EPIC T3 - Export Engine",
+      "description": "CSV immediate, PDF scaffold, metadata in exports.",
+      "labels": ["epic", "technical"],
+      "project": "Technical - Cross Cutting"
+    }
+  ]
+}

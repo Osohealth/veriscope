@@ -331,6 +331,8 @@ export const tenantInvites = pgTable("tenant_invites", {
 export const tenantSettings = pgTable("tenant_settings", {
   tenantId: uuid("tenant_id").primaryKey(),
   auditRetentionDays: integer("audit_retention_days").notNull().default(90),
+  allowedEmailDomains: text("allowed_email_domains").array().notNull().default(sql`ARRAY[]::text[]`),
+  allowedWebhookHosts: text("allowed_webhook_hosts").array().notNull().default(sql`ARRAY[]::text[]`),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -405,7 +407,10 @@ export const incidentEscalationPolicies = pgTable("incident_escalation_policies"
   afterMinutes: integer("after_minutes").notNull(),
   targetType: text("target_type").notNull(),
   targetRef: text("target_ref").notNull(),
+  targetName: text("target_name"),
   enabled: boolean("enabled").notNull().default(true),
+  lastValidatedAt: timestamp("last_validated_at", { withTimezone: true }),
+  lastRoutingHealth: jsonb("last_routing_health"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
@@ -414,6 +419,8 @@ export const incidentEscalationPolicies = pgTable("incident_escalation_policies"
     table.incidentType,
     table.severityMin,
     table.level,
+    table.targetType,
+    table.targetRef,
   ),
   lookupIdx: index("incident_escalation_policies_lookup").on(
     table.tenantId,
@@ -421,6 +428,12 @@ export const incidentEscalationPolicies = pgTable("incident_escalation_policies"
     table.enabled,
     table.severityMin,
     table.afterMinutes,
+  ),
+  enabledIdx: index("incident_escalation_policies_enabled_idx").on(
+    table.tenantId,
+    table.enabled,
+    table.incidentType,
+    table.level,
   ),
 }));
 
@@ -433,6 +446,24 @@ export const incidentEscalations = pgTable("incident_escalations", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   tenantIdx: index("incident_escalations_tenant").on(table.tenantId),
+}));
+
+export const userContactMethods = pgTable("user_contact_methods", {
+  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
+  tenantId: uuid("tenant_id").notNull(),
+  userId: uuid("user_id").notNull(),
+  type: text("type").notNull(),
+  value: text("value").notNull(),
+  label: text("label"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  isVerified: boolean("is_verified").notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  uniqueMethod: uniqueIndex("user_contact_methods_unique").on(table.tenantId, table.userId, table.type, table.value),
+  primaryUnique: uniqueIndex("user_contact_methods_primary").on(table.tenantId, table.userId, table.type).where(sql`${table.isPrimary} = true`),
+  tenantUserTypeActive: index("user_contact_methods_tenant_user_type_active").on(table.tenantId, table.userId, table.type, table.isActive),
+  tenantUserPrimaryCreated: index("user_contact_methods_tenant_user_primary_created").on(table.tenantId, table.userId, table.isPrimary.desc(), table.createdAt.desc()),
 }));
 
 export const rateLimitBuckets = pgTable("rate_limit_buckets", {

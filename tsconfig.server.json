@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["server/**/*", "shared/**/*"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "client/**/*", "scripts/**/*"],
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["esnext", "dom"],
+    "jsx": "preserve",
+    "target": "es2017",
+    "downlevelIteration": true
+  }
+}

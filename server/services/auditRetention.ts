@@ -52,7 +52,9 @@ export async function runAuditRetentionPurge(options?: { batchSizeTotal?: number
       .from(tenantSettings);
     for (const row of rows) tenantIds.push(row.tenantId);
     if (tenantIds.length === 0) {
-      const distinctRows = await db.execute(sql`SELECT DISTINCT tenant_id FROM ${auditEvents}`);
+      const distinctRows = await db.execute(sql`SELECT DISTINCT tenant_id FROM ${auditEvents}`) as {
+        rows?: { tenant_id?: string | null }[];
+      };
       for (const row of distinctRows.rows ?? []) {
         if (row.tenant_id) tenantIds.push(row.tenant_id);
       }

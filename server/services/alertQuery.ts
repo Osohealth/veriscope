@@ -14,8 +14,7 @@ type AlertCandidateOptions = {
 const parseDay = (input?: string) => {
   if (!input) return null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) return null;
-  const day = new Date(`${input}T00:00:00Z`);
-  return Number.isNaN(day.getTime()) ? null : day;
+  return input;
 };
 
 const severityRankSql = sql`CASE ${signals.clusterSeverity}
@@ -46,7 +45,9 @@ export async function getAlertCandidates(options: AlertCandidateOptions = {}) {
     `);
     const latestDay = (latestResult as any).rows?.[0]?.max_day;
     if (latestDay) {
-      day = latestDay instanceof Date ? latestDay : new Date(latestDay);
+      day = typeof latestDay === "string"
+        ? latestDay
+        : new Date(latestDay).toISOString().slice(0, 10);
     }
   }
   if (day) {

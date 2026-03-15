@@ -306,15 +306,22 @@ class AISService {
     
     const position: Omit<VesselPosition, 'id'> = {
       vesselId: vessel.id,
-      timestamp: message.timestamp,
-      latitude: message.latitude,
-      longitude: message.longitude,
-      speed: message.speed,
-      course: message.course,
-      heading: message.heading,
-      status: message.status,
+      mmsi: vessel.mmsi ?? null,
+      latitude: String(message.latitude),
+      longitude: String(message.longitude),
+      sogKnots: message.speed != null ? String(message.speed) : null,
+      cogDeg: message.course != null ? String(message.course) : null,
+      course: message.course != null ? String(message.course) : null,
+      speed: message.speed != null ? String(message.speed) : null,
+      heading: message.heading != null ? String(message.heading) : null,
+      navStatus: message.status ?? null,
+      status: message.status ?? null,
       destination: message.destination ?? null,
-      eta: message.eta ?? null
+      eta: message.eta ?? null,
+      source: "AIS",
+      timestampUtc: message.timestamp ?? null,
+      timestamp: message.timestamp ?? null,
+      createdAt: new Date(),
     };
     
     await storage.createAisPosition(position);
@@ -420,17 +427,25 @@ class AISService {
     const course = Math.floor(Math.random() * 360);
     const heading = Math.floor(Math.random() * 360);
 
+    const now = new Date();
     return {
       vesselId: vessel.id,
-      timestamp: new Date(),
+      mmsi: vessel.mmsi ?? null,
       latitude: lat.toFixed(7),
       longitude: lon.toFixed(7),
-      speed: Math.max(0, speed).toFixed(2),
+      sogKnots: Math.max(0, speed).toFixed(2),
+      cogDeg: course.toFixed(2),
       course: course.toFixed(2),
+      speed: Math.max(0, speed).toFixed(2),
       heading: heading.toFixed(2),
+      navStatus: status,
       status: status,
       destination: this.getRandomDestination(),
-      eta: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000)
+      eta: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000),
+      source: "SIM",
+      timestampUtc: now,
+      timestamp: now,
+      createdAt: now,
     };
   }
 

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
+import { ensureDevApiKey, markAuthenticated } from "@/lib/auth";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -35,6 +36,12 @@ export default function Login() {
     }
 
     try {
+      if (import.meta.env.DEV) {
+        const apiKey = await ensureDevApiKey();
+        markAuthenticated(apiKey ?? "vs_demo_key");
+        window.location.href = "/platform";
+        return;
+      }
       const response = await fetch("/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -55,8 +62,9 @@ export default function Login() {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("refresh_token", data.refresh_token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      markAuthenticated();
       
-      window.location.href = "/maritime/ais-tracking";
+      window.location.href = "/platform";
     } catch (err) {
       setError("An error occurred. Please try again.");
       setLoading(false);

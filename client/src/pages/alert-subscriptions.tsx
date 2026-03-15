@@ -447,17 +447,17 @@ export default function AlertSubscriptionsPage() {
     }
   };
 
+  const getDestinationState = (sub?: AlertSubscription | null) => {
+    if (!sub?.destination_key) return null;
+    return destinationStates[`${sub.destination_type}:::${sub.destination_key}`] ?? null;
+  };
+
   const lastResult = useMemo(() => {
     if (!selected?.last_test_status) return "--";
     return selected.last_test_status;
   }, [selected]);
 
   const selectedDestinationState = useMemo(() => getDestinationState(selected), [selected, destinationStates]);
-
-  const getDestinationState = (sub?: AlertSubscription | null) => {
-    if (!sub?.destination_key) return null;
-    return destinationStates[`${sub.destination_type}:::${sub.destination_key}`] ?? null;
-  };
 
   return (
     <TooltipProvider>

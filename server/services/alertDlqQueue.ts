@@ -138,7 +138,8 @@ export async function retryAlertDlq(options: RetryDlqOptions = {}) {
 
     const bundlePayload = (delivery as any).bundlePayload ?? null;
     let payload: any = null;
-    let payloadDay = delivery.day instanceof Date ? delivery.day.toISOString().slice(0, 10) : String(delivery.day);
+    const rawDay = (delivery as any).day;
+    let payloadDay = rawDay instanceof Date ? rawDay.toISOString().slice(0, 10) : String(rawDay);
     if (bundlePayload) {
       payload = bundlePayload;
     } else {
@@ -148,7 +149,7 @@ export async function retryAlertDlq(options: RetryDlqOptions = {}) {
         entityId: String(delivery.entityId),
         severityMin: subscription.severityMin as any,
       });
-      const candidate = candidates.find((c) => String(c.cluster_id) === String(delivery.clusterId));
+      const candidate = candidates.find((c: any) => String(c.cluster_id) === String(delivery.clusterId));
       if (!candidate) {
         await db.update(alertDeliveries)
           .set({ status: "FAILED", error: "Candidate missing" })
@@ -194,7 +195,7 @@ export async function retryAlertDlq(options: RetryDlqOptions = {}) {
 
       const baseAttempt = delivery.attempts ?? 0;
       const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "SUCCESS", latency_ms: last?.latency_ms ?? null, http_status: last?.http_status ?? result?.status ?? null }])
-        .map((log) => ({
+        .map((log: any) => ({
           deliveryId: delivery.id,
           attemptNo: baseAttempt + log.attempt,
           status: log.status === "SUCCESS" ? "SENT" : "FAILED",
@@ -205,7 +206,7 @@ export async function retryAlertDlq(options: RetryDlqOptions = {}) {
           createdAt: now,
         }));
       if (attemptRows.length) {
-        await db.insert(alertDeliveryAttempts).values(attemptRows.map((row) => ({
+        await db.insert(alertDeliveryAttempts).values(attemptRows.map((row: any) => ({
           ...row,
           tenantId: options.tenantId ?? delivery.tenantId,
         })));
@@ -357,7 +358,8 @@ export async function retryDeliveryById(options: { deliveryId: string; tenantId?
 
   const bundlePayload = (delivery as any).bundlePayload ?? null;
   let payload: any = null;
-  let payloadDay = delivery.day instanceof Date ? delivery.day.toISOString().slice(0, 10) : String(delivery.day);
+  const rawDay = (delivery as any).day;
+  let payloadDay = rawDay instanceof Date ? rawDay.toISOString().slice(0, 10) : String(rawDay);
   if (bundlePayload) {
     payload = bundlePayload;
   } else {
@@ -367,7 +369,7 @@ export async function retryDeliveryById(options: { deliveryId: string; tenantId?
       entityId: String(delivery.entityId),
       severityMin: subscription.severityMin as any,
     });
-    const candidate = candidates.find((c) => String(c.cluster_id) === String(delivery.clusterId));
+    const candidate = candidates.find((c: any) => String(c.cluster_id) === String(delivery.clusterId));
     if (!candidate) {
       await db.update(alertDeliveries)
         .set({ status: "FAILED", error: "Candidate missing" })
@@ -413,7 +415,7 @@ export async function retryDeliveryById(options: { deliveryId: string; tenantId?
 
     const baseAttempt = delivery.attempts ?? 0;
     const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "SUCCESS", latency_ms: last?.latency_ms ?? null, http_status: last?.http_status ?? result?.status ?? null }])
-      .map((log) => ({
+      .map((log: any) => ({
         deliveryId: delivery.id,
         attemptNo: baseAttempt + log.attempt,
         status: log.status === "SUCCESS" ? "SENT" : "FAILED",
@@ -424,7 +426,7 @@ export async function retryDeliveryById(options: { deliveryId: string; tenantId?
         createdAt: now,
       }));
     if (attemptRows.length) {
-      await db.insert(alertDeliveryAttempts).values(attemptRows.map((row) => ({
+      await db.insert(alertDeliveryAttempts).values(attemptRows.map((row: any) => ({
         ...row,
         tenantId: options.tenantId ?? delivery.tenantId,
       })));

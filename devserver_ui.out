@@ -1,0 +1,824 @@
+
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+Loaded 2 Rotterdam data points
+{"timestamp":"2026-02-20T13:30:36.836Z","level":"info","message":"WebSocket manager initialized"}
+3:30:36 PM [express] serving on port 5000
+{"timestamp":"2026-02-20T13:54:03.830Z","level":"info","requestId":"883bbfad-5649-4af3-baab-24ce2b22f3b3","route":"/","method":"GET","statusCode":200,"latencyMs":99,"message":"GET / 200 99ms"}
+{"timestamp":"2026-02-20T13:54:04.673Z","level":"info","requestId":"05bcb993-b5f4-4e1a-87ad-07639936a335","route":"/@react-refresh","method":"GET","statusCode":304,"latencyMs":11,"message":"GET /@react-refresh 304 11ms"}
+{"timestamp":"2026-02-20T13:54:04.726Z","level":"info","requestId":"5edd9264-eda2-4d10-8de1-3e61f645f112","route":"/@vite/client","method":"GET","statusCode":200,"latencyMs":68,"message":"GET /@vite/client 200 68ms"}
+{"timestamp":"2026-02-20T13:54:04.767Z","level":"info","requestId":"3c6acc95-bbb4-4d81-b6b3-083d15d03a3a","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/vite/dist/client/env.mjs","method":"GET","statusCode":304,"latencyMs":25,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/vite/dist/client/env.mjs 304 25ms"}
+{"timestamp":"2026-02-20T13:54:04.803Z","level":"info","requestId":"0360c996-643c-4027-a0ed-e38f20f1888a","route":"/src/main.tsx","method":"GET","statusCode":200,"latencyMs":150,"message":"GET /src/main.tsx 200 150ms"}
+{"timestamp":"2026-02-20T13:54:05.692Z","level":"info","requestId":"876e28c8-2c24-4909-b6f3-66773d5165e3","route":"/src/App.tsx","method":"GET","statusCode":200,"latencyMs":68,"message":"GET /src/App.tsx 200 68ms"}
+{"timestamp":"2026-02-20T13:54:07.141Z","level":"info","requestId":"65c2699f-d3fa-48f8-93a0-8b678071b233","route":"/src/index.css","method":"GET","statusCode":200,"latencyMs":1516,"message":"GET /src/index.css 200 1516ms"}
+{"timestamp":"2026-02-20T13:54:09.469Z","level":"info","requestId":"2df9094c-717b-4990-85a8-d8c5f7931f5a","route":"/src/lib/queryClient.ts","method":"GET","statusCode":304,"latencyMs":3739,"message":"GET /src/lib/queryClient.ts 304 3739ms"}
+{"timestamp":"2026-02-20T13:54:09.690Z","level":"info","requestId":"1124a593-5e34-4598-b670-fab10ae81012","route":"/src/hooks/use-watchlist-filter.tsx","method":"GET","statusCode":304,"latencyMs":267,"message":"GET /src/hooks/use-watchlist-filter.tsx 304 267ms"}
+{"timestamp":"2026-02-20T13:54:09.830Z","level":"info","requestId":"7bbc0c13-80d2-457f-9998-2842624addf8","route":"/src/pages/dashboard-home.tsx","method":"GET","statusCode":304,"latencyMs":409,"message":"GET /src/pages/dashboard-home.tsx 304 409ms"}
+{"timestamp":"2026-02-20T13:54:09.853Z","level":"info","requestId":"7081d11a-9ce6-41e3-8aa5-09cfdba2b99e","route":"/src/pages/dashboard.tsx","method":"GET","statusCode":304,"latencyMs":429,"message":"GET /src/pages/dashboard.tsx 304 429ms"}
+{"timestamp":"2026-02-20T13:54:09.883Z","level":"info","requestId":"3004466e-4dc8-4165-921f-4671ca5f1495","route":"/src/pages/home.tsx","method":"GET","statusCode":304,"latencyMs":396,"message":"GET /src/pages/home.tsx 304 396ms"}
+{"timestamp":"2026-02-20T13:54:09.932Z","level":"info","requestId":"47e5ea51-81df-48f2-9eaa-a8120a44fe37","route":"/src/components/ui/tooltip.tsx","method":"GET","statusCode":304,"latencyMs":509,"message":"GET /src/components/ui/tooltip.tsx 304 509ms"}
+{"timestamp":"2026-02-20T13:54:09.933Z","level":"info","requestId":"727cc962-cca7-4503-bff6-be060940fefc","route":"/src/components/ui/toaster.tsx","method":"GET","statusCode":304,"latencyMs":4202,"message":"GET /src/components/ui/toaster.tsx 304 4202ms"}
+{"timestamp":"2026-02-20T13:54:10.317Z","level":"info","requestId":"76ca7a68-00f1-4283-84ac-0ec3c7895f62","route":"/src/pages/signals.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/signals.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.329Z","level":"info","requestId":"d9dbcc5c-66a4-490f-8f0d-72abff97a1d2","route":"/src/pages/blog.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/blog.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.330Z","level":"info","requestId":"4b8253fa-845e-40d2-9db5-0213da11dc4c","route":"/src/pages/blog/post.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/pages/blog/post.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:10.333Z","level":"info","requestId":"95e7d94a-32fa-4631-9272-79701d2eb8d6","route":"/src/pages/commodities.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/commodities.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.334Z","level":"info","requestId":"b01ed8a3-c7eb-462c-8b80-cc2038283141","route":"/src/pages/maritime.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/pages/maritime.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:10.336Z","level":"info","requestId":"2e1006c0-422e-4c3c-8924-d73a4725bbe4","route":"/src/pages/energy.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/energy.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.386Z","level":"info","requestId":"d611c59a-38c0-4c4f-a1b4-09031c461ade","route":"/src/pages/energy/emissions.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/pages/energy/emissions.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:10.389Z","level":"info","requestId":"b6663689-fc08-4da2-a0d6-f417b8def82a","route":"/src/pages/energy/power-markets.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/energy/power-markets.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.391Z","level":"info","requestId":"dca7d0ff-80dc-412e-aa6d-5c1611087724","route":"/src/pages/energy/renewable-dispatch.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/energy/renewable-dispatch.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.393Z","level":"info","requestId":"43d9ee30-18d0-429b-be87-a74f3903055b","route":"/src/pages/energy/weather-integration.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/energy/weather-integration.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.395Z","level":"info","requestId":"45d6d22e-f366-42b6-bd50-48ec3bf77a80","route":"/src/pages/inventories-storage.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/inventories-storage.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.396Z","level":"info","requestId":"57c44acf-4061-47c5-b4c8-74e4822b84dd","route":"/src/pages/freight-analytics.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/pages/freight-analytics.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:10.398Z","level":"info","requestId":"98512041-f125-4ffc-84bd-91aaab9886d9","route":"/src/pages/maritime/ais-tracking.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/maritime/ais-tracking.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.401Z","level":"info","requestId":"6dea3ded-e52f-4dad-9947-32bc68931d3a","route":"/src/pages/energy/carbon-markets.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/energy/carbon-markets.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.403Z","level":"info","requestId":"6c513212-45ea-4331-a702-2d8b798ec7cd","route":"/src/pages/trades-flows.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/trades-flows.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.458Z","level":"info","requestId":"5116aeb8-2bee-4fa4-9635-d7aa06e050ba","route":"/src/pages/maritime/port-events.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/maritime/port-events.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.460Z","level":"info","requestId":"eadcbbef-dfa3-4044-9a40-52ae3e1c734f","route":"/src/pages/maritime/containers.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/maritime/containers.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.462Z","level":"info","requestId":"11c3e69c-9b5d-41cb-8c9f-b12f6a76f0f4","route":"/src/pages/maritime/bunkering.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/maritime/bunkering.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.464Z","level":"info","requestId":"f7bbb1cf-db82-42da-b94d-3dd4f5ccd198","route":"/src/pages/commodities/crude-products.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/commodities/crude-products.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.466Z","level":"info","requestId":"78ef9a83-1deb-49ee-87f5-97629b723e10","route":"/src/pages/commodities/lng-lpg.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/commodities/lng-lpg.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.468Z","level":"info","requestId":"e65499c1-9325-47e9-b658-72b59cf80aa3","route":"/src/pages/commodities/dry-bulk.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/commodities/dry-bulk.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.470Z","level":"info","requestId":"0fce59a3-bb91-4912-9b45-1bf88788c2b7","route":"/src/pages/commodities/petrochem.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/commodities/petrochem.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.472Z","level":"info","requestId":"b369cbe9-f2ce-45cd-9959-518240dd91d9","route":"/src/pages/commodities/agri-biofuel.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/commodities/agri-biofuel.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.474Z","level":"info","requestId":"ea789091-611f-4538-a14b-62bb2122f740","route":"/src/pages/commodities/refinery-intelligence.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/pages/commodities/refinery-intelligence.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:10.476Z","level":"info","requestId":"4b9e3ca0-25ef-4765-b666-1bc8001a4809","route":"/src/pages/commodities/supply-demand.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/commodities/supply-demand.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.478Z","level":"info","requestId":"d64c6f3f-38e4-45b1-82c5-5a89f21a0fd1","route":"/src/pages/auth/register.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/auth/register.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.485Z","level":"info","requestId":"8f0193ee-f917-4842-9c94-7754ddbcd6c6","route":"/src/pages/maritime/inbox.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/maritime/inbox.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.487Z","level":"info","requestId":"8572b775-820a-45ce-916f-d1b86166f6d5","route":"/src/pages/commodities/research-insights.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/commodities/research-insights.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.490Z","level":"info","requestId":"ee21062e-2aae-4fe3-bee3-2ce00f524744","route":"/src/pages/module-page.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/module-page.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.491Z","level":"info","requestId":"e5a6031d-e730-4c1e-9565-0cb776399ce7","route":"/src/pages/not-found.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/pages/not-found.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:10.493Z","level":"info","requestId":"efe76fe8-40b9-4496-9b1b-a17f97f77e29","route":"/src/pages/auth/login.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/auth/login.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.495Z","level":"info","requestId":"31c5d93c-8e92-410d-8f91-a7b7c48a772b","route":"/src/pages/contact.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/contact.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.496Z","level":"info","requestId":"902342e9-b75f-4f14-8128-7f6670bfe6d4","route":"/src/pages/careers.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/pages/careers.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:10.498Z","level":"info","requestId":"a2683189-01b5-4f39-8ef9-0933f785158e","route":"/src/pages/documentation.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/pages/documentation.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:10.500Z","level":"info","requestId":"f3c64334-2367-48cf-a255-0749983ee137","route":"/src/pages/tankscope.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/tankscope.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.502Z","level":"info","requestId":"b5bc6224-1960-4a63-9fc9-fac87eb38fdc","route":"/src/pages/watchlists.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/watchlists.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.504Z","level":"info","requestId":"4a822aac-511f-411c-b92b-5d0779b24003","route":"/src/pages/alert-rules.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/alert-rules.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.506Z","level":"info","requestId":"c322114b-9193-4e6b-9347-cef806a58d92","route":"/src/pages/alerts.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/alerts.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.509Z","level":"info","requestId":"a9322db8-5086-4696-9569-984fc2f86ccd","route":"/src/pages/incidents.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/incidents.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.510Z","level":"info","requestId":"d9a00219-c22f-49b5-a7b1-9d56fd1e9207","route":"/src/pages/team.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/team.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.512Z","level":"info","requestId":"1a144cdc-16b4-4a01-b93b-74b2e035c863","route":"/src/pages/audit.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/audit.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.914Z","level":"info","requestId":"8e020c4e-186f-4588-bd67-1ec236553c1b","route":"/src/pages/about.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/about.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.926Z","level":"info","requestId":"b91f6d25-9edb-4bf4-a0ae-24eb86ce49c1","route":"/src/pages/alerts-health.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/alerts-health.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.932Z","level":"info","requestId":"7fdc7a9a-5570-436f-846b-f5b876d35ebc","route":"/src/pages/alerts-destinations.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/alerts-destinations.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.934Z","level":"info","requestId":"81fa3410-4405-4c3a-9c02-9aa3ec77a1c8","route":"/src/pages/alert-subscriptions.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/alert-subscriptions.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.935Z","level":"info","requestId":"e95ca496-108d-4474-8d35-fbf4eb7136a5","route":"/src/pages/invite-accept.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/pages/invite-accept.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:10.937Z","level":"info","requestId":"ccc49c5f-b207-4832-84d9-f13c610ac3cb","route":"/src/pages/data-exports.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/data-exports.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.938Z","level":"info","requestId":"07e4425d-5e24-4f2e-9e30-40fda70f1ead","route":"/src/pages/refinery-satellite.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/pages/refinery-satellite.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:10.940Z","level":"info","requestId":"32e1b046-cafb-4bbc-8be0-6f58ef3e71b6","route":"/src/pages/port-detail.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/port-detail.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.944Z","level":"info","requestId":"dab09c9a-b7f2-411e-8452-06a46e7405bb","route":"/src/pages/escalations.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/pages/escalations.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:10.954Z","level":"info","requestId":"c4775749-9ca5-481a-a7d5-20890d9de3f5","route":"/src/components/ui/button.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/button.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.082Z","level":"info","requestId":"d5a8fc7d-fd76-427a-87c0-c921a1babaaf","route":"/src/components/ui/card.tsx","method":"GET","statusCode":304,"latencyMs":141,"message":"GET /src/components/ui/card.tsx 304 141ms"}
+{"timestamp":"2026-02-20T13:54:11.095Z","level":"info","requestId":"7aae6562-c6db-42f7-9738-4d4ab1a72e64","route":"/src/components/ui/badge.tsx","method":"GET","statusCode":304,"latencyMs":138,"message":"GET /src/components/ui/badge.tsx 304 138ms"}
+{"timestamp":"2026-02-20T13:54:11.156Z","level":"info","requestId":"ae5a80c0-6b76-431e-bcbf-a029fab4d99f","route":"/src/components/MapPanel.tsx","method":"GET","statusCode":304,"latencyMs":198,"message":"GET /src/components/MapPanel.tsx 304 198ms"}
+{"timestamp":"2026-02-20T13:54:11.166Z","level":"info","requestId":"d99d5d4f-c22a-4c69-96e5-37b34f61d581","route":"/src/components/NotificationPanel.tsx","method":"GET","statusCode":304,"latencyMs":207,"message":"GET /src/components/NotificationPanel.tsx 304 207ms"}
+{"timestamp":"2026-02-20T13:54:11.177Z","level":"info","requestId":"ee585253-32da-4497-900f-edd3a93a6b9b","route":"/src/components/Sidebar.tsx","method":"GET","statusCode":304,"latencyMs":235,"message":"GET /src/components/Sidebar.tsx 304 235ms"}
+{"timestamp":"2026-02-20T13:54:11.195Z","level":"info","requestId":"6e9cf0ce-8f21-45b6-90b6-889e249ca6ca","route":"/src/components/RightPanel.tsx","method":"GET","statusCode":304,"latencyMs":237,"message":"GET /src/components/RightPanel.tsx 304 237ms"}
+{"timestamp":"2026-02-20T13:54:11.199Z","level":"info","requestId":"6cdd3a27-d666-48ad-a472-a01c046c4410","route":"/src/components/data-freshness-indicator.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/data-freshness-indicator.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.201Z","level":"info","requestId":"9d2f47b6-a4bf-4436-afc5-01655610ff99","route":"/src/components/watchlist-filter.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/watchlist-filter.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.228Z","level":"info","requestId":"29752c62-4241-4265-8943-83364a2da224","route":"/src/components/ui/select.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/select.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.230Z","level":"info","requestId":"35b1beeb-e390-4a0c-94a1-356cd70353a2","route":"/src/hooks/use-vessels.ts","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/hooks/use-vessels.ts 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.231Z","level":"info","requestId":"bd051eba-fb33-4b01-a623-36f54c9ecbca","route":"/src/hooks/use-notifications.ts","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/hooks/use-notifications.ts 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.233Z","level":"info","requestId":"6e540749-0a1d-4214-80d6-115fc40e9a62","route":"/src/hooks/use-rotterdam-data.ts","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/hooks/use-rotterdam-data.ts 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.234Z","level":"info","requestId":"7fbf500e-ca05-4970-990b-a0ab8b57b51d","route":"/src/components/ui/dropdown-menu.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/components/ui/dropdown-menu.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.237Z","level":"info","requestId":"9c0d0348-1b21-4856-a1ae-bdc5391dab61","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/ChatGPT%20Image%20Sep%2028,%202025,%2011_38_52%20PM_1759345566852.png","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/ChatGPT%20Image%20Sep%2028,%202025,%2011_38_52%20PM_1759345566852.png 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.239Z","level":"info","requestId":"738ffbbc-4e72-473e-be04-3a882e116e8c","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/istockphoto-1645923179-612x612_1764451895248.jpg","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/istockphoto-1645923179-612x612_1764451895248.jpg 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.241Z","level":"info","requestId":"25bdcca3-c4c3-4ff3-8eb1-b724445972de","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/oil-tanker-sails-ocean-clear-sky-maritime-shipping-international-trade-concept-cargo-ship-carries-crude-fuels-385597174_1764443231197.webp","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/oil-tanker-sails-ocean-clear-sky-maritime-shipping-international-trade-concept-cargo-ship-carries-crude-fuels-385597174_1764443231197.webp 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.243Z","level":"info","requestId":"cfe37813-09ae-4bdb-b998-e6aa25b9ec57","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/renewable_energy-768x555_1764452420992.jpg","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/renewable_energy-768x555_1764452420992.jpg 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.245Z","level":"info","requestId":"aacd2773-64da-4fb4-a0bc-6b36688af1de","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/The-Importance-of-Vessel-Tracking-System_1764443231200.webp","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/The-Importance-of-Vessel-Tracking-System_1764443231200.webp 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.247Z","level":"info","requestId":"456a5c82-9b35-4965-a8cf-d642abee394e","route":"/src/lib/utils.ts","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/lib/utils.ts 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.248Z","level":"info","requestId":"7b023bcc-adc6-4dcc-adce-1eedd15f1baf","route":"/src/hooks/use-toast.ts","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/hooks/use-toast.ts 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.250Z","level":"info","requestId":"f0c3422e-bbd4-4c0b-9aa6-4fb7ca69cff0","route":"/src/components/ui/toast.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/toast.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.252Z","level":"info","requestId":"39d8e144-5f77-4b4d-94b7-9e9f87dd3733","route":"/src/components/ui/input.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/input.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.254Z","level":"info","requestId":"809a513e-4343-4e9a-afe5-0483ddb1796e","route":"/src/components/ui/switch.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/switch.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.255Z","level":"info","requestId":"7894df61-6744-497e-9603-ae9a7a4fc9e5","route":"/src/components/ui/sheet.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/components/ui/sheet.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.257Z","level":"info","requestId":"4a746143-32c5-4f1b-9c5a-b4e0879f9a2a","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/shared/metrics.ts","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/shared/metrics.ts 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.259Z","level":"info","requestId":"171903db-1143-4d39-941d-2fbf58df597d","route":"/src/components/ui/tabs.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/tabs.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.260Z","level":"info","requestId":"0218ae80-8850-47c6-9035-828568f5ada5","route":"/src/components/ui/progress.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/components/ui/progress.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.262Z","level":"info","requestId":"4ae9159a-74eb-43fe-a1a6-d08f884cd5bb","route":"/src/components/ui/skeleton.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/skeleton.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.264Z","level":"info","requestId":"c609f415-b429-4cec-9a2a-4ca4e508194d","route":"/src/components/credibility-indicator.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/credibility-indicator.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.266Z","level":"info","requestId":"62a7bb4c-c0d6-4723-a72a-778a816513b4","route":"/src/components/ui/label.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/components/ui/label.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.267Z","level":"info","requestId":"b5bbc3a5-16c8-434b-a7cd-85993b8394d6","route":"/src/components/ui/separator.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/separator.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.269Z","level":"info","requestId":"6b04e7d6-79e4-4a86-809a-49da2cdc5cff","route":"/src/components/ui/table.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/table.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.271Z","level":"info","requestId":"fac464aa-25f4-4973-b51d-eb2aa6710a1f","route":"/src/components/ml-prediction-card.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ml-prediction-card.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.274Z","level":"info","requestId":"7e9fdf4c-386d-4a50-8b27-66c1a1635166","route":"/src/components/ui/checkbox.tsx","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/components/ui/checkbox.tsx 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.276Z","level":"info","requestId":"7ddb559b-ed27-481e-9e8b-d14c3ccd3720","route":"/src/components/ui/dialog.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/dialog.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.277Z","level":"info","requestId":"55921ad5-e562-41a0-ad1f-39cfbcf8449b","route":"/src/lib/apiFetch.ts","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/lib/apiFetch.ts 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.279Z","level":"info","requestId":"554d7b41-bb2f-4fdd-a710-055210bbc09a","route":"/src/auth/useAuth.ts","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/auth/useAuth.ts 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.281Z","level":"info","requestId":"188a660e-de91-4af9-bd40-ca6605cd7792","route":"/src/components/alerts-subnav.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/alerts-subnav.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.282Z","level":"info","requestId":"1c6931cd-ac8f-46fd-b65e-114ac095de39","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/shared/alertPlaybook.ts","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/shared/alertPlaybook.ts 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.284Z","level":"info","requestId":"6d7c1384-ffc4-4425-8233-6fc801460f32","route":"/src/lib/incidentTypes.ts","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/lib/incidentTypes.ts 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.301Z","level":"info","requestId":"19d5c739-2bc5-42e0-ac8e-c371f2b6c83d","route":"/src/components/ui/alert-dialog.tsx","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/components/ui/alert-dialog.tsx 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.303Z","level":"info","requestId":"fdbdb3ac-9b17-478f-8f0c-0eb3deca427a","route":"/src/lib/duration.ts","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/lib/duration.ts 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.370Z","level":"info","requestId":"0c735198-82c1-4ea6-9c70-919e0d3608c2","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/leaflet/dist/leaflet.css","method":"GET","statusCode":304,"latencyMs":85,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/leaflet/dist/leaflet.css 304 85ms"}
+{"timestamp":"2026-02-20T13:54:11.498Z","level":"info","requestId":"5136a357-3b7e-4d98-85fd-05051b76efd0","route":"/src/components/KpiCard.tsx","method":"GET","statusCode":304,"latencyMs":212,"message":"GET /src/components/KpiCard.tsx 304 212ms"}
+{"timestamp":"2026-02-20T13:54:11.499Z","level":"info","requestId":"08b01d8b-8fad-45c8-b4fb-4a56cf3baeeb","route":"/src/components/StorageWidget.tsx","method":"GET","statusCode":304,"latencyMs":212,"message":"GET /src/components/StorageWidget.tsx 304 212ms"}
+{"timestamp":"2026-02-20T13:54:11.500Z","level":"info","requestId":"7496db5a-e093-47c9-9835-f41e7577b651","route":"/src/components/CommodityPriceChart.tsx","method":"GET","statusCode":304,"latencyMs":197,"message":"GET /src/components/CommodityPriceChart.tsx 304 197ms"}
+{"timestamp":"2026-02-20T13:54:11.506Z","level":"info","requestId":"1d664322-e769-4d52-bd11-1dd8113434ca","route":"/src/components/ui/scroll-area.tsx","method":"GET","statusCode":304,"latencyMs":220,"message":"GET /src/components/ui/scroll-area.tsx 304 220ms"}
+{"timestamp":"2026-02-20T13:54:11.515Z","level":"info","requestId":"94095373-d582-4fd3-98c5-b6a3d5830b4c","route":"/src/components/TradeFlowsPanel.tsx","method":"GET","statusCode":304,"latencyMs":209,"message":"GET /src/components/TradeFlowsPanel.tsx 304 209ms"}
+{"timestamp":"2026-02-20T13:54:11.526Z","level":"info","requestId":"c49ad14d-d571-4e95-b99b-59fb5daac6ba","route":"/src/components/MarketAnalyticsPanel.tsx","method":"GET","statusCode":304,"latencyMs":52,"message":"GET /src/components/MarketAnalyticsPanel.tsx 304 52ms"}
+{"timestamp":"2026-02-20T13:54:11.547Z","level":"info","requestId":"75e78b4a-3b33-4838-b926-2377b63c2e6a","route":"/src/hooks/use-port-stats.ts","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/hooks/use-port-stats.ts 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.549Z","level":"info","requestId":"da04eaa4-1e34-45e0-8944-82897ad5abe8","route":"/src/hooks/use-signals.ts","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/hooks/use-signals.ts 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.551Z","level":"info","requestId":"019a6856-dd91-4227-81c9-4367e4767cba","route":"/src/hooks/use-predictions.ts","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/hooks/use-predictions.ts 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.552Z","level":"info","requestId":"2dd27d58-4f89-49d4-9b97-f3454c534a05","route":"/src/hooks/use-port-delays.ts","method":"GET","statusCode":304,"latencyMs":0,"message":"GET /src/hooks/use-port-delays.ts 304 0ms"}
+{"timestamp":"2026-02-20T13:54:11.554Z","level":"info","requestId":"d905da47-369c-4f7c-9bf9-e46406e5de08","route":"/src/hooks/use-websocket.ts","method":"GET","statusCode":304,"latencyMs":1,"message":"GET /src/hooks/use-websocket.ts 304 1ms"}
+{"timestamp":"2026-02-20T13:54:11.566Z","level":"info","requestId":"b5866682-41b9-497e-89a9-1f15a6191af0","route":"/src/hooks/use-delay-adjusted-predictions.ts","method":"GET","statusCode":304,"latencyMs":11,"message":"GET /src/hooks/use-delay-adjusted-predictions.ts 304 11ms"}
+Initializing Veriscope services...
+Seeding 258 global ports...
+3:54:12 PM [express] GET /api/watchlists 304 in 644ms :: [{"id":"3af26811-cf72-49c9-bce2-653d8d1d0e5…
+{"timestamp":"2026-02-20T13:54:12.415Z","level":"info","requestId":"cc8a2bed-acb6-414c-9073-b095daff30eb","route":"/api/watchlists","method":"GET","statusCode":304,"latencyMs":645,"message":"GET /api/watchlists 304 645ms"}
+{"timestamp":"2026-02-20T13:54:12.432Z","level":"info","requestId":"e054c09c-1f32-411a-8c9f-8e6ed65499ad","route":"/","method":"GET","statusCode":200,"latencyMs":12,"message":"GET / 200 12ms"}
+{"timestamp":"2026-02-20T13:54:12.580Z","level":"info","requestId":"5b3d5c27-598f-4c68-94e0-1049098f71a3","route":"/v1/incidents","method":"GET","statusCode":304,"latencyMs":818,"message":"GET /v1/incidents 304 818ms"}
+{"timestamp":"2026-02-20T13:54:12.958Z","level":"info","requestId":"6882f1dd-03b2-4f80-bd25-d688f1e073cf","route":"/v1/me","method":"GET","statusCode":304,"latencyMs":1244,"message":"GET /v1/me 304 1244ms"}
+Ports seeded: 0 inserted, 258 skipped (already exist)
+Total ports in database: 301
+Initializing base maritime data...
+{"timestamp":"2026-02-20T13:54:13.024Z","level":"info","requestId":"9f2eb9a3-eb7c-464f-bfd5-489ef33b3249","route":"/v1/alert-slas","method":"GET","statusCode":200,"latencyMs":1258,"message":"GET /v1/alert-slas 200 1258ms"}
+Admin user already exists
+Port Fujairah already exists or error: null value in column "type" of relation "ports" violates not-null constraint
+Port Rotterdam already exists or error: null value in column "type" of relation "ports" violates not-null constraint
+Port Singapore already exists or error: null value in column "type" of relation "ports" violates not-null constraint
+Vessel Seaways Pioneer already exists or error: duplicate key value violates unique constraint "vessels_mmsi_unique"
+Vessel Nordic Thunder already exists or error: duplicate key value violates unique constraint "vessels_mmsi_unique"
+Vessel Ocean Voyager already exists or error: duplicate key value violates unique constraint "vessels_mmsi_unique"
+{"timestamp":"2026-02-20T13:54:13.481Z","level":"info","requestId":"05ebff7a-c664-4323-acaa-6a6f9c948039","route":"/v1/alert-deliveries","method":"GET","statusCode":200,"latencyMs":1346,"message":"GET /v1/alert-deliveries 200 1346ms"}
+Vessel Maritime Express already exists or error: duplicate key value violates unique constraint "vessels_mmsi_unique"
+Vessel Titan Carrier already exists or error: duplicate key value violates unique constraint "vessels_mmsi_unique"
+Vessel Euro Trader already exists or error: duplicate key value violates unique constraint "vessels_mmsi_unique"
+Vessel Baltic Pioneer already exists or error: duplicate key value violates unique constraint "vessels_mmsi_unique"
+Vessel Gulf Navigator already exists or error: duplicate key value violates unique constraint "vessels_mmsi_unique"
+[VESSEL SEED] Created: 0, Already existed: 8, Total in DB: 38
+Created storage site: Fujairah Site A
+Created storage site: Fujairah Site B
+Created storage site: Fujairah Site C
+Created storage site: Rotterdam Tank Terminal A
+Created storage site: Rotterdam Tank Terminal B
+Created storage site: Jurong Island Terminal
+Created storage site: Pulau Bukom Terminal
+Created initial statistics for Rotterdam
+Created initial statistics for Singapore
+Created initial statistics for Fujairah
+Created initial statistics for Shanghai
+Created initial statistics for Ningbo-Zhoushan
+Created initial statistics for Busan
+Created initial statistics for Hong Kong
+Created initial statistics for Shenzhen
+Created initial statistics for Guangzhou
+Created initial statistics for Qingdao
+Created initial statistics for Tianjin
+Created initial statistics for Dubai (Jebel Ali)
+Created initial statistics for Port Klang
+Created initial statistics for Antwerp
+Created initial statistics for Hamburg
+Created initial statistics for Los Angeles
+Created initial statistics for Long Beach
+Created initial statistics for New York/New Jersey
+Created initial statistics for Savannah
+Created initial statistics for Houston
+Created initial statistics for Tanjung Pelepas
+Created initial statistics for Kaohsiung
+Created initial statistics for Laem Chabang
+Created initial statistics for Colombo
+Created initial statistics for Tanjung Priok (Jakarta)
+Created initial statistics for Ho Chi Minh City
+Created initial statistics for Haiphong
+Created initial statistics for Manila
+Created initial statistics for Tokyo
+Created initial statistics for Yokohama
+Created initial statistics for Kobe
+Created initial statistics for Nagoya
+Created initial statistics for Osaka
+Created initial statistics for Felixstowe
+Created initial statistics for Southampton
+Created initial statistics for London Gateway
+Created initial statistics for Bremen/Bremerhaven
+Created initial statistics for Le Havre
+Created initial statistics for Marseille
+Created initial statistics for Barcelona
+Created initial statistics for Valencia
+Created initial statistics for Algeciras
+Created initial statistics for Piraeus
+Created initial statistics for Genoa
+Created initial statistics for Gioia Tauro
+Created initial statistics for La Spezia
+Created initial statistics for Venice
+Created initial statistics for Trieste
+Created initial statistics for Gdansk
+Created initial statistics for St. Petersburg
+Created initial statistics for Ras Tanura
+Created initial statistics for Jubail
+Created initial statistics for Yanbu
+Created initial statistics for Jeddah
+Created initial statistics for Dammam
+Created initial statistics for Mina Al Ahmadi
+Created initial statistics for Basra
+Created initial statistics for Umm Qasr
+Created initial statistics for Bandar Abbas
+Created initial statistics for Kharg Island
+Created initial statistics for Muscat
+Created initial statistics for Sohar
+Created initial statistics for Salalah
+Created initial statistics for Aden
+Created initial statistics for Doha
+Created initial statistics for Ras Laffan
+Created initial statistics for Bahrain
+Created initial statistics for Mumbai (JNPT)
+Created initial statistics for Chennai
+Created initial statistics for Kolkata
+Created initial statistics for Mundra
+Created initial statistics for Visakhapatnam
+Created initial statistics for Cochin
+Created initial statistics for Karachi
+Created initial statistics for Chittagong
+Created initial statistics for Durban
+Created initial statistics for Cape Town
+Created initial statistics for Port Elizabeth
+Created initial statistics for Lagos (Apapa)
+Created initial statistics for Lagos (Tin Can)
+Created initial statistics for Tema
+Created initial statistics for Abidjan
+Created initial statistics for Dakar
+Created initial statistics for Casablanca
+Created initial statistics for Tanger Med
+Created initial statistics for Alexandria
+Created initial statistics for Port Said
+Created initial statistics for Suez
+Created initial statistics for Djibouti
+Created initial statistics for Mombasa
+Created initial statistics for Dar es Salaam
+Created initial statistics for Port Louis
+Created initial statistics for Santos
+Created initial statistics for Paranagua
+Created initial statistics for Rio Grande
+Created initial statistics for Itajai
+Created initial statistics for Buenos Aires
+Created initial statistics for Callao
+Created initial statistics for Cartagena
+Created initial statistics for Buenaventura
+Created initial statistics for Guayaquil
+Created initial statistics for Valparaiso
+Created initial statistics for San Antonio
+Created initial statistics for Montevideo
+Created initial statistics for Vancouver
+Created initial statistics for Prince Rupert
+Created initial statistics for Montreal
+Created initial statistics for Halifax
+Created initial statistics for Seattle
+Created initial statistics for Tacoma
+Created initial statistics for Oakland
+Created initial statistics for Charleston
+Created initial statistics for Norfolk
+Created initial statistics for Baltimore
+Created initial statistics for Miami
+Created initial statistics for Port Everglades
+Created initial statistics for Tampa
+Created initial statistics for New Orleans
+Created initial statistics for Mobile
+Created initial statistics for Corpus Christi
+Created initial statistics for Freeport
+Created initial statistics for Beaumont
+Created initial statistics for Lake Charles
+Created initial statistics for Sydney
+Created initial statistics for Melbourne
+Created initial statistics for Brisbane
+Created initial statistics for Fremantle
+Created initial statistics for Adelaide
+Created initial statistics for Port Hedland
+Created initial statistics for Dampier
+Created initial statistics for Hay Point
+Created initial statistics for Newcastle
+Created initial statistics for Auckland
+Created initial statistics for Tauranga
+Created initial statistics for Lyttelton
+Created initial statistics for Gothenburg
+Created initial statistics for Copenhagen
+Created initial statistics for Oslo
+Created initial statistics for Helsinki
+Created initial statistics for Amsterdam
+Created initial statistics for Europoort
+Created initial statistics for Zeebrugge
+Created initial statistics for Dunkirk
+Created initial statistics for Bilbao
+Created initial statistics for Lisbon
+Created initial statistics for Sines
+Created initial statistics for Test Port TSA8A6C93
+Created initial statistics for Leixoes
+Created initial statistics for Thessaloniki
+Created initial statistics for Test Port TSB55F49E
+Created initial statistics for Constanta
+Created initial statistics for Odessa
+Created initial statistics for Test Port TSC74FC3D
+Created initial statistics for Novorossiysk
+Created initial statistics for Istanbul
+Created initial statistics for Test Port TSDA9BE33
+Created initial statistics for Izmir
+Created initial statistics for Mersin
+Created initial statistics for Test Port TSE324F97
+Created initial statistics for Iskenderun
+Created initial statistics for Haifa
+Created initial statistics for Ashdod
+Created initial statistics for Beirut
+Created initial statistics for Latakia
+Created initial statistics for Dalian
+Created initial statistics for Yingkou
+Created initial statistics for Lianyungang
+Created initial statistics for Rizhao
+Created initial statistics for Xiamen
+Created initial statistics for Fuzhou
+Created initial statistics for Zhuhai
+Created initial statistics for Dongguan
+Created initial statistics for Nanjing
+Created initial statistics for Wuhan
+Created initial statistics for Chongqing
+Created initial statistics for Taichung
+Created initial statistics for Keelung
+Created initial statistics for Incheon
+Created initial statistics for Ulsan
+Created initial statistics for Gwangyang
+Created initial statistics for Pyeongtaek
+Created initial statistics for Hiroshima
+Created initial statistics for Kitakyushu
+Created initial statistics for Hakata
+Created initial statistics for Shimizu
+Created initial statistics for Niigata
+Created initial statistics for Vladivostok
+Created initial statistics for Nakhodka
+Created initial statistics for Sihanoukville
+Created initial statistics for Yangon
+Created initial statistics for Belawan
+Created initial statistics for Surabaya
+Created initial statistics for Makassar
+Created initial statistics for Semarang
+Created initial statistics for Balikpapan
+Created initial statistics for Bontang
+Created initial statistics for Cebu
+Created initial statistics for Subic Bay
+Created initial statistics for Batangas
+Created initial statistics for Davao
+Created initial statistics for Cai Mep
+Created initial statistics for Da Nang
+Created initial statistics for Johor
+Created initial statistics for Penang
+Created initial statistics for Kuantan
+Created initial statistics for Bintulu
+Created initial statistics for Brunei
+Created initial statistics for Freetown
+Created initial statistics for Conakry
+Created initial statistics for Monrovia
+Created initial statistics for Lome
+Created initial statistics for Cotonou
+Created initial statistics for Douala
+Created initial statistics for Libreville
+Created initial statistics for Pointe-Noire
+Created initial statistics for Luanda
+Created initial statistics for Walvis Bay
+Created initial statistics for Maputo
+Created initial statistics for Beira
+Created initial statistics for Nacala
+Created initial statistics for Toamasina
+Created initial statistics for Port Sudan
+Created initial statistics for Berbera
+Created initial statistics for Massawa
+Created initial statistics for Manzanillo (Mexico)
+Created initial statistics for Lazaro Cardenas
+Created initial statistics for Veracruz
+Created initial statistics for Altamira
+Created initial statistics for Colon
+Created initial statistics for Balboa
+Created initial statistics for Limon
+Created initial statistics for Puerto Cortes
+Created initial statistics for Santo Tomas de Castilla
+Created initial statistics for Kingston (Jamaica)
+Created initial statistics for Freeport (Bahamas)
+Created initial statistics for San Juan
+Created initial statistics for Caucedo
+Created initial statistics for Havana
+Created initial statistics for Mariel
+Created initial statistics for Point Lisas
+Created initial statistics for Willemstad
+Created initial statistics for Oranjestad
+Created initial statistics for Suva
+Created initial statistics for Noumea
+Created initial statistics for Guam
+Created initial statistics for Honolulu
+Created initial statistics for Papeete
+Created initial statistics for Apia
+Created initial statistics for Port Moresby
+Created initial statistics for Honiara
+Created initial statistics for Port Vila
+Created initial statistics for Richards Bay
+Created initial statistics for Saldanha Bay
+Created initial statistics for Gladstone
+Created initial statistics for Tubarao
+Created initial statistics for Itaqui
+Created initial statistics for Sept-Iles
+Created initial statistics for Thunder Bay
+Created initial statistics for Duluth
+Created initial statistics for Two Harbors
+Created initial statistics for Praia Mole
+Created initial statistics for Qinhuangdao
+Created initial statistics for Test Port TSA5429D7
+Created initial statistics for Test Port TSB690868
+Created initial statistics for Test Port TSC89CB20
+Created initial statistics for Test Port TSD1E63E7
+Created initial statistics for Test Port TSE524B21
+Created initial statistics for Test Port TSFBF2087
+Created initial statistics for Fujairah
+Created initial statistics for Rotterdam
+Created initial statistics for Singapore
+Created initial statistics for Test Port TSAAB7510
+Created initial statistics for Test Port TSB028D31
+Created initial statistics for Test Port TSCE65733
+Created initial statistics for Test Port TSDCBC6B3
+Created initial statistics for Test Port TSE4483CD
+Created initial statistics for Test Port TSF7316DB
+Created initial statistics for Test Port TSAB8D438
+Created initial statistics for Test Port TSB5098AA
+Created initial statistics for Test Port TSCC96D78
+Created initial statistics for Test Port TSDBFD608
+Created initial statistics for Test Port TSE816291
+Created initial statistics for Test Port TSF09F908
+Created initial statistics for Test Port TSA81E43D
+Created initial statistics for Test Port TSB54B127
+Created initial statistics for Test Port TSC237BDF
+Created initial statistics for Test Port TSDD3DDD5
+Created initial statistics for Test Port TSE78C979
+Created initial statistics for Test Port TSF03545A
+Created initial statistics for Test Port TSA18FDE1
+Created initial statistics for Test Port TSBEEEC2A
+Created initial statistics for Test Port TSC579676
+Created initial statistics for Test Port TSD384BA0
+Created initial statistics for Test Port TSE338F9E
+Created initial statistics for Test Port TSFBC59DC
+Created initial statistics for Test Port TSA875D49
+Created initial statistics for Test Port TSB42D06B
+Created initial statistics for Test Port TSCE338E1
+Created initial statistics for Test Port TSDD1A749
+Created initial statistics for Test Port TSED184FA
+Created initial statistics for Test Port TSF45EC4E
+Crude grade Brent Crude already exists or error: duplicate key value violates unique constraint "crude_grades_grade_code_unique"
+Crude grade WTI Crude already exists or error: duplicate key value violates unique constraint "crude_grades_grade_code_unique"
+Crude grade Arab Light already exists or error: duplicate key value violates unique constraint "crude_grades_grade_code_unique"
+Crude grade Urals Crude already exists or error: duplicate key value violates unique constraint "crude_grades_grade_code_unique"
+Crude grade Maya Crude already exists or error: duplicate key value violates unique constraint "crude_grades_grade_code_unique"
+Crude grade Dubai Crude already exists or error: duplicate key value violates unique constraint "crude_grades_grade_code_unique"
+LNG cargo LNG-2024-001 already exists or error: duplicate key value violates unique constraint "lng_cargoes_cargo_id_unique"
+LNG cargo LNG-2024-002 already exists or error: duplicate key value violates unique constraint "lng_cargoes_cargo_id_unique"
+LNG cargo LPG-2024-001 already exists or error: duplicate key value violates unique constraint "lng_cargoes_cargo_id_unique"
+Dry bulk fixture DBF-2024-001 already exists or error: duplicate key value violates unique constraint "dry_bulk_fixtures_fixture_id_unique"
+Dry bulk fixture DBF-2024-002 already exists or error: duplicate key value violates unique constraint "dry_bulk_fixtures_fixture_id_unique"
+Dry bulk fixture DBF-2024-003 already exists or error: duplicate key value violates unique constraint "dry_bulk_fixtures_fixture_id_unique"
+Petrochem product PC-ETH-001 already exists or error: duplicate key value violates unique constraint "petrochem_products_product_code_unique"
+Petrochem product PC-BEN-001 already exists or error: duplicate key value violates unique constraint "petrochem_products_product_code_unique"
+Petrochem product PC-PE-001 already exists or error: duplicate key value violates unique constraint "petrochem_products_product_code_unique"
+Petrochem product PC-MEG-001 already exists or error: duplicate key value violates unique constraint "petrochem_products_product_code_unique"
+Agri flow AB-2024-001 already exists or error: duplicate key value violates unique constraint "agri_biofuel_flows_flow_id_unique"
+Agri flow AB-2024-002 already exists or error: duplicate key value violates unique constraint "agri_biofuel_flows_flow_id_unique"
+Agri flow AB-2024-003 already exists or error: duplicate key value violates unique constraint "agri_biofuel_flows_flow_id_unique"
+Refinery REF-HOU-001 already exists or error: duplicate key value violates unique constraint "refineries_refinery_code_unique"
+Refinery REF-SIN-001 already exists or error: duplicate key value violates unique constraint "refineries_refinery_code_unique"
+Refinery REF-RTM-001 already exists or error: duplicate key value violates unique constraint "refineries_refinery_code_unique"
+Refinery REF-RST-001 already exists or error: duplicate key value violates unique constraint "refineries_refinery_code_unique"
+Balance BAL-2024-Q3-CRUDE-GLOBAL already exists or error: duplicate key value violates unique constraint "supply_demand_balances_balance_id_unique"
+Balance BAL-2024-Q4-CRUDE-GLOBAL already exists or error: duplicate key value violates unique constraint "supply_demand_balances_balance_id_unique"
+Balance BAL-2024-Q3-CRUDE-ASIA already exists or error: duplicate key value violates unique constraint "supply_demand_balances_balance_id_unique"
+Balance BAL-2024-Q3-LNG-GLOBAL already exists or error: duplicate key value violates unique constraint "supply_demand_balances_balance_id_unique"
+Balance BAL-2024-Q3-GASOLINE-NAMERICA already exists or error: duplicate key value violates unique constraint "supply_demand_balances_balance_id_unique"
+Report RPT-2024-OCT-001 already exists or error: duplicate key value violates unique constraint "research_reports_report_id_unique"
+Report RPT-2024-OCT-002 already exists or error: duplicate key value violates unique constraint "research_reports_report_id_unique"
+Report RPT-2024-OCT-003 already exists or error: duplicate key value violates unique constraint "research_reports_report_id_unique"
+Importing CSV data for enhanced modules...
+Starting CSV data import...
+[CSV IMPORT] Using CSV_DATA_PATH=C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data
+Imported 0 refinery units
+Imported 0 refinery utilization records
+Imported 0 refinery crack spreads records
+Imported 0 S&D models daily records
+Imported 0 S&D forecasts weekly records
+Imported 0 research insights daily records
+CSV data import completed
+=== INITIALIZATION COMPLETE ===
+Vessels in database: 38
+Ports in database: 301
+Base maritime data initialized successfully
+Seeding port call data...
+Port calls already exist (5943), skipping seeding
+Total port calls in database: 5943
+[RefinerySatellite] AOIs already initialized
+[RefinerySatellite] Activity indices already exist
+[StorageDataService] Initializing storage data...
+[StorageDataService] Generating floating storage data...
+[StorageDataService] Floating storage data already exists, skipping...
+[StorageDataService] Generating SPR reserves data...
+[StorageDataService] SPR reserves data already exists, skipping...
+[StorageDataService] Generating storage time series data...
+[StorageDataService] Storage time series data already exists, skipping...
+[StorageDataService] Generating storage fill data for facilities...
+[StorageDataService] Storage fill data already exists, skipping...
+[StorageDataService] Storage data initialization complete
+{"timestamp":"2026-02-20T13:54:30.139Z","level":"info","message":"AIS simulation service started (no API key, using mock data)","metadata":{"maxQueueSize":5000,"maxHashSetSize":10000}}
+Signals monitoring service started
+Prediction service started
+Delay tracking service starting...
+{"timestamp":"2026-02-20T13:54:30.142Z","level":"info","message":"Starting port call detection service","metadata":{"checkIntervalMs":60000}}
+{"timestamp":"2026-02-20T13:54:30.144Z","level":"info","message":"Port daily baseline scheduler started","metadata":{"intervalHours":24}}
+3:54:30 PM [express] POST /api/init 200 in 18429ms :: {"message":"Veriscope services initialized suc…
+{"timestamp":"2026-02-20T13:54:30.153Z","level":"info","requestId":"260a81d4-64d9-4e5a-b008-132524eb8af2","route":"/api/init","method":"POST","statusCode":200,"latencyMs":18430,"message":"POST /api/init 200 18430ms"}
+{"timestamp":"2026-02-20T13:54:31.576Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"fb18fe9e-b7b4-42f0-94a7-b7dc68c520e2","portId":"effc0047-0969-4300-986f-f33607b50aa5","portName":"Fujairah"}}
+{"timestamp":"2026-02-20T13:54:31.652Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"06f53c6f-e6cd-4b61-876a-e84a6c5de95e","portId":"2946cf61-895a-40ff-820d-4250f754b071","portName":"Fujairah"}}
+Delay tracking service started
+{"timestamp":"2026-02-20T13:54:31.693Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"6cd7fbbf-316d-4578-b0f2-cfdd8175d73e","portId":"effc0047-0969-4300-986f-f33607b50aa5","portName":"Fujairah"}}
+{"timestamp":"2026-02-20T13:54:31.736Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"e0ee70bb-75ed-4452-9135-947d560c595f","portId":"effc0047-0969-4300-986f-f33607b50aa5","portName":"Fujairah"}}
+{"timestamp":"2026-02-20T13:54:31.803Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"38b69d3a-3dd8-45c5-ba58-655b575d2479","portId":"283ec475-54ae-4f3b-9390-300c16239657","portName":"Rotterdam"}}
+{"timestamp":"2026-02-20T13:54:31.847Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"cbaa8596-c1a6-4f70-ae31-49ca69ba24cb","portId":"283ec475-54ae-4f3b-9390-300c16239657","portName":"Rotterdam"}}
+{"timestamp":"2026-02-20T13:54:31.891Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"9e911934-55df-4d8f-82b3-7522561ca8d7","portId":"effc0047-0969-4300-986f-f33607b50aa5","portName":"Fujairah"}}
+{"timestamp":"2026-02-20T13:54:31.932Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"8961a94a-e025-469d-9c23-996cb93e04fd","portId":"2946cf61-895a-40ff-820d-4250f754b071","portName":"Fujairah"}}
+{"timestamp":"2026-02-20T13:54:31.987Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"456da23f-1c29-4059-b0fe-659ef625ef0d","portId":"effc0047-0969-4300-986f-f33607b50aa5","portName":"Fujairah"}}
+{"timestamp":"2026-02-20T13:54:32.029Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"64b6769b-6832-4223-8d20-226f611d68ca","portId":"effc0047-0969-4300-986f-f33607b50aa5","portName":"Fujairah"}}
+{"timestamp":"2026-02-20T13:54:32.087Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"46702976-7749-4eec-9094-c9a0a11e7308","portId":"effc0047-0969-4300-986f-f33607b50aa5","portName":"Fujairah"}}
+{"timestamp":"2026-02-20T13:54:32.230Z","level":"info","message":"Port daily baselines updated","metadata":{"days":31,"rowsAffected":9331}}
+{"timestamp":"2026-02-20T13:54:32.511Z","level":"info","message":"Signal engine run complete","metadata":{"day":"2026-02-19","upserted":3}}
+{"timestamp":"2026-02-20T13:55:31.136Z","level":"info","message":"Port call completed (departure)","metadata":{"vesselId":"fb18fe9e-b7b4-42f0-94a7-b7dc68c520e2","portId":"effc0047-0969-4300-986f-f33607b50aa5","berthHours":"0.0"}}
+{"timestamp":"2026-02-20T13:55:31.459Z","level":"info","message":"Vessel moved to different port","metadata":{"vesselId":"6cd7fbbf-316d-4578-b0f2-cfdd8175d73e","fromPort":"effc0047-0969-4300-986f-f33607b50aa5","toPort":"2946cf61-895a-40ff-820d-4250f754b071"}}
+{"timestamp":"2026-02-20T13:55:31.764Z","level":"info","message":"Vessel moved to different port","metadata":{"vesselId":"e0ee70bb-75ed-4452-9135-947d560c595f","fromPort":"effc0047-0969-4300-986f-f33607b50aa5","toPort":"2946cf61-895a-40ff-820d-4250f754b071"}}
+{"timestamp":"2026-02-20T13:55:32.168Z","level":"info","message":"Port call completed (departure)","metadata":{"vesselId":"38b69d3a-3dd8-45c5-ba58-655b575d2479","portId":"283ec475-54ae-4f3b-9390-300c16239657","berthHours":"0.0"}}
+{"timestamp":"2026-02-20T13:55:32.446Z","level":"info","message":"Vessel moved to different port","metadata":{"vesselId":"8961a94a-e025-469d-9c23-996cb93e04fd","fromPort":"2946cf61-895a-40ff-820d-4250f754b071","toPort":"effc0047-0969-4300-986f-f33607b50aa5"}}
+{"timestamp":"2026-02-20T13:55:32.710Z","level":"info","message":"Port call completed (departure)","metadata":{"vesselId":"64b6769b-6832-4223-8d20-226f611d68ca","portId":"effc0047-0969-4300-986f-f33607b50aa5","berthHours":"0.0"}}
+{"timestamp":"2026-02-20T13:56:31.564Z","level":"info","message":"Vessel moved to different port","metadata":{"vesselId":"e0ee70bb-75ed-4452-9135-947d560c595f","fromPort":"2946cf61-895a-40ff-820d-4250f754b071","toPort":"effc0047-0969-4300-986f-f33607b50aa5"}}
+{"timestamp":"2026-02-20T13:56:31.616Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"38b69d3a-3dd8-45c5-ba58-655b575d2479","portId":"283ec475-54ae-4f3b-9390-300c16239657","portName":"Rotterdam"}}
+{"timestamp":"2026-02-20T13:56:32.104Z","level":"info","message":"Vessel moved to different port","metadata":{"vesselId":"8961a94a-e025-469d-9c23-996cb93e04fd","fromPort":"effc0047-0969-4300-986f-f33607b50aa5","toPort":"2946cf61-895a-40ff-820d-4250f754b071"}}
+{"timestamp":"2026-02-20T13:56:32.191Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"64b6769b-6832-4223-8d20-226f611d68ca","portId":"effc0047-0969-4300-986f-f33607b50aa5","portName":"Fujairah"}}
+{"timestamp":"2026-02-20T13:58:30.754Z","level":"info","message":"Vessel moved to different port","metadata":{"vesselId":"e0ee70bb-75ed-4452-9135-947d560c595f","fromPort":"effc0047-0969-4300-986f-f33607b50aa5","toPort":"2946cf61-895a-40ff-820d-4250f754b071"}}
+{"timestamp":"2026-02-20T13:58:30.898Z","level":"info","message":"Vessel moved to different port","metadata":{"vesselId":"8961a94a-e025-469d-9c23-996cb93e04fd","fromPort":"2946cf61-895a-40ff-820d-4250f754b071","toPort":"effc0047-0969-4300-986f-f33607b50aa5"}}
+{"timestamp":"2026-02-20T13:59:30.621Z","level":"info","message":"Vessel moved to different port","metadata":{"vesselId":"e0ee70bb-75ed-4452-9135-947d560c595f","fromPort":"2946cf61-895a-40ff-820d-4250f754b071","toPort":"effc0047-0969-4300-986f-f33607b50aa5"}}
+{"timestamp":"2026-02-20T13:59:30.672Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"38b69d3a-3dd8-45c5-ba58-655b575d2479","portId":"283ec475-54ae-4f3b-9390-300c16239657","portName":"Rotterdam"}}
+{"timestamp":"2026-02-20T13:59:30.764Z","level":"info","message":"Vessel moved to different port","metadata":{"vesselId":"8961a94a-e025-469d-9c23-996cb93e04fd","fromPort":"effc0047-0969-4300-986f-f33607b50aa5","toPort":"2946cf61-895a-40ff-820d-4250f754b071"}}
+{"timestamp":"2026-02-20T13:59:30.802Z","level":"info","message":"Port call created (arrival)","metadata":{"vesselId":"64b6769b-6832-4223-8d20-226f611d68ca","portId":"effc0047-0969-4300-986f-f33607b50aa5","portName":"Fujairah"}}
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+{"timestamp":"2026-02-21T07:36:59.287Z","level":"info","requestId":"dceb435f-cb0d-4c38-b831-6dd527746ae5","route":"/","method":"GET","statusCode":200,"latencyMs":12,"message":"GET / 200 12ms"}
+{"timestamp":"2026-02-21T07:37:05.707Z","level":"info","requestId":"88d086c5-1484-4c33-bbec-2580b9e7a639","route":"/","method":"GET","statusCode":200,"latencyMs":15,"message":"GET / 200 15ms"}
+Rotterdam port not found for delay calculation
+{"timestamp":"2026-02-21T07:40:09.496Z","level":"info","requestId":"c8f7ae48-6f67-43ca-a0a9-7172a5d75558","route":"/","method":"GET","statusCode":200,"latencyMs":8,"message":"GET / 200 8ms"}
+{"timestamp":"2026-02-21T07:40:09.545Z","level":"info","requestId":"5601e995-23ff-4898-bb64-837496a77d30","route":"/@vite/client","method":"GET","statusCode":200,"latencyMs":9,"message":"GET /@vite/client 200 9ms"}
+{"timestamp":"2026-02-21T07:40:09.546Z","level":"info","requestId":"d3e3f1dd-553d-4f17-94e3-fbc350fbd33e","route":"/src/main.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/main.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.550Z","level":"info","requestId":"f0f36d70-54ab-46df-bb74-f9f82ca474c0","route":"/@react-refresh","method":"GET","statusCode":200,"latencyMs":3,"message":"GET /@react-refresh 200 3ms"}
+{"timestamp":"2026-02-21T07:40:09.552Z","level":"info","requestId":"e8c16392-004e-4211-9b64-117a0ef81f6f","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/vite/dist/client/env.mjs","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/vite/dist/client/env.mjs 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.553Z","level":"info","requestId":"3543b236-3cf1-4c9a-8e2f-8051a8ef63f1","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/react_jsx-dev-runtime.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/react_jsx-dev-runtime.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.554Z","level":"info","requestId":"903a846b-da1c-481d-b594-2a0d63474992","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/react-dom_client.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/react-dom_client.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.555Z","level":"info","requestId":"dd32db05-f570-4b77-ae60-699ed5e8c344","route":"/src/App.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/App.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.556Z","level":"info","requestId":"278a6b37-08f4-4da1-b1b6-778f62edacce","route":"/src/index.css","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/index.css 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.558Z","level":"info","requestId":"c2e26e25-ac82-4f45-83ad-68b24754d21f","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-QCHXOAYK.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-QCHXOAYK.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.559Z","level":"info","requestId":"bdda7f86-b758-4cf0-a5d1-531202cf23f8","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-WOOG5QLI.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-WOOG5QLI.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.565Z","level":"info","requestId":"9e478921-2b21-4805-a64e-0271f759009d","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-RPCDYKBN.js","method":"GET","statusCode":200,"latencyMs":5,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-RPCDYKBN.js 200 5ms"}
+{"timestamp":"2026-02-21T07:40:09.566Z","level":"info","requestId":"1f680b4f-f7ac-4428-92ed-e4667b808e8c","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/wouter.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/wouter.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.567Z","level":"info","requestId":"85987fd6-4856-45ea-9345-934a83b8c9d9","route":"/src/lib/queryClient.ts","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/lib/queryClient.ts 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.568Z","level":"info","requestId":"5cbc5d00-7142-401d-9f1e-0907770331a7","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@tanstack_react-query.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@tanstack_react-query.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.569Z","level":"info","requestId":"f26ac4f2-13c9-44f3-a326-ed38c367ead5","route":"/src/components/ui/toaster.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/toaster.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.570Z","level":"info","requestId":"3ec3a91b-81c9-48a3-9ab0-e3ac658db85d","route":"/src/components/ui/tooltip.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/tooltip.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.571Z","level":"info","requestId":"c754ddf2-7511-477a-b8d2-97cf5438efe4","route":"/src/hooks/use-watchlist-filter.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/hooks/use-watchlist-filter.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.572Z","level":"info","requestId":"3a84e2dc-9286-496a-9674-a05e526c7700","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/react.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/react.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.573Z","level":"info","requestId":"43399f7a-b04c-4366-8583-5a8ca1508ace","route":"/src/pages/dashboard.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/dashboard.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.574Z","level":"info","requestId":"c7e7abad-cc85-4e98-b2f5-4a80f3fb4493","route":"/src/pages/dashboard-home.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/dashboard-home.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.577Z","level":"info","requestId":"72bbf7ee-ec7f-4960-8567-427ce12a52d1","route":"/src/pages/home.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/home.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.579Z","level":"info","requestId":"6e46a029-cc8e-4e5a-b8af-e086f6087f85","route":"/src/pages/signals.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/signals.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.580Z","level":"info","requestId":"f964535e-4389-47aa-9140-e24010ef8068","route":"/src/pages/blog.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/blog.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.582Z","level":"info","requestId":"408fc088-f0e6-44da-a1d3-d514ac2c2aca","route":"/src/pages/blog/post.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/blog/post.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.583Z","level":"info","requestId":"587b584a-47dd-4aea-9816-14ce4f8de584","route":"/src/pages/commodities.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/commodities.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.586Z","level":"info","requestId":"e4e6eb64-abd2-4a9f-80c8-1c6452101ea6","route":"/src/pages/maritime.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/maritime.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.587Z","level":"info","requestId":"368226ab-981f-42dc-971e-d8d91ec13c31","route":"/src/pages/energy.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/energy.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.589Z","level":"info","requestId":"44604e14-9884-4f21-887b-0d910eaf3cc9","route":"/src/pages/energy/emissions.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/pages/energy/emissions.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.590Z","level":"info","requestId":"141701d5-a099-4b7d-a913-f3a14e700e60","route":"/src/pages/energy/power-markets.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/energy/power-markets.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.591Z","level":"info","requestId":"78489a9b-72af-4e7a-a76f-89772f59a745","route":"/src/pages/energy/renewable-dispatch.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/energy/renewable-dispatch.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.592Z","level":"info","requestId":"7d0d4a5b-3b9b-48d9-80b1-2ab7ee604a49","route":"/src/pages/energy/weather-integration.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/pages/energy/weather-integration.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.593Z","level":"info","requestId":"4c2bad99-b883-41e4-9354-64f6c08dfa09","route":"/src/pages/energy/carbon-markets.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/pages/energy/carbon-markets.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.595Z","level":"info","requestId":"1199c963-0011-4f10-9219-315744194910","route":"/src/pages/trades-flows.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/trades-flows.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.597Z","level":"info","requestId":"1cf58ca0-9e07-46f2-8bee-bd457a862150","route":"/src/pages/inventories-storage.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/inventories-storage.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.599Z","level":"info","requestId":"c1d4210c-34a3-4669-a843-143a716c9daf","route":"/src/pages/freight-analytics.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/freight-analytics.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.600Z","level":"info","requestId":"03c8fc41-9dc8-4c02-8f5e-b57189ccb36a","route":"/src/pages/maritime/ais-tracking.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/maritime/ais-tracking.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.601Z","level":"info","requestId":"e31ae593-101d-4974-a00c-85e177387905","route":"/src/pages/maritime/port-events.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/pages/maritime/port-events.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.604Z","level":"info","requestId":"bd456d45-3aa2-4a33-ad51-cae85dbfb530","route":"/src/pages/maritime/containers.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/maritime/containers.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.606Z","level":"info","requestId":"fb907a0b-976d-4ac8-b487-eb9ab5c9c3f8","route":"/src/pages/maritime/bunkering.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/maritime/bunkering.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.608Z","level":"info","requestId":"15329f10-fbce-4ab5-8895-544565457f90","route":"/src/pages/maritime/inbox.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/maritime/inbox.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.610Z","level":"info","requestId":"4a7165ec-a12b-4346-9b4a-1959755d8195","route":"/src/pages/commodities/crude-products.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/commodities/crude-products.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.611Z","level":"info","requestId":"dc3727fb-3325-49ab-887c-18b6c0317820","route":"/src/pages/commodities/lng-lpg.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/pages/commodities/lng-lpg.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.613Z","level":"info","requestId":"61e31883-96eb-4831-a45e-b4c718716149","route":"/src/pages/commodities/dry-bulk.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/commodities/dry-bulk.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.614Z","level":"info","requestId":"3a5e6364-b5b2-470e-883d-3f3173b28438","route":"/src/pages/commodities/petrochem.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/pages/commodities/petrochem.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.616Z","level":"info","requestId":"a8f3c915-7291-4f5d-bc2d-a92259d4cf1d","route":"/src/pages/commodities/agri-biofuel.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/commodities/agri-biofuel.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.618Z","level":"info","requestId":"9499d329-44b1-4e0b-bb43-137adc6f95d8","route":"/src/pages/commodities/refinery-intelligence.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/commodities/refinery-intelligence.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.622Z","level":"info","requestId":"a2ce693b-838a-4893-bd53-cd946c6914a6","route":"/src/pages/commodities/supply-demand.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/commodities/supply-demand.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.624Z","level":"info","requestId":"8567f91b-11e2-44ec-88fe-c2221902274e","route":"/src/pages/auth/login.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/auth/login.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.626Z","level":"info","requestId":"53015502-4ec5-459b-9364-a7c6327a65ec","route":"/src/pages/commodities/research-insights.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/commodities/research-insights.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.627Z","level":"info","requestId":"7c289d4d-5411-4dea-b025-d0457e45d62c","route":"/src/pages/module-page.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/module-page.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.628Z","level":"info","requestId":"0ca8b3f2-7269-4ecf-894f-f08985075e1c","route":"/src/pages/not-found.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/pages/not-found.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.630Z","level":"info","requestId":"0fb185dc-39a0-41b8-9400-51ee83d852dc","route":"/src/pages/auth/register.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/auth/register.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.632Z","level":"info","requestId":"2cea7308-00da-456b-ae80-3490ccaa8af3","route":"/src/pages/about.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/about.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.633Z","level":"info","requestId":"853b8948-9f22-4ed5-ae97-69343a332387","route":"/src/pages/contact.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/contact.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.634Z","level":"info","requestId":"9dd3dd15-fb4a-4772-b724-643672839d11","route":"/src/pages/careers.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/pages/careers.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.637Z","level":"info","requestId":"6349a3cc-4f2e-4691-8086-afd85332b74f","route":"/src/pages/documentation.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/documentation.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.638Z","level":"info","requestId":"67700ac1-7f15-40c7-8f4d-1502e7b99bcc","route":"/src/pages/tankscope.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/tankscope.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.640Z","level":"info","requestId":"154ffb1d-4b56-466f-8819-e6741f9847eb","route":"/src/pages/watchlists.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/watchlists.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.642Z","level":"info","requestId":"dea28092-5f72-429c-bca8-e0809380a645","route":"/src/pages/alert-rules.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/alert-rules.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.645Z","level":"info","requestId":"18f002b8-8611-4219-9a89-956b70bcd28a","route":"/src/pages/alerts.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/alerts.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.647Z","level":"info","requestId":"a586242f-88e9-4b8a-9a23-3572a2f57915","route":"/src/pages/alerts-health.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/alerts-health.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.650Z","level":"info","requestId":"2bc0d598-b098-448e-8b17-58a6cbe8d449","route":"/src/pages/alerts-destinations.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/alerts-destinations.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.653Z","level":"info","requestId":"a953a4e4-f2c3-4284-9c7e-23b9133317ea","route":"/src/pages/alert-subscriptions.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/alert-subscriptions.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.656Z","level":"info","requestId":"1f4cf47a-e126-4c11-8358-25064f86d566","route":"/src/pages/incidents.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/incidents.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.658Z","level":"info","requestId":"bb49133b-2825-455a-81b3-7e3a302a3acd","route":"/src/pages/invite-accept.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/invite-accept.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.665Z","level":"info","requestId":"d2a9ee71-e05f-458d-b2b7-7bd98d9c0486","route":"/src/pages/team.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/team.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.666Z","level":"info","requestId":"323e680a-2c60-4f05-a93c-f4c93da9fec6","route":"/src/pages/audit.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/audit.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.669Z","level":"info","requestId":"7e4ff3be-a8e9-4d81-8869-83e1bd5053ea","route":"/src/pages/escalations.tsx","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /src/pages/escalations.tsx 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.671Z","level":"info","requestId":"4ac8286d-21c0-4894-a857-1870e54e012f","route":"/src/pages/data-exports.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/pages/data-exports.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.673Z","level":"info","requestId":"071cf957-c377-4683-865c-ca75dbb45232","route":"/src/pages/refinery-satellite.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/pages/refinery-satellite.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.674Z","level":"info","requestId":"b16c2f02-5cc2-427a-8f5e-cd40de48f700","route":"/src/pages/port-detail.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/pages/port-detail.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.675Z","level":"info","requestId":"2d9b1de0-3cab-4d20-a9d1-24922b2683c0","route":"/src/hooks/use-toast.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/hooks/use-toast.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.676Z","level":"info","requestId":"6f65d711-1671-4c9d-8078-1297c2c9169d","route":"/src/components/ui/toast.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/ui/toast.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.677Z","level":"info","requestId":"bb18c0d7-ffe0-495e-aea6-3d0f028579b9","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-tooltip.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-tooltip.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.678Z","level":"info","requestId":"fd6771cd-b0d9-47d2-b438-02e14c52543f","route":"/src/lib/utils.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/lib/utils.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.679Z","level":"info","requestId":"8bc6c474-7c14-41dd-91b7-5beb3f10fee8","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-KBTYAULA.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-KBTYAULA.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.681Z","level":"info","requestId":"724d8350-531e-40f0-bbfe-7bcb617fee08","route":"/src/components/Sidebar.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/Sidebar.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.682Z","level":"info","requestId":"46e4ac41-5f5b-4906-a355-19ce0ea5a1e4","route":"/src/components/MapPanel.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/MapPanel.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.684Z","level":"info","requestId":"88f8346b-9ce6-4c7c-91df-625a6594f97d","route":"/src/components/RightPanel.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/RightPanel.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.686Z","level":"info","requestId":"58007863-13e2-415a-a00a-51a2fc2f2503","route":"/src/components/NotificationPanel.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/NotificationPanel.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.687Z","level":"info","requestId":"17c57b00-2f70-4373-af83-55907d25255e","route":"/src/components/data-freshness-indicator.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/data-freshness-indicator.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.689Z","level":"info","requestId":"0c188224-d03a-42a9-8e0a-735d1196fb9c","route":"/src/components/watchlist-filter.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/watchlist-filter.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.690Z","level":"info","requestId":"d89a9abe-2e31-484b-b9a7-178e8d3c4332","route":"/src/components/ui/select.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/ui/select.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.693Z","level":"info","requestId":"b2c15805-8646-4f74-ae7d-ccc10b300db9","route":"/src/components/ui/button.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/button.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.697Z","level":"info","requestId":"600fafd1-ce9f-4fa1-8f2a-03d5e0062ac7","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/lucide-react.js","method":"GET","statusCode":200,"latencyMs":4,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/lucide-react.js 200 4ms"}
+{"timestamp":"2026-02-21T07:40:09.699Z","level":"info","requestId":"fafb0363-cece-4d7e-be94-4eb9866d99d7","route":"/src/components/ui/badge.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/badge.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.700Z","level":"info","requestId":"3546abf4-2edb-46ca-8fcb-bb93d87c52a5","route":"/src/hooks/use-vessels.ts","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/hooks/use-vessels.ts 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.701Z","level":"info","requestId":"1a22956c-fa9c-4ed1-884e-554f3bc86840","route":"/src/hooks/use-notifications.ts","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/hooks/use-notifications.ts 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.702Z","level":"info","requestId":"c106b645-bfcd-4734-ba62-f32c38a7bf61","route":"/src/hooks/use-rotterdam-data.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/hooks/use-rotterdam-data.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.703Z","level":"info","requestId":"c2ac5502-7ee3-4f79-8565-a492c16ab801","route":"/src/components/ui/card.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/card.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.705Z","level":"info","requestId":"70c55b12-b3c2-43a9-b476-3621d870f284","route":"/src/components/ui/dropdown-menu.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/dropdown-menu.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.706Z","level":"info","requestId":"6083d3ee-9011-4419-bdb5-e67fea351dc7","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/ChatGPT%20Image%20Sep%2028,%202025,%2011_38_52%20PM_1759345566852.png","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/ChatGPT%20Image%20Sep%2028,%202025,%2011_38_52%20PM_1759345566852.png 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.708Z","level":"info","requestId":"ac23fdb4-8c5e-4e66-93c6-0c3216f6fcf9","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/istockphoto-1645923179-612x612_1764451895248.jpg","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/istockphoto-1645923179-612x612_1764451895248.jpg 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.709Z","level":"info","requestId":"ae946d98-7eab-4c69-94ca-d366a4b2635d","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/oil-tanker-sails-ocean-clear-sky-maritime-shipping-international-trade-concept-cargo-ship-carries-crude-fuels-385597174_1764443231197.webp","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/oil-tanker-sails-ocean-clear-sky-maritime-shipping-international-trade-concept-cargo-ship-carries-crude-fuels-385597174_1764443231197.webp 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.710Z","level":"info","requestId":"a29d1137-8da4-4380-8ee2-36d19cae9cfc","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/renewable_energy-768x555_1764452420992.jpg","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/renewable_energy-768x555_1764452420992.jpg 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.711Z","level":"info","requestId":"d2963a91-6312-48c5-949b-bd6d3018c6cb","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/The-Importance-of-Vessel-Tracking-System_1764443231200.webp","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/The-Importance-of-Vessel-Tracking-System_1764443231200.webp 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.712Z","level":"info","requestId":"094fc338-ac61-46a7-a53e-f8baa68bacf0","route":"/src/components/ui/input.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/ui/input.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.712Z","level":"info","requestId":"9caedd81-04a1-41f1-b256-ab12ce796e1e","route":"/src/components/ui/switch.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/ui/switch.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.714Z","level":"info","requestId":"248e7d97-d60b-4be3-95f1-e0ab19aa9cc2","route":"/src/components/ui/sheet.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/sheet.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.715Z","level":"info","requestId":"5b6def7c-181a-49a2-ab50-e7a35b38664b","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/shared/metrics.ts","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/shared/metrics.ts 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.723Z","level":"info","requestId":"b5523da7-00a8-4364-80c7-eb0788c3ba71","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/recharts.js","method":"GET","statusCode":200,"latencyMs":7,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/recharts.js 200 7ms"}
+{"timestamp":"2026-02-21T07:40:09.724Z","level":"info","requestId":"b655e35b-7248-4349-aa9b-5917b7ec0603","route":"/src/components/ui/tabs.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/tabs.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.725Z","level":"info","requestId":"f16840b0-2bc9-4f80-aff9-7c5c68eb2e1f","route":"/src/components/ui/separator.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/separator.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.725Z","level":"info","requestId":"9e91c39e-3fbc-467d-8b59-db6b5d2da810","route":"/src/components/ui/progress.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/ui/progress.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.726Z","level":"info","requestId":"dc9e30ef-dfd8-4db9-8c02-c06ff876427e","route":"/src/components/ui/skeleton.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/ui/skeleton.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.728Z","level":"info","requestId":"3f259015-d0f3-4433-aa93-11189aae7252","route":"/src/components/credibility-indicator.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/credibility-indicator.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.729Z","level":"info","requestId":"984ac450-39d3-4613-925c-ddbdd13676da","route":"/src/components/ui/label.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/label.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.730Z","level":"info","requestId":"1cb79b33-e63c-4488-b558-bee07ed7f119","route":"/src/components/ui/table.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/ui/table.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.732Z","level":"info","requestId":"57497331-eb37-4e65-93f1-fbb6d8b55bdf","route":"/src/components/ml-prediction-card.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ml-prediction-card.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.733Z","level":"info","requestId":"320dab9d-8557-4b0a-a036-35a62d15934e","route":"/src/components/ui/checkbox.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/checkbox.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.734Z","level":"info","requestId":"dc795d95-c79c-43bc-aa9f-e54528dec45c","route":"/src/components/ui/dialog.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/dialog.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.735Z","level":"info","requestId":"8740b0d9-7af6-4e65-97ad-a4a383a83fae","route":"/src/components/ui/alert-dialog.tsx","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/components/ui/alert-dialog.tsx 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.735Z","level":"info","requestId":"cb7526ad-7c69-415c-8110-8bb6164c782a","route":"/src/lib/apiFetch.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/lib/apiFetch.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.737Z","level":"info","requestId":"4c202e0d-9611-4816-a52a-fd5ea5d4f532","route":"/src/auth/useAuth.ts","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/auth/useAuth.ts 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.738Z","level":"info","requestId":"b3af822c-dc22-47ab-82af-b89a6f4bc881","route":"/src/components/alerts-subnav.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/alerts-subnav.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.739Z","level":"info","requestId":"0dff8935-31c6-4975-8d97-d0b0950aa33c","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/shared/alertPlaybook.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/shared/alertPlaybook.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.740Z","level":"info","requestId":"331c3ce5-0de6-4e50-a45c-4667d80bc196","route":"/src/lib/incidentTypes.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/lib/incidentTypes.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.741Z","level":"info","requestId":"0f7152c1-021e-4000-833e-6b4730bb1db1","route":"/src/lib/duration.ts","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/lib/duration.ts 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.741Z","level":"info","requestId":"cec282f2-38d3-4099-ba64-2cd87d1b6679","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-toast.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-toast.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.742Z","level":"info","requestId":"f0811333-9dc9-40ad-8038-e24d66ea2901","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/class-variance-authority.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/class-variance-authority.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.743Z","level":"info","requestId":"5c8b9c0c-5991-420a-b223-a898f4ca8bf1","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-UPVX7IVH.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-UPVX7IVH.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.744Z","level":"info","requestId":"62023517-514d-4530-9512-f59d2dae56a8","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-KADFZHNY.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-KADFZHNY.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.745Z","level":"info","requestId":"b27fa5e7-3274-414a-82d6-b5cd70b75647","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-JTXUFRPV.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-JTXUFRPV.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.746Z","level":"info","requestId":"12624d9e-8f89-4972-89a4-94dff12bcbfb","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-BNESBGCN.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-BNESBGCN.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.747Z","level":"info","requestId":"d19a644a-e942-46b9-a289-a59c8988bd10","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-ZGZLNDFP.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-ZGZLNDFP.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.748Z","level":"info","requestId":"c6379eb6-5b3b-4a23-9d93-009bb951985e","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-YE5GEEUL.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-YE5GEEUL.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.749Z","level":"info","requestId":"bce833d2-9368-4307-9604-45a64f098039","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-2UGGF4OY.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-2UGGF4OY.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.750Z","level":"info","requestId":"fceb5d70-b212-4d2c-9c3d-a864723b6b88","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-K3KUYG4W.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-K3KUYG4W.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.750Z","level":"info","requestId":"03565141-c435-43c6-b1dd-509913baca83","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-OXZDJRWN.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-OXZDJRWN.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.751Z","level":"info","requestId":"c4eaca68-35e3-4fd7-99ca-1a1332405d10","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-AXMZZQ2X.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-AXMZZQ2X.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.752Z","level":"info","requestId":"b700684d-e199-4adf-ac43-675d7e7d40e5","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-2K77HOHX.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-2K77HOHX.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.753Z","level":"info","requestId":"65cf98a9-5689-4291-bdd7-bf118d9b6d10","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/clsx.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/clsx.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.754Z","level":"info","requestId":"fbc8f04e-4e16-4c19-a0a0-5033bf7e1aca","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/tailwind-merge.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/tailwind-merge.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.755Z","level":"info","requestId":"a1b1a411-e2f7-42c0-8de0-adb69bab70c1","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/react-leaflet.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/react-leaflet.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.756Z","level":"info","requestId":"0622a29a-a28a-4089-9d64-aadb29cde31d","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/leaflet.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/leaflet.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.757Z","level":"info","requestId":"161b7c22-a0f4-4fd2-9ded-f4004154addd","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/leaflet/dist/leaflet.css","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/leaflet/dist/leaflet.css 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.758Z","level":"info","requestId":"080bc706-abf7-4325-aebd-2cb01d4a3eab","route":"/src/components/KpiCard.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/KpiCard.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.758Z","level":"info","requestId":"e49fd509-25b2-43ed-bfcf-e2a1ef6816ee","route":"/src/components/StorageWidget.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/StorageWidget.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.759Z","level":"info","requestId":"81e5871a-71c5-4883-bb77-eee69d6d1f61","route":"/src/components/CommodityPriceChart.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/CommodityPriceChart.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.760Z","level":"info","requestId":"12f53f8e-753a-4641-aa01-30b65b8d96dd","route":"/src/components/TradeFlowsPanel.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/TradeFlowsPanel.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.761Z","level":"info","requestId":"1071c0a6-4bb6-4a6f-bc81-480240cfbca4","route":"/src/components/MarketAnalyticsPanel.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/MarketAnalyticsPanel.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.762Z","level":"info","requestId":"656aa0cf-5f39-4c50-9374-8f474b353c39","route":"/src/hooks/use-port-stats.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/hooks/use-port-stats.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.763Z","level":"info","requestId":"98f07d1e-b2ec-462f-990c-17a51c6b80d9","route":"/src/hooks/use-signals.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/hooks/use-signals.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.764Z","level":"info","requestId":"3fcfa14e-2188-4f50-9563-b6c1fa901d08","route":"/src/hooks/use-predictions.ts","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /src/hooks/use-predictions.ts 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.764Z","level":"info","requestId":"5f0122b2-18e8-49a4-9a67-7d95a70d93f8","route":"/src/hooks/use-port-delays.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/hooks/use-port-delays.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.765Z","level":"info","requestId":"8af24c0f-6875-47db-b43a-079f618cf5d4","route":"/src/components/ui/scroll-area.tsx","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/components/ui/scroll-area.tsx 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.766Z","level":"info","requestId":"7e2f285a-1eae-4789-b85a-615eda1a544e","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/date-fns.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/date-fns.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.767Z","level":"info","requestId":"1dd396bf-3397-4c55-b367-a672c7eb03dd","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-select.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-select.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.768Z","level":"info","requestId":"650d4e5b-0b75-4868-8044-3d89b56b014b","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-slot.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-slot.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.769Z","level":"info","requestId":"81170e53-ebbd-42fd-8d0e-b213035ad46f","route":"/src/hooks/use-websocket.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/hooks/use-websocket.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.771Z","level":"info","requestId":"8bc25350-f5e7-4a5c-931d-a41184a13f00","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.772Z","level":"info","requestId":"2b49def2-5da5-49c0-bbc9-5861b836ff5c","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-switch.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-switch.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.772Z","level":"info","requestId":"4d44896d-8a8a-41b3-b9a0-4e0f697d840e","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-dialog.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-dialog.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.773Z","level":"info","requestId":"215698c8-a0b9-48de-b2c1-28d9f1ac1c35","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-tabs.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-tabs.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.774Z","level":"info","requestId":"6315da7c-b6e4-4906-9f13-4be46de4b2d7","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-separator.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-separator.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.775Z","level":"info","requestId":"a60c3834-25f9-4ea8-9b58-0ae1c04ac562","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-progress.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-progress.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.776Z","level":"info","requestId":"ee8c7aae-00aa-4f52-93df-f7daa9ae7138","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-alert-dialog.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.776Z","level":"info","requestId":"390a8e53-c149-4790-b165-caefef406145","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-label.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-label.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.777Z","level":"info","requestId":"5b1a1cd9-9e76-4199-a0f8-de7ff1051795","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-checkbox.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-checkbox.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.778Z","level":"info","requestId":"60c9865d-41ff-4334-b9c6-48f033ba7ab3","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-TPYHSINA.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-TPYHSINA.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.779Z","level":"info","requestId":"0ace5d9c-c439-41c0-8368-db727e6600d2","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-U7P2NEEE.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-U7P2NEEE.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.781Z","level":"info","requestId":"5000aefa-1fb6-4dd9-a702-dc7f565477ea","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-JQURRHX6.js","method":"GET","statusCode":200,"latencyMs":2,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-JQURRHX6.js 200 2ms"}
+{"timestamp":"2026-02-21T07:40:09.782Z","level":"info","requestId":"83789ee1-8277-410a-89ac-9f097bdaeadb","route":"/src/hooks/use-delay-adjusted-predictions.ts","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /src/hooks/use-delay-adjusted-predictions.ts 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.783Z","level":"info","requestId":"86e8fedd-db6e-4a45-880e-1baadc192644","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-scroll-area.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/@radix-ui_react-scroll-area.js 200 1ms"}
+{"timestamp":"2026-02-21T07:40:09.783Z","level":"info","requestId":"424266d1-0b27-47bc-92dc-e9ba73bb15b0","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-6ZMM2PAV.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-6ZMM2PAV.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.784Z","level":"info","requestId":"54b13b5a-ae1b-41d7-a366-ff25f5ec463f","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-43G6IMPT.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-43G6IMPT.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.785Z","level":"info","requestId":"85a820fc-f2eb-4971-a02e-391cbe15fd03","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-4RO2SXZU.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-4RO2SXZU.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.788Z","level":"info","requestId":"33d8c12f-f30f-468e-a061-d3bbbbd78f06","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-CLPYIDGD.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-CLPYIDGD.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.789Z","level":"info","requestId":"af46dcd2-c573-4e18-afed-448ca3ea2f61","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-ATIQ27TM.js","method":"GET","statusCode":200,"latencyMs":0,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-ATIQ27TM.js 200 0ms"}
+{"timestamp":"2026-02-21T07:40:09.790Z","level":"info","requestId":"c4e5857f-8791-40fe-9d6b-20d52b09bf74","route":"/@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-FF6CNSFU.js","method":"GET","statusCode":200,"latencyMs":1,"message":"GET /@fs/C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/.vite/deps/chunk-FF6CNSFU.js 200 1ms"}
+9:40:09 AM [express] POST /api/init 200 in 2ms :: {"message":"Veriscope services already initialized…
+{"timestamp":"2026-02-21T07:40:09.885Z","level":"info","requestId":"597aacbd-3cdc-4bd0-beb3-1a821f42b081","route":"/api/init","method":"POST","statusCode":200,"latencyMs":3,"message":"POST /api/init 200 3ms"}
+{"timestamp":"2026-02-21T07:40:09.893Z","level":"info","requestId":"9dd63bea-ee70-4050-ac48-7043f201feec","route":"/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/istockphoto-1645923179-612x612_1764451895248.jpg","method":"GET","statusCode":200,"latencyMs":3,"message":"GET /Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/istockphoto-1645923179-612x612_1764451895248.jpg 200 3ms"}
+{"timestamp":"2026-02-21T07:40:09.894Z","level":"info","requestId":"d204c8d3-abd6-496d-b82e-5eb2002c26ad","route":"/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/oil-tanker-sails-ocean-clear-sky-maritime-shipping-international-trade-concept-cargo-ship-carries-crude-fuels-385597174_1764443231197.webp","method":"GET","statusCode":200,"latencyMs":4,"message":"GET /Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/oil-tanker-sails-ocean-clear-sky-maritime-shipping-international-trade-concept-cargo-ship-carries-crude-fuels-385597174_1764443231197.webp 200 4ms"}
+{"timestamp":"2026-02-21T07:40:09.895Z","level":"info","requestId":"49da7562-00f4-48ca-bb9c-0c30515aebb8","route":"/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/renewable_energy-768x555_1764452420992.jpg","method":"GET","statusCode":200,"latencyMs":4,"message":"GET /Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/renewable_energy-768x555_1764452420992.jpg 200 4ms"}
+{"timestamp":"2026-02-21T07:40:09.896Z","level":"info","requestId":"94327e77-b893-4ccd-b8e7-6d363e15e02a","route":"/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/The-Importance-of-Vessel-Tracking-System_1764443231200.webp","method":"GET","statusCode":200,"latencyMs":5,"message":"GET /Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/The-Importance-of-Vessel-Tracking-System_1764443231200.webp 200 5ms"}
+{"timestamp":"2026-02-21T07:40:09.899Z","level":"info","requestId":"3835a92e-b93d-414e-a416-8bce0388ffca","route":"/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/ChatGPT%20Image%20Sep%2028,%202025,%2011_38_52%20PM_1759345566852.png","method":"GET","statusCode":200,"latencyMs":12,"message":"GET /Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/attached_assets/ChatGPT%20Image%20Sep%2028,%202025,%2011_38_52%20PM_1759345566852.png 200 12ms"}
+{"timestamp":"2026-02-21T07:40:10.041Z","level":"info","requestId":"8b5b8b00-383a-448d-b634-1b2096205be4","route":"/","method":"GET","statusCode":200,"latencyMs":6,"message":"GET / 200 6ms"}
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+Rotterdam port not found for delay calculation
+{"timestamp":"2026-02-21T08:37:20.432Z","level":"info","requestId":"261deaf5-16db-48c0-b2af-62b5d5185f7d","route":"/","method":"GET","statusCode":200,"latencyMs":39,"message":"GET / 200 39ms"}

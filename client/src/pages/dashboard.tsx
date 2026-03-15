@@ -14,6 +14,7 @@ import { useVessels } from "@/hooks/use-vessels";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useRotterdamMonths } from "@/hooks/use-rotterdam-data";
 import { Link } from "wouter";
+import { clearAuthStorage } from "@/lib/auth";
 
 export default function Dashboard() {
   const [scope, setScope] = useState<string>("crude-oil");
@@ -320,6 +321,17 @@ export default function Dashboard() {
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </Badge>
               )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                clearAuthStorage();
+                window.location.href = "/";
+              }}
+              data-testid="button-sign-out"
+            >
+              Sign out
             </Button>
             
             {/* User Profile */}

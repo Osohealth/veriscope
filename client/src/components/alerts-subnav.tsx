@@ -9,6 +9,7 @@ const ALERTS_NAV = [
   { label: "Destinations", href: "/alerts/destinations" },
   { label: "Team", href: "/settings/team" },
   { label: "Audit", href: "/settings/audit" },
+  { label: "Escalations", href: "/settings/escalations" },
 ];
 
 export default function AlertsSubnav() {

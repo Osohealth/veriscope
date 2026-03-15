@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
+import { clearAuthStorage } from "@/lib/auth";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -48,6 +49,17 @@ export default function DashboardHome() {
             <Button variant="outline" size="sm" data-testid="button-settings">
               <Settings className="w-4 h-4 mr-2" />
               Settings
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                clearAuthStorage();
+                window.location.href = "/";
+              }}
+              data-testid="button-sign-out"
+            >
+              Sign out
             </Button>
           </div>
         </div>

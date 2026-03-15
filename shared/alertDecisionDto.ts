@@ -95,6 +95,16 @@ export type AlertDecision = {
       level: number;
       target_type: string;
       target_ref: string;
+      policy_id?: string;
+      dedupe_key?: string;
+      allowed?: boolean;
+    };
+    routing?: {
+      allowed: boolean;
+      reason?: "NO_USER_CONTACT_METHOD";
+      chosen_method_type?: "EMAIL" | "WEBHOOK";
+      chosen_method_id?: string;
+      target_user_id?: string;
     };
   };
   suppressed_counts: {

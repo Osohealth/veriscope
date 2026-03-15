@@ -142,7 +142,7 @@ export async function upsertAlertSlaThreshold({
       window,
       destinationType,
       p95MsThreshold,
-      successRateThreshold,
+      successRateThreshold: String(successRateThreshold),
       createdAt: now,
       updatedAt: now,
     })
@@ -150,7 +150,7 @@ export async function upsertAlertSlaThreshold({
       target: [alertSlaThresholds.tenantId, alertSlaThresholds.window, alertSlaThresholds.destinationType],
       set: {
         p95MsThreshold,
-        successRateThreshold,
+        successRateThreshold: String(successRateThreshold),
         updatedAt: now,
       },
     });
@@ -184,7 +184,7 @@ const normalizeSlaRow = (row: any): AlertSlaRow => ({
   updated_at: row.computed_at?.toISOString?.() ?? row.computed_at,
 });
 
-const fetchLatestSlaRows = async (tenantId: string, window?: string) => {
+const fetchLatestSlaRows = async (tenantId: string, window?: string): Promise<AlertSlaRow[]> => {
   const windowFilter = window ? sql`AND "window" = ${window}` : sql``;
   const result = await db.execute(sql`
     SELECT DISTINCT ON (destination_type, destination_key, "window")
@@ -225,7 +225,8 @@ const releaseAdvisoryLock = async (tenantId: string, windowKey: string) => {
 
 export async function listAlertSlaWindows(tenantId: string, window?: string) {
   const items = await fetchLatestSlaRows(tenantId, window);
-  const destinationKeys = Array.from(new Set(items.map((row) => row.destination_key))).filter(Boolean);
+  const destinationKeys = Array.from(new Set(items.map((row) => row.destination_key)))
+    .filter((value): value is string => Boolean(value));
   const destinationStates = destinationKeys.length > 0
     ? await db
         .select({

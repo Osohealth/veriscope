@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,13 +25,39 @@ import {
   Waves,
   ChevronDown
 } from "lucide-react";
+import { useState } from "react";
 import veriscopeLogo from "@assets/ChatGPT Image Sep 28, 2025, 11_38_52 PM_1759345566852.png";
 import commoditiesImage from "@assets/istockphoto-1645923179-612x612_1764451895248.jpg";
 import tankerImage from "@assets/oil-tanker-sails-ocean-clear-sky-maritime-shipping-international-trade-concept-cargo-ship-carries-crude-fuels-385597174_1764443231197.webp";
 import energyImage from "@assets/renewable_energy-768x555_1764452420992.jpg";
 import satelliteImage from "@assets/The-Importance-of-Vessel-Tracking-System_1764443231200.webp";
+import AuthModal from "@/components/auth-modal";
+import { isAuthenticated } from "@/lib/auth";
 
 export default function Home() {
+  const [, setLocation] = useLocation();
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authTab, setAuthTab] = useState<"login" | "register">("login");
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+
+  const handleProtectedNav = (path: string, tab: "login" | "register" = "login") => {
+    if (isAuthenticated()) {
+      setLocation(path);
+      return;
+    }
+    setAuthTab(tab);
+    setPendingPath(path);
+    setAuthOpen(true);
+  };
+
+  const handleAuthenticated = () => {
+    setAuthOpen(false);
+    if (pendingPath) {
+      setLocation(pendingPath);
+      setPendingPath(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation Header */}
@@ -46,9 +72,30 @@ export default function Home() {
             </Link>
           </div>
           <nav className="hidden md:flex flex-1 items-center justify-start gap-10 pl-12 text-base md:text-lg font-medium">
-              <Link href="/platform" className="text-muted-foreground hover:text-primary transition-colors" data-testid="nav-dashboard">
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                data-testid="nav-dashboard"
+                onClick={() => handleProtectedNav("/platform", "login")}
+              >
                 Dashboard
-              </Link>
+              </button>
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                data-testid="nav-terminal"
+                onClick={() => handleProtectedNav("/terminal", "login")}
+              >
+                Terminal
+              </button>
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                data-testid="nav-flows"
+                onClick={() => handleProtectedNav("/flows", "login")}
+              >
+                Flows
+              </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors cursor-pointer bg-transparent border-none p-0 text-base md:text-lg" data-testid="nav-products">
@@ -193,16 +240,21 @@ export default function Home() {
               </span>
           </nav>
           <div className="flex items-center space-x-4 pl-6">
-            <Link href="/auth/login">
-              <Button variant="outline" size="sm" data-testid="button-login">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/auth/register">
-              <Button size="sm" data-testid="button-request-demo">
-                Request demo
-              </Button>
-            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="button-login"
+              onClick={() => handleProtectedNav("/platform", "login")}
+            >
+              Sign In
+            </Button>
+            <Button
+              size="sm"
+              data-testid="button-request-demo"
+              onClick={() => handleProtectedNav("/platform", "register")}
+            >
+              Request demo
+            </Button>
           </div>
         </div>
       </header>
@@ -229,17 +281,22 @@ export default function Home() {
               With actionable real-time data and intelligence, we enable forward-thinking businesses to plan, grow, and move sustainably into the future
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Link href="/platform">
-                <Button size="lg" className="px-8" data-testid="button-hero-demo">
-                  Explore Dashboard
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-              <Link href="/signals">
-                <Button size="lg" variant="outline">
-                  View Signals
-                </Button>
-              </Link>
+              <Button
+                size="lg"
+                className="px-8"
+                data-testid="button-hero-demo"
+                onClick={() => handleProtectedNav("/platform", "login")}
+              >
+                Explore Dashboard
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => handleProtectedNav("/signals", "login")}
+              >
+                View Signals
+              </Button>
             </div>
           </div>
         </div>
@@ -523,6 +580,19 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      <AuthModal
+        open={authOpen}
+        onOpenChange={(open) => {
+          setAuthOpen(open);
+          if (!open) {
+            setPendingPath(null);
+          }
+        }}
+        activeTab={authTab}
+        onTabChange={setAuthTab}
+        onAuthenticated={handleAuthenticated}
+      />
     </div>
   );
 }

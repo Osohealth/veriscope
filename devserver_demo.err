@@ -1,0 +1,89 @@
+Browserslist: browsers data (caniuse-lite) is 16 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+{"timestamp":"2026-02-21T18:18:08.419Z","level":"warn","requestId":"ae3cb1b3-7a6a-45d7-a33c-3ad7faf6d35c","route":"/v1/incidents","method":"GET","statusCode":401,"latencyMs":2817,"message":"GET /v1/incidents 401 2817ms"}
+{"timestamp":"2026-02-21T18:18:08.421Z","level":"warn","requestId":"868522b5-7411-466d-80ff-1b7ced8cc807","route":"/v1/alert-slas","method":"GET","statusCode":401,"latencyMs":2814,"message":"GET /v1/alert-slas 401 2814ms"}
+{"timestamp":"2026-02-21T18:18:08.423Z","level":"warn","requestId":"0fe822b4-c070-4563-b4fe-98541b2c67f9","route":"/v1/me","method":"GET","statusCode":401,"latencyMs":2834,"message":"GET /v1/me 401 2834ms"}
+{"timestamp":"2026-02-21T18:18:08.725Z","level":"warn","requestId":"f44580a8-a308-4121-87be-3ff808c850e4","route":"/v1/alert-deliveries","method":"GET","statusCode":401,"latencyMs":2715,"message":"GET /v1/alert-deliveries 401 2715ms"}
+Failed to insert port CNTSN: error: duplicate key value violates unique constraint "ports_code_unique"
+    at file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async seedGlobalPorts (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\services\portSeedService.ts:282:7)
+    at async <anonymous> (C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\server\routes.ts:6499:11) {
+  length: 200,
+  severity: 'ERROR',
+  code: '23505',
+  detail: 'Key (code)=(CNTSN) already exists.',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'ports',
+  column: undefined,
+  dataType: undefined,
+  constraint: 'ports_code_unique',
+  file: 'nbtinsert.c',
+  line: '666',
+  routine: '_bt_check_unique'
+}
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\refinery_units.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\refinery_utilization.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\refinery_crack_spreads.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\sd_models_daily.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\sd_forecasts_weekly.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\research_insights_daily.csv. Skipping.
+{"timestamp":"2026-02-21T18:21:59.545Z","level":"warn","requestId":"5fa3f773-4641-47cb-92ca-abec2700e922","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":4,"message":"GET /api/vessels 401 4ms"}
+{"timestamp":"2026-02-21T18:21:59.550Z","level":"warn","requestId":"a6593287-ecbd-4e30-bbef-16e7c65813c9","route":"/api/predictions/delay-adjusted","method":"GET","statusCode":401,"latencyMs":4,"message":"GET /api/predictions/delay-adjusted 401 4ms"}
+{"timestamp":"2026-02-21T18:21:59.554Z","level":"warn","requestId":"3c662316-7266-4685-879f-7a8e76a3b9bd","route":"/api/ports/fujairah/stats","method":"GET","statusCode":401,"latencyMs":4,"message":"GET /api/ports/fujairah/stats 401 4ms"}
+{"timestamp":"2026-02-21T18:21:59.558Z","level":"warn","requestId":"80a85fe9-8210-45f2-aead-85dd66e0b5db","route":"/api/signals","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/signals 401 3ms"}
+{"timestamp":"2026-02-21T18:21:59.562Z","level":"warn","requestId":"72f565ed-24f7-4d36-ba59-00f1a161e961","route":"/api/predictions","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions 401 3ms"}
+{"timestamp":"2026-02-21T18:27:13.480Z","level":"warn","requestId":"d417df25-732c-4d9b-bf9a-dbcbc07125f3","route":"/v1/me","method":"GET","statusCode":401,"latencyMs":521,"message":"GET /v1/me 401 521ms"}
+{"timestamp":"2026-02-21T18:27:13.503Z","level":"warn","requestId":"71e911a1-ba7b-462f-a3fe-4ceee06353f9","route":"/v1/incidents","method":"GET","statusCode":401,"latencyMs":532,"message":"GET /v1/incidents 401 532ms"}
+{"timestamp":"2026-02-21T18:27:13.505Z","level":"warn","requestId":"f6a8cefb-31d0-4c8d-a324-73c0d5957e81","route":"/v1/alert-slas","method":"GET","statusCode":401,"latencyMs":527,"message":"GET /v1/alert-slas 401 527ms"}
+{"timestamp":"2026-02-21T18:27:13.771Z","level":"warn","requestId":"fbf8526a-9ae0-4e19-83a6-ba6042a3c2d1","route":"/v1/alert-deliveries","method":"GET","statusCode":401,"latencyMs":481,"message":"GET /v1/alert-deliveries 401 481ms"}
+{"timestamp":"2026-02-21T18:50:33.464Z","level":"warn","requestId":"01e98689-f5d3-4de9-92e4-dd443d2f3056","route":"/v1/incidents","method":"GET","statusCode":401,"latencyMs":614,"message":"GET /v1/incidents 401 614ms"}
+{"timestamp":"2026-02-21T18:50:33.470Z","level":"warn","requestId":"43399ace-9d4f-4a53-967b-1e3ad4a80c71","route":"/v1/me","method":"GET","statusCode":401,"latencyMs":636,"message":"GET /v1/me 401 636ms"}
+{"timestamp":"2026-02-21T18:50:33.471Z","level":"warn","requestId":"a03f4379-d992-4c5a-b5d1-571fdd9791d6","route":"/v1/alert-slas","method":"GET","statusCode":401,"latencyMs":617,"message":"GET /v1/alert-slas 401 617ms"}
+{"timestamp":"2026-02-21T18:50:33.642Z","level":"warn","requestId":"bed69a50-78fd-4f91-82ad-b7ce384e90ff","route":"/v1/alert-deliveries","method":"GET","statusCode":401,"latencyMs":457,"message":"GET /v1/alert-deliveries 401 457ms"}
+{"timestamp":"2026-02-21T18:59:48.411Z","level":"warn","requestId":"49d86c22-b417-4f37-a2f2-f01ad4f09c55","route":"/v1/me","method":"GET","statusCode":401,"latencyMs":153,"message":"GET /v1/me 401 153ms"}
+{"timestamp":"2026-02-21T18:59:48.651Z","level":"warn","requestId":"e51373e9-57af-4fc5-aa7c-842a2f28e6db","route":"/v1/alert-deliveries","method":"GET","statusCode":401,"latencyMs":88,"message":"GET /v1/alert-deliveries 401 88ms"}
+{"timestamp":"2026-02-21T18:59:48.669Z","level":"warn","requestId":"29276122-c7dc-427e-a2dc-e5166c6c4ac6","route":"/v1/alert-slas","method":"GET","statusCode":401,"latencyMs":400,"message":"GET /v1/alert-slas 401 400ms"}
+{"timestamp":"2026-02-21T18:59:48.670Z","level":"warn","requestId":"363ac3e3-2cfa-439d-ba6f-f12fb9dc9460","route":"/v1/incidents","method":"GET","statusCode":401,"latencyMs":405,"message":"GET /v1/incidents 401 405ms"}
+{"timestamp":"2026-02-21T19:03:20.000Z","level":"warn","requestId":"28df48af-df90-4e15-a633-c496912d8c3d","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":4,"message":"GET /api/vessels 401 4ms"}
+{"timestamp":"2026-02-21T19:03:20.007Z","level":"warn","requestId":"31692d33-fdb7-4566-9b49-2d16cea656ad","route":"/api/predictions/delay-adjusted","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions/delay-adjusted 401 3ms"}
+{"timestamp":"2026-02-21T19:03:20.011Z","level":"warn","requestId":"29fe8b2c-5a78-42ed-8308-93244bcb1837","route":"/api/ports/fujairah/stats","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/ports/fujairah/stats 401 3ms"}
+{"timestamp":"2026-02-21T19:03:20.015Z","level":"warn","requestId":"91b6946c-ac09-4233-999b-7c88c7e474a6","route":"/api/signals","method":"GET","statusCode":401,"latencyMs":2,"message":"GET /api/signals 401 2ms"}
+{"timestamp":"2026-02-21T19:03:20.018Z","level":"warn","requestId":"c2a974cf-ad25-455b-b1fe-578d9b8a4697","route":"/api/predictions","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions 401 3ms"}
+{"timestamp":"2026-02-21T19:03:30.835Z","level":"warn","requestId":"619e17dc-54ab-4387-ae74-4fd37d94b6a8","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/vessels 401 3ms"}
+{"timestamp":"2026-02-21T19:03:30.839Z","level":"warn","requestId":"3bf9d79c-49f0-4c82-b201-a727333a5b40","route":"/api/predictions/delay-adjusted","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions/delay-adjusted 401 3ms"}
+{"timestamp":"2026-02-21T19:03:30.843Z","level":"warn","requestId":"0d6abb11-f210-466b-b5b1-ef8b5761f45b","route":"/api/ports/fujairah/stats","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/ports/fujairah/stats 401 3ms"}
+{"timestamp":"2026-02-21T19:03:30.850Z","level":"warn","requestId":"5fa32ca7-a0ef-4077-8629-1f997255a8d3","route":"/api/predictions","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions 401 3ms"}
+{"timestamp":"2026-02-21T19:03:36.225Z","level":"warn","requestId":"2fdf0078-ebc3-41f4-b3fd-bbcbc27584ae","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/vessels 401 3ms"}
+{"timestamp":"2026-02-21T19:03:36.230Z","level":"warn","requestId":"7191949a-0b35-4fad-bc26-dabd67d66143","route":"/api/predictions/delay-adjusted","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions/delay-adjusted 401 3ms"}
+{"timestamp":"2026-02-21T19:03:36.233Z","level":"warn","requestId":"07834c0a-089a-4f94-b28c-7b93347a216d","route":"/api/ports/fujairah/stats","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/ports/fujairah/stats 401 3ms"}
+{"timestamp":"2026-02-21T19:03:36.236Z","level":"warn","requestId":"34f114d3-427a-470a-90c3-432eac86f500","route":"/api/predictions","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions 401 3ms"}
+{"timestamp":"2026-02-21T19:04:25.261Z","level":"warn","requestId":"1281e113-5b60-4d87-ae46-ec2c38551305","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/vessels 401 3ms"}
+{"timestamp":"2026-02-21T19:04:25.265Z","level":"warn","requestId":"a61ccabc-5ebf-4ade-858c-2496e8d01fad","route":"/api/predictions/delay-adjusted","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions/delay-adjusted 401 3ms"}
+{"timestamp":"2026-02-21T19:04:25.268Z","level":"warn","requestId":"23999e25-ae20-42b4-8be5-6dade84b6fd8","route":"/api/ports/fujairah/stats","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/ports/fujairah/stats 401 3ms"}
+{"timestamp":"2026-02-21T19:04:25.271Z","level":"warn","requestId":"8d20de47-ba6b-49de-b94d-34c08142a794","route":"/api/predictions","method":"GET","statusCode":401,"latencyMs":2,"message":"GET /api/predictions 401 2ms"}
+{"timestamp":"2026-02-21T19:04:35.608Z","level":"warn","requestId":"a0e31dba-5c4e-4533-9b40-c27a2f01fba1","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":2,"message":"GET /api/vessels 401 2ms"}
+{"timestamp":"2026-02-21T19:04:35.612Z","level":"warn","requestId":"5e5cb583-e5c9-4621-93cd-cd11fc61e1e5","route":"/api/predictions/delay-adjusted","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions/delay-adjusted 401 3ms"}
+{"timestamp":"2026-02-21T19:04:35.616Z","level":"warn","requestId":"06d00af5-fb5d-4c25-a76f-b7376b365217","route":"/api/ports/fujairah/stats","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/ports/fujairah/stats 401 3ms"}
+{"timestamp":"2026-02-21T19:04:35.620Z","level":"warn","requestId":"7757cb0e-1e80-4402-8c88-0e84d41b6e98","route":"/api/predictions","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/predictions 401 3ms"}
+{"timestamp":"2026-02-21T19:40:41.363Z","level":"warn","requestId":"9a2cb5ae-62e2-4077-af7f-f86da7ac9866","route":"/health/alerts","method":"GET","statusCode":401,"latencyMs":304,"message":"GET /health/alerts 401 304ms"}
+{"timestamp":"2026-02-21T19:40:41.665Z","level":"warn","requestId":"7291a84c-fcde-476c-8074-a74a5221b3de","route":"/v1/alert-subscriptions","method":"GET","statusCode":401,"latencyMs":93,"message":"GET /v1/alert-subscriptions 401 93ms"}
+{"timestamp":"2026-02-21T19:40:41.735Z","level":"warn","requestId":"95121ea9-1cf4-4ee9-806b-bb7e3ae64dad","route":"/v1/alert-deliveries","method":"GET","statusCode":401,"latencyMs":62,"message":"GET /v1/alert-deliveries 401 62ms"}
+{"timestamp":"2026-02-21T19:40:41.805Z","level":"warn","requestId":"cf7290d7-3b47-401b-b56c-91f9abbc4042","route":"/v1/alert-destinations","method":"GET","statusCode":401,"latencyMs":63,"message":"GET /v1/alert-destinations 401 63ms"}
+{"timestamp":"2026-02-21T19:40:42.011Z","level":"warn","requestId":"3e3aad3a-c28c-4dee-b6ee-ea3f5ac03971","route":"/api/alerts/run","method":"POST","statusCode":401,"latencyMs":96,"message":"POST /api/alerts/run 401 96ms"}
+{"timestamp":"2026-02-21T19:40:42.094Z","level":"warn","requestId":"28c8c859-0bf2-4e42-8235-b82fa97e29d0","route":"/api/alerts/run","method":"POST","statusCode":401,"latencyMs":76,"message":"POST /api/alerts/run 401 76ms"}
+{"timestamp":"2026-02-21T19:41:03.044Z","level":"warn","requestId":"1d082e79-1f06-4ef1-8f9d-e39d655ddd63","route":"/v1/incidents","method":"GET","statusCode":401,"latencyMs":270,"message":"GET /v1/incidents 401 270ms"}
+{"timestamp":"2026-02-21T19:42:07.756Z","level":"error","requestId":"e16aa7f2-a1ac-40da-8e4f-30466b1685b1","route":"/v1/incidents/014e950f-5fef-4f18-b7c0-b4a2950eeb43/ack","method":"POST","statusCode":500,"latencyMs":355,"message":"POST /v1/incidents/014e950f-5fef-4f18-b7c0-b4a2950eeb43/ack 500 355ms"}
+{"timestamp":"2026-02-21T19:42:08.322Z","level":"error","requestId":"47bafd5e-bee6-4cae-9582-7b0e42597bb4","route":"/v1/incidents/014e950f-5fef-4f18-b7c0-b4a2950eeb43/ack","method":"POST","statusCode":500,"latencyMs":373,"message":"POST /v1/incidents/014e950f-5fef-4f18-b7c0-b4a2950eeb43/ack 500 373ms"}
+{"timestamp":"2026-02-21T19:42:08.679Z","level":"error","requestId":"64aa6345-579b-4a72-9f0a-bf318613a8b1","route":"/v1/incidents/014e950f-5fef-4f18-b7c0-b4a2950eeb43/resolve","method":"POST","statusCode":500,"latencyMs":348,"message":"POST /v1/incidents/014e950f-5fef-4f18-b7c0-b4a2950eeb43/resolve 500 348ms"}
+{"timestamp":"2026-02-21T19:42:09.202Z","level":"error","requestId":"72057dee-cfff-4f31-9b18-3646a141892a","route":"/v1/incidents/014e950f-5fef-4f18-b7c0-b4a2950eeb43/resolve","method":"POST","statusCode":500,"latencyMs":516,"message":"POST /v1/incidents/014e950f-5fef-4f18-b7c0-b4a2950eeb43/resolve 500 516ms"}
+{"timestamp":"2026-02-21T19:42:11.878Z","level":"warn","requestId":"f5f050e1-0766-4b6c-b8b4-97b301b86c79","route":"/v1/incident-escalation-policies","method":"PATCH","statusCode":400,"latencyMs":235,"message":"PATCH /v1/incident-escalation-policies 400 235ms"}
+{"timestamp":"2026-02-21T19:42:12.095Z","level":"warn","requestId":"ebff84b2-15e9-49e0-a604-459027616db3","route":"/v1/incident-escalation-policies","method":"PATCH","statusCode":400,"latencyMs":209,"message":"PATCH /v1/incident-escalation-policies 400 209ms"}
+{"timestamp":"2026-02-21T19:42:12.317Z","level":"warn","requestId":"5b020a96-6082-4d96-a186-b0c9eb510fd8","route":"/v1/incident-escalation-policies","method":"PATCH","statusCode":400,"latencyMs":213,"message":"PATCH /v1/incident-escalation-policies 400 213ms"}
+{"timestamp":"2026-02-21T19:42:12.526Z","level":"warn","requestId":"dbe3b25f-158c-4493-9700-847c7c8346e1","route":"/v1/incident-escalation-policies","method":"PATCH","statusCode":400,"latencyMs":201,"message":"PATCH /v1/incident-escalation-policies 400 201ms"}

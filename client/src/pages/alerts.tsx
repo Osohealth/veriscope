@@ -555,12 +555,26 @@ export default function AlertsPage() {
   const showDevTools = (import.meta.env.MODE !== "production" || import.meta.env.VITE_SHOW_DEV_TOOLS === "true") && canSeed;
   const handleSeedDemo = async () => {
     try {
+      const now = new Date();
+      const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
+      const dayParam = day.toISOString().slice(0, 10);
+      await apiFetchJson(`/api/dev/seed-anomaly?day=${dayParam}`, { method: "POST" });
+      await apiFetchJson(`/api/signals/run?day=${dayParam}`, { method: "POST" });
       await apiFetchJson("/api/dev/alert-subscriptions/seed", { method: "POST" });
       await apiFetchJson(`/api/alerts/run?user_id=${DEMO_USER_ID}`, { method: "POST" });
       toast({ title: "Demo data seeded", description: "Alert deliveries refreshed." });
       setFilters((prev) => ({ ...prev }));
     } catch (error: any) {
-      toast({ title: "Seed failed", description: error?.message ?? "Unable to seed demo data.", variant: "destructive" });
+      const message = String(error?.message ?? "");
+      if (message.includes("HTTP 404")) {
+        toast({
+          title: "Seed disabled",
+          description: "Dev seed routes are disabled. Start with DEV_ROUTES_ENABLED=true or run npm run demo:server.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Seed failed", description: message || "Unable to seed demo data.", variant: "destructive" });
     }
   };
 

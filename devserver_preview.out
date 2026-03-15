@@ -1,0 +1,18 @@
+
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+Loaded 2 Rotterdam data points
+{"timestamp":"2026-02-19T18:55:18.150Z","level":"info","message":"WebSocket manager initialized"}
+8:55:18 PM [express] serving on port 5000
+{"timestamp":"2026-02-19T18:55:28.747Z","level":"info","requestId":"150c1c29-4712-46a0-b0ff-133c59960524","route":"/v1/incident-escalation-policies","method":"GET","statusCode":200,"latencyMs":1335,"message":"GET /v1/incident-escalation-policies 200 1335ms"}
+{"timestamp":"2026-02-19T18:55:38.807Z","level":"info","requestId":"22257efe-64e3-486f-ad66-f484de5126d8","route":"/v1/incident-escalation-policies","method":"PATCH","statusCode":200,"latencyMs":391,"message":"PATCH /v1/incident-escalation-policies 200 391ms"}
+{"timestamp":"2026-02-19T18:57:21.230Z","level":"info","requestId":"4b2053b4-2f38-4cdc-9254-a0adba4846c8","route":"/v1/incident-escalation-policies","method":"PATCH","statusCode":200,"latencyMs":671,"message":"PATCH /v1/incident-escalation-policies 200 671ms"}
+{"timestamp":"2026-02-19T18:58:33.420Z","level":"info","requestId":"7b9910e8-d759-4a11-95ea-d0ebd882a12c","route":"/v1/incident-escalation-policies","method":"GET","statusCode":200,"latencyMs":1436,"message":"GET /v1/incident-escalation-policies 200 1436ms"}
+{"timestamp":"2026-02-19T18:58:34.978Z","level":"info","requestId":"930c3d1e-6014-471e-9d64-f340011d0140","route":"/v1/incident-escalation-policies","method":"GET","statusCode":200,"latencyMs":1322,"message":"GET /v1/incident-escalation-policies 200 1322ms"}
+Initializing Veriscope services...
+Seeding 258 global ports...
+{"timestamp":"2026-02-19T20:25:51.905Z","level":"info","requestId":"2cd70eb7-b28f-4d52-9776-1859fe2a694b","route":"/","method":"GET","statusCode":200,"latencyMs":121,"message":"GET / 200 121ms"}
+{"timestamp":"2026-02-19T20:26:00.734Z","level":"info","requestId":"1a207549-16bb-41b4-b8f6-3a5148c56c43","route":"/","method":"GET","statusCode":200,"latencyMs":18,"message":"GET / 200 18ms"}
+10:26:02 PM [express] POST /api/init 500 in 11259ms :: {"error":"Failed to initialize services"}
+10:26:02 PM [express] POST /api/init 500 in 2249ms :: {"error":"Failed to initialize services"}

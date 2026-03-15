@@ -1,7 +1,9 @@
-import { and, desc, eq, isNull, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { db } from "../db";
 import { incidents } from "@shared/schema";
+import { SEVERITY_RANK } from "@shared/signalTypes";
 import { writeAuditEvent } from "./auditLog";
+import { logOpsEvent } from "./opsTelemetry";
 
 export type IncidentStatus = "OPEN" | "ACKED" | "RESOLVED";
 
@@ -10,6 +12,7 @@ export type IncidentFilters = {
   status?: IncidentStatus;
   destinationKey?: string;
   type?: string;
+  severityMin?: string;
   cursorOpenedAt?: string | null;
   cursorId?: string | null;
   limit?: number;
@@ -26,6 +29,16 @@ const buildIncidentsWhere = (
   if (filters.status) conditions.push(eq(incidents.status, filters.status));
   if (filters.type) conditions.push(eq(incidents.type, filters.type));
   if (filters.destinationKey) conditions.push(eq(incidents.destinationKey, filters.destinationKey));
+  if (filters.severityMin) {
+    const minRank = SEVERITY_RANK[String(filters.severityMin).toUpperCase() as keyof typeof SEVERITY_RANK] ?? 0;
+    const allowed = ["LOW", "MEDIUM", "HIGH", "CRITICAL"].filter((severity) => {
+      const rank = SEVERITY_RANK[severity as keyof typeof SEVERITY_RANK] ?? 0;
+      return rank >= minRank;
+    });
+    if (allowed.length) {
+      conditions.push(inArray(incidents.severity, allowed));
+    }
+  }
 
   if (options?.includeCursor && filters.cursorOpenedAt && filters.cursorId) {
     conditions.push(
@@ -132,6 +145,13 @@ export async function openOrAttachIncident(args: {
       destination_key: args.destinationKey ?? null,
     },
   });
+  logOpsEvent("INCIDENT_CREATED", {
+    tenantId: args.tenantId,
+    incidentId: created.id,
+    type: args.type,
+    severity: args.severity,
+    destinationKey: args.destinationKey ?? null,
+  });
 
   return created;
 }
@@ -182,6 +202,12 @@ export async function resolveIncidentIfExists(args: {
       type: args.type,
       destination_key: args.destinationKey ?? null,
     },
+  });
+  logOpsEvent("INCIDENT_RESOLVED", {
+    tenantId: args.tenantId,
+    incidentId: incident.id,
+    type: args.type,
+    destinationKey: args.destinationKey ?? null,
   });
 
   return incident;

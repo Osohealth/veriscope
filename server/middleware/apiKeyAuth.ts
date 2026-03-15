@@ -43,7 +43,45 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
         metadata: { path: req.path, method: req.method },
         tenantId: UNKNOWN_TENANT_ID,
       });
-      return res.status(401).json({ error: "API key required" });
+      return res.status(401).json({ error: "UNAUTHORIZED", detail: "API key required" });
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      const devKey = process.env.DEMO_API_KEY ?? "vs_demo_key";
+      if (key === devKey) {
+        const tenantId = TENANT_DEMO_ID;
+        const userId = "00000000-0000-0000-0000-000000000001";
+        const [member] = await db
+          .select()
+          .from(tenantUsers)
+          .where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId)))
+          .limit(1);
+        if (!member) {
+          await db
+            .insert(tenantUsers)
+            .values({
+              tenantId,
+              userId,
+              email: `demo+${userId.slice(0, 6)}@veriscope.dev`,
+              role: "OWNER",
+              status: "ACTIVE",
+              createdBy: userId,
+            })
+            .onConflictDoNothing();
+        }
+        req.auth = {
+          tenantId,
+          userId,
+          role: "OWNER",
+          apiKeyId: "dev",
+          apiKeyName: "dev",
+          keyHash: hashApiKey(key),
+        };
+        setAuditContextFromAuth(req);
+        const allowed = await applyRateLimit(req, res);
+        if (!allowed) return;
+        return next();
+      }
     }
 
     const envKey = process.env.ALERTS_API_KEY;
@@ -62,7 +100,7 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
           metadata: { path: req.path, method: req.method },
           tenantId: UNKNOWN_TENANT_ID,
         });
-        return res.status(401).json({ error: "Invalid API key" });
+        return res.status(401).json({ error: "UNAUTHORIZED", detail: "Invalid API key" });
       }
       const envRole = (process.env.ALERTS_ROLE || "OWNER").toUpperCase() as Role;
       if (!["OWNER", "OPERATOR", "VIEWER"].includes(envRole)) {
@@ -96,7 +134,7 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
           metadata: { path: req.path, method: req.method },
           tenantId,
         });
-        return res.status(403).json({ error: "User access disabled" });
+        return res.status(403).json({ error: "FORBIDDEN", detail: "User access disabled" });
       }
       req.auth = {
         tenantId,
@@ -129,7 +167,7 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
         metadata: { path: req.path, method: req.method },
         tenantId: UNKNOWN_TENANT_ID,
       });
-      return res.status(401).json({ error: "Invalid API key" });
+      return res.status(401).json({ error: "UNAUTHORIZED", detail: "Invalid API key" });
     }
     let role = (row.role ?? "OWNER").toUpperCase() as Role;
     if (!["OWNER", "OPERATOR", "VIEWER"].includes(role)) {
@@ -152,7 +190,7 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
         metadata: { path: req.path, method: req.method },
         tenantId,
       });
-      return res.status(403).json({ error: "User not found in tenant" });
+      return res.status(403).json({ error: "FORBIDDEN", detail: "User not found in tenant" });
     }
     if (String(member.status).toUpperCase() !== "ACTIVE") {
       await writeAuditEvent(req.auditContext, {
@@ -164,7 +202,7 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
         metadata: { path: req.path, method: req.method },
         tenantId,
       });
-      return res.status(403).json({ error: "User access disabled" });
+      return res.status(403).json({ error: "FORBIDDEN", detail: "User access disabled" });
     }
     req.auth = { tenantId, userId, role, apiKeyId: row.id, apiKeyName: row.name ?? null, keyHash: row.keyHash };
     setAuditContextFromAuth(req);

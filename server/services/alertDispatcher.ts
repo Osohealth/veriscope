@@ -1,7 +1,8 @@
 import { eq, and, sql, inArray } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { db } from "../db";
 import { alertDeliveries, alertDeliveryAttempts, alertDlq, alertEndpointHealth, alertRuns, alertSubscriptions, ports, tenantUsers } from "@shared/schema";
-import { normalizeScope } from "./alertScope";
+import { GLOBAL_SCOPE_ENTITY_ID, normalizeScope } from "./alertScope";
 import { getAlertCandidates } from "./alertQuery";
 import { shouldSendAlert, markAlertSent } from "./alertDedupe";
 import { buildWebhookPayload, buildWebhookRequest, computeBundleIdempotencyKey, sendWebhook } from "./webhookSender";
@@ -16,8 +17,10 @@ import { writeAuditEvent } from "./auditLog";
 import { computeAlertQuality } from "./alertQualityService";
 import { recordQualityGateSuppressOnce } from "./alertQualityGateService";
 import { buildAlertDecision } from "./alertDecisionBuilder";
-import { makeDestinationKey } from "./destinationKey";
+import { hashKey, makeDestinationKey } from "./destinationKey";
 import { getDestinationGate } from "./alertDestinationGate";
+import { incrementOpsCounter, logOpsEvent, recordDeliveryErrorCategory, recordDeliveryLatency } from "./opsTelemetry";
+import type { DeliveryInsertShape, GateResult } from "../types/alerting";
 
 type DestinationState = "ACTIVE" | "PAUSED" | "AUTO_PAUSED" | "DISABLED" | "UNKNOWN";
 type SlaSystemAlertArgs = {
@@ -70,10 +73,24 @@ type IncidentEscalationSystemAlertArgs = {
   };
   level: number;
   policy: {
+    id?: string;
     targetType: string;
     targetRef: string;
     afterMinutes: number;
     severityMin: string;
+  };
+  destinations?: Array<{
+    destinationType: "EMAIL" | "WEBHOOK";
+    destination: string;
+    destinationKey?: string;
+    targetUserId?: string | null;
+  }>;
+  routingGate?: {
+    allowed: boolean;
+    reason?: "NO_USER_CONTACT_METHOD";
+    chosen_method_type?: "EMAIL" | "WEBHOOK";
+    chosen_method_id?: string;
+    target_user_id?: string;
   };
 };
 
@@ -220,6 +237,45 @@ const QUALITY_BAND_RANK: Record<string, number> = {
   HIGH: 3,
 };
 
+const toSeverityKey = (value: unknown) =>
+  String(value ?? "").toUpperCase() as keyof typeof SEVERITY_RANK;
+const getSeverityRank = (value: unknown) => SEVERITY_RANK[toSeverityKey(value)] ?? 0;
+
+const insertDelivery = (values: any): any => {
+  incrementOpsCounter("deliveries_created_total");
+  return db.insert(alertDeliveries).values({
+    ...values,
+    destinationKey: values.destinationKey ?? makeDestinationKey(values.destinationType, values.endpoint),
+  });
+};
+
+const logDeliveryCreated = (baseLog: Record<string, any>, details: Record<string, any>) => {
+  logOpsEvent("DELIVERY_CREATED", { ...baseLog, ...details });
+};
+
+const logDeliveryResult = (baseLog: Record<string, any>, details: Record<string, any>) => {
+  if (details.status === "SENT") {
+    incrementOpsCounter("deliveries_success_total");
+  } else if (details.status === "FAILED") {
+    incrementOpsCounter("deliveries_failure_total");
+  }
+  if (details.destinationType && details.latencyMs !== undefined && details.latencyMs !== null) {
+    const destType = String(details.destinationType).toUpperCase() as "EMAIL" | "WEBHOOK";
+    if (destType === "EMAIL" || destType === "WEBHOOK") {
+      recordDeliveryLatency(destType, Number(details.latencyMs));
+    }
+  }
+  if (details.errorCategory) {
+    const category = String(details.errorCategory).toLowerCase();
+    if (["network", "http", "validation", "unknown"].includes(category)) {
+      recordDeliveryErrorCategory(category as any);
+    } else {
+      recordDeliveryErrorCategory("unknown");
+    }
+  }
+  logOpsEvent("DELIVERY_RESULT", { ...baseLog, ...details });
+};
+
 const isBelowQualityGate = (sub: any, quality: { score: number; band: string }) => {
   if (sub?.minQualityScore !== null && sub?.minQualityScore !== undefined) {
     const threshold = Number(sub.minQualityScore);
@@ -252,7 +308,7 @@ const normalizeDayValue = (day: any) => (
 
 const buildBundleItems = (
   items: BundleCandidate[],
-  entityMap: Map<string, { id: string; name: string; code: string; unlocode: string }> | null,
+  entityMap: Map<string, { id: string; name: string; code: string; unlocode: string | null }> | null,
 ) => items.map((entry) => {
   const row = entry.candidate;
   const entity = entityMap?.get(String(row.entity_id ?? row.entityId));
@@ -346,7 +402,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
     .insert(alertRuns)
     .values({
       tenantId,
-      day: options.day ? new Date(`${options.day}T00:00:00Z`) : null,
+      day: options.day ?? null,
       status: "SUCCESS",
       startedAt: now,
     })
@@ -400,8 +456,8 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
       const wrappedCandidates: BundleCandidate[] = [];
       for (const candidate of candidates) {
         if (sub.confidenceMin) {
-          const required = SEVERITY_RANK[sub.confidenceMin as any] ?? 0;
-          const actual = SEVERITY_RANK[(candidate.confidence_band ?? "LOW") as any] ?? 0;
+          const required = getSeverityRank(sub.confidenceMin);
+          const actual = getSeverityRank(candidate.confidence_band ?? "LOW");
           if (actual < required) {
             continue;
           }
@@ -409,7 +465,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
 
         const quality = buildCandidateQuality(candidate);
         const severity = String(candidate.cluster_severity ?? candidate.severity ?? "LOW").toUpperCase();
-        const severityRank = SEVERITY_RANK[severity as any] ?? 0;
+        const severityRank = getSeverityRank(severity);
         const confidenceScore = Number(candidate.confidence_score ?? 0);
         const createdAtMs = candidate.created_at ? new Date(candidate.created_at).getTime() : 0;
         wrappedCandidates.push({
@@ -461,7 +517,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
       const sortedSuppressed = suppressed.slice().sort(sortBundleCandidates);
       if (sortedSuppressed.length > 0) {
         const primarySuppressed = sortedSuppressed[0];
-        const dayValue = new Date(`${normalizeDayValue(primarySuppressed.candidate.day)}T00:00:00Z`);
+        const dayValue = normalizeDayValue(primarySuppressed.candidate.day);
         const inserted = await recordQualityGateSuppressOnce({
           tenantId,
           subscriptionId: sub.id,
@@ -494,7 +550,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
           const primary = sortedSuppressed[0];
           const topSuppressed = sortedSuppressed.slice(0, ALERT_BUNDLE_TOP_N);
           const overflow = Math.max(sortedSuppressed.length - topSuppressed.length, 0);
-          const dayValue = new Date(`${normalizeDayValue(primary.candidate.day)}T00:00:00Z`);
+          const dayValue = normalizeDayValue(primary.candidate.day);
           const entityIds = Array.from(new Set(topSuppressed.map((entry) => String(entry.candidate.entity_id ?? entry.candidate.entityId))))
             .filter(Boolean);
           const entityRows = entityIds.length > 0
@@ -578,7 +634,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
             },
           });
 
-          await db.insert(alertDeliveries).values({
+          await insertDelivery({
             runId: runRow.id,
             tenantId,
             userId: sub.userId,
@@ -611,7 +667,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
       const topItems = sortedSendable.slice(0, ALERT_BUNDLE_TOP_N);
       const overflow = Math.max(sortedSendable.length - topItems.length, 0);
       const primary = topItems[0];
-      const dayValue = new Date(`${normalizeDayValue(primary.candidate.day)}T00:00:00Z`);
+      const dayValue = normalizeDayValue(primary.candidate.day);
       const entityIds = Array.from(new Set(topItems.map((entry) => String(entry.candidate.entity_id ?? entry.candidate.entityId))))
         .filter(Boolean);
       const entityRows = entityIds.length > 0
@@ -711,7 +767,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
             ? "SKIPPED_DESTINATION_AUTO_PAUSED"
             : "SKIPPED_DESTINATION_DISABLED";
 
-        await db.insert(alertDeliveries).values({
+        await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -812,7 +868,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
           },
         });
 
-        await db.insert(alertDeliveries).values({
+        await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -915,7 +971,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
           },
         });
 
-        await db.insert(alertDeliveries).values({
+        await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -1043,7 +1099,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
           },
         });
 
-        await db.insert(alertDeliveries).values({
+        await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -1168,7 +1224,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
             });
           }
 
-          const [delivery] = await db.insert(alertDeliveries).values({
+          const [delivery] = await insertDelivery({
             runId: runRow.id,
             tenantId,
             userId: sub.userId,
@@ -1198,7 +1254,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
 
           const baseAttempt = Math.max((delivery?.attempts ?? 0) - attempts, 0);
           const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "SUCCESS", latency_ms: last?.latency_ms ?? null, http_status: last?.http_status ?? result?.status ?? null }])
-            .map((log) => ({
+            .map((log: any) => ({
               tenantId,
               deliveryId: delivery.id,
               attemptNo: baseAttempt + log.attempt,
@@ -1215,7 +1271,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
         } else if (sub.channel === "EMAIL") {
           const email = renderAlertBundleEmail({ payload: bundlePayload });
           await sendEmail({ to: sub.endpoint, subject: email.subject, text: email.text });
-          const [delivery] = await db.insert(alertDeliveries).values({
+          const [delivery] = await insertDelivery({
             runId: runRow.id,
             tenantId,
             userId: sub.userId,
@@ -1289,7 +1345,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
           });
         }
 
-        const [delivery] = await db.insert(alertDeliveries).values({
+        const [delivery] = await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -1318,7 +1374,7 @@ export async function runAlerts(options: RunAlertsOptions = {}) {
         }).returning();
 
         const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "FAILED", latency_ms: null, http_status: null }])
-          .map((log) => ({
+          .map((log: any) => ({
             tenantId,
             deliveryId: delivery.id,
             attemptNo: log.attempt,
@@ -1434,7 +1490,13 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
 
   summary.subscriptions = subscriptions.length;
 
-    const clusterId = `sla:${tenantId}:${args.window}:${args.destinationType}:${args.destinationKey}:${args.status}`;
+  const clusterId = `sla:${tenantId}:${args.window}:${args.destinationType}:${args.destinationKey}:${args.status}`;
+  const baseLog = {
+    tenantId,
+    clusterId,
+    window: args.window,
+    status: args.status,
+  };
     const day = args.computedAt.toISOString().slice(0, 10);
     const payload =
       args.status === "AT_RISK"
@@ -1477,7 +1539,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
     const systemEntry: BundleCandidate = {
       candidate: systemCandidate,
       quality: systemQuality,
-      severityRank: SEVERITY_RANK[String(systemCandidate.cluster_severity).toUpperCase() as any] ?? 0,
+      severityRank: getSeverityRank(systemCandidate.cluster_severity),
       confidenceScore: Number(systemCandidate.confidence_score ?? 0),
       createdAtMs: now.getTime(),
       clusterId,
@@ -1493,7 +1555,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
     summary.candidates_total += 1;
     summary.matched_total += 1;
 
-    const dayValue = new Date(`${day}T00:00:00Z`);
+    const dayValue = day;
     const suppressed: BundleCandidate[] = [];
     const sendable: BundleCandidate[] = [];
     let skippedDedupe = 0;
@@ -1511,6 +1573,12 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
       const allowed = await shouldSendAlert({ ...dedupeKey, now });
       if (!allowed) {
         skippedDedupe += 1;
+        logOpsEvent("DELIVERY_SKIPPED_IDEMPOTENT", {
+          ...baseLog,
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey: makeDestinationKey(sub.channel, sub.endpoint),
+        });
       } else {
         sendable.push(systemEntry);
       }
@@ -1532,6 +1600,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
       destination: sub.endpoint,
       now,
     });
+    const destinationKey = destinationGate.destinationKey;
 
     if (suppressed.length > 0) {
       const inserted = await recordQualityGateSuppressOnce({
@@ -1631,7 +1700,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
           },
         });
 
-        await db.insert(alertDeliveries).values({
+        await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -1737,7 +1806,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
         : destinationGate.state === "AUTO_PAUSED"
           ? "SKIPPED_DESTINATION_AUTO_PAUSED"
           : "SKIPPED_DESTINATION_DISABLED";
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -1812,7 +1881,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
           overflow: finalOverflow,
         },
       });
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -1890,7 +1959,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
           overflow: finalOverflow,
         },
       });
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -1914,6 +1983,13 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
         qualityVersion: systemQuality.version,
         attempts: 0,
         createdAt: now,
+      });
+      logDeliveryCreated(baseLog, {
+        status: "SKIPPED_NOISE_BUDGET",
+        skipReason: "NOISE_BUDGET_EXCEEDED",
+        destinationType: sub.channel,
+        destination: sub.endpoint,
+        destinationKey,
       });
       if (noiseBudget.enabled) {
         const inserted = await recordNoiseBudgetBreachOnce({
@@ -1991,7 +2067,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
           overflow: finalOverflow,
         },
       });
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -2076,7 +2152,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
         const attempts = attemptLogs.length || 1;
         const last = attemptLogs.length ? attemptLogs[attemptLogs.length - 1] : null;
 
-        const [delivery] = await db.insert(alertDeliveries).values({
+        const [delivery] = await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -2103,10 +2179,36 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
           qualityVersion: systemQuality.version,
           createdAt: now,
         }).returning();
+        logDeliveryCreated(baseLog, {
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+        });
+        logDeliveryResult(baseLog, {
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+          latencyMs: null,
+        });
+        logDeliveryCreated(baseLog, {
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+        });
+        logDeliveryResult(baseLog, {
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+          latencyMs: last?.latency_ms ?? null,
+        });
 
         const baseAttempt = Math.max((delivery?.attempts ?? 0) - attempts, 0);
         const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "SUCCESS", latency_ms: last?.latency_ms ?? null, http_status: last?.http_status ?? result?.status ?? null }])
-          .map((log) => ({
+          .map((log: any) => ({
             tenantId,
             deliveryId: delivery.id,
             attemptNo: baseAttempt + log.attempt,
@@ -2120,10 +2222,29 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
         if (attemptRows.length) {
           await db.insert(alertDeliveryAttempts).values(attemptRows);
         }
+        incrementOpsCounter("deliveries_success_total");
+        if (last?.latency_ms !== null && last?.latency_ms !== undefined) {
+          recordDeliveryLatency("WEBHOOK", Number(last.latency_ms));
+        }
+        logOpsEvent("DELIVERY_CREATED", {
+          ...baseLog,
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+        });
+        logOpsEvent("DELIVERY_RESULT", {
+          ...baseLog,
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+          latencyMs: last?.latency_ms ?? null,
+        });
       } else if (sub.channel === "EMAIL") {
         const email = renderAlertBundleEmail({ payload: bundlePayload });
         await sendEmail({ to: sub.endpoint, subject: email.subject, text: email.text });
-        const [delivery] = await db.insert(alertDeliveries).values({
+        const [delivery] = await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -2160,6 +2281,22 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
           sentAt: now,
           createdAt: now,
         });
+        incrementOpsCounter("deliveries_success_total");
+        logOpsEvent("DELIVERY_CREATED", {
+          ...baseLog,
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+        });
+        logOpsEvent("DELIVERY_RESULT", {
+          ...baseLog,
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+          latencyMs: null,
+        });
       }
 
       await markAlertSent({
@@ -2176,7 +2313,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
       summary.failed_total += 1;
 
       const attemptLogs = error?.attemptLogs ?? [];
-      const [delivery] = await db.insert(alertDeliveries).values({
+      const [delivery] = await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -2205,7 +2342,7 @@ export async function dispatchSlaSystemAlert(args: SlaSystemAlertArgs) {
       }).returning();
 
       const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "FAILED", latency_ms: null, http_status: null }])
-        .map((log) => ({
+        .map((log: any) => ({
           tenantId,
           deliveryId: delivery.id,
           attemptNo: log.attempt,
@@ -2309,6 +2446,12 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
 
   const destHash = makeDestinationKey(args.destinationType, args.destination);
   const clusterId = `endpoint:${tenantId}:${args.window}:${args.destinationType}:${destHash}:${args.status}`;
+  const baseLog = {
+    tenantId,
+    clusterId,
+    window: args.window,
+    status: args.status,
+  };
   const day = args.computedAt.toISOString().slice(0, 10);
   const payload = {
     type: "ENDPOINT_HEALTH",
@@ -2353,7 +2496,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
   const systemEntry: BundleCandidate = {
     candidate: systemCandidate,
     quality: systemQuality,
-    severityRank: SEVERITY_RANK[String(systemCandidate.cluster_severity).toUpperCase() as any] ?? 0,
+    severityRank: getSeverityRank(systemCandidate.cluster_severity),
     confidenceScore: Number(systemCandidate.confidence_score ?? 0),
     createdAtMs: now.getTime(),
     clusterId,
@@ -2362,7 +2505,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
     summary.candidates_total += 1;
     summary.matched_total += 1;
 
-    const dayValue = new Date(`${day}T00:00:00Z`);
+    const dayValue = day;
     const suppressed: BundleCandidate[] = [];
     const sendable: BundleCandidate[] = [];
     let skippedDedupe = 0;
@@ -2401,6 +2544,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
       destination: sub.endpoint,
       now,
     });
+    const destinationKey = destinationGate.destinationKey;
 
     if (suppressed.length > 0) {
       const inserted = await recordQualityGateSuppressOnce({
@@ -2499,7 +2643,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
           },
         });
 
-        await db.insert(alertDeliveries).values({
+        await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -2605,7 +2749,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
         : destinationGate.state === "AUTO_PAUSED"
           ? "SKIPPED_DESTINATION_AUTO_PAUSED"
           : "SKIPPED_DESTINATION_DISABLED";
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -2680,7 +2824,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
         },
       });
 
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -2757,7 +2901,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
           overflow: finalOverflow,
         },
       });
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -2857,7 +3001,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
           overflow: finalOverflow,
         },
       });
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -2941,7 +3085,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
         const attempts = attemptLogs.length || 1;
         const last = attemptLogs.length ? attemptLogs[attemptLogs.length - 1] : null;
 
-        const [delivery] = await db.insert(alertDeliveries).values({
+        const [delivery] = await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -2969,9 +3113,24 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
           createdAt: now,
         }).returning();
 
+        logDeliveryCreated(baseLog, {
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+          latencyMs: last?.latency_ms ?? null,
+        });
+        logDeliveryResult(baseLog, {
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+          latencyMs: last?.latency_ms ?? null,
+        });
+
         const baseAttempt = Math.max((delivery?.attempts ?? 0) - attempts, 0);
         const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "SUCCESS", latency_ms: last?.latency_ms ?? null, http_status: last?.http_status ?? result?.status ?? null }])
-          .map((log) => ({
+          .map((log: any) => ({
             tenantId,
             deliveryId: delivery.id,
             attemptNo: baseAttempt + log.attempt,
@@ -2988,7 +3147,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
       } else if (sub.channel === "EMAIL") {
         const email = renderAlertBundleEmail({ payload: bundlePayload });
         await sendEmail({ to: sub.endpoint, subject: email.subject, text: email.text });
-        const [delivery] = await db.insert(alertDeliveries).values({
+        const [delivery] = await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -3013,6 +3172,20 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
           qualityVersion: systemQuality.version,
           createdAt: now,
         }).returning();
+        logDeliveryCreated(baseLog, {
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+          latencyMs: null,
+        });
+        logDeliveryResult(baseLog, {
+          status: "SENT",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
+          latencyMs: null,
+        });
 
         await db.insert(alertDeliveryAttempts).values({
           tenantId,
@@ -3041,7 +3214,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
       summary.failed_total += 1;
 
       const attemptLogs = error?.attemptLogs ?? [];
-      const [delivery] = await db.insert(alertDeliveries).values({
+      const [delivery] = await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -3070,7 +3243,7 @@ export async function dispatchEndpointHealthSystemAlert(args: EndpointHealthSyst
       }).returning();
 
       const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "FAILED", latency_ms: null, http_status: null }])
-        .map((log) => ({
+        .map((log: any) => ({
           tenantId,
           deliveryId: delivery.id,
           attemptNo: log.attempt,
@@ -3178,6 +3351,12 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
         ? "DESTINATION_PAUSED"
         : "DESTINATION_DISABLED";
   const clusterId = `destination-state:${tenantId}:${args.window}:${args.destinationType}:${args.destinationKey}:${args.state}`;
+  const baseLog = {
+    tenantId,
+    clusterId,
+    window: args.window,
+    state: args.state,
+  };
   const day = args.computedAt.toISOString().slice(0, 10);
   const payload = {
     type: "DESTINATION_STATE",
@@ -3211,7 +3390,7 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
   const systemEntry: BundleCandidate = {
     candidate: systemCandidate,
     quality: systemQuality,
-    severityRank: SEVERITY_RANK[String(systemCandidate.cluster_severity).toUpperCase() as any] ?? 0,
+    severityRank: getSeverityRank(systemCandidate.cluster_severity),
     confidenceScore: Number(systemCandidate.confidence_score ?? 0),
     createdAtMs: now.getTime(),
     clusterId,
@@ -3221,7 +3400,7 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
     summary.candidates_total += 1;
     summary.matched_total += 1;
 
-    const dayValue = new Date(`${day}T00:00:00Z`);
+    const dayValue = day;
     const suppressed: BundleCandidate[] = [];
     const sendable: BundleCandidate[] = [];
     let skippedDedupe = 0;
@@ -3260,6 +3439,7 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
       allowed: true,
       reason: args.reason ?? undefined,
     };
+    const destinationKey = makeDestinationKey(sub.channel, sub.endpoint);
 
     if (sendable.length === 0) {
       if (suppressed.length > 0) {
@@ -3330,7 +3510,7 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
           },
         });
 
-        await db.insert(alertDeliveries).values({
+        await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -3432,7 +3612,7 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
         },
       });
 
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -3460,7 +3640,6 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
       continue;
     }
 
-    const destinationKey = makeDestinationKey(sub.channel, sub.endpoint);
     const noiseBudget = await resolveNoiseBudget({
       tenantId,
       destinationType: sub.channel as any,
@@ -3510,7 +3689,7 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
           overflow: finalOverflow,
         },
       });
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -3625,7 +3804,7 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
         const attempts = attemptLogs.length || 1;
         const last = attemptLogs.length ? attemptLogs[attemptLogs.length - 1] : null;
 
-        const [delivery] = await db.insert(alertDeliveries).values({
+        const [delivery] = await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -3655,7 +3834,7 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
 
         const baseAttempt = Math.max((delivery?.attempts ?? 0) - attempts, 0);
         const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "SUCCESS", latency_ms: last?.latency_ms ?? null, http_status: last?.http_status ?? result?.status ?? null }])
-          .map((log) => ({
+          .map((log: any) => ({
             tenantId,
             deliveryId: delivery.id,
             attemptNo: baseAttempt + log.attempt,
@@ -3672,17 +3851,14 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
 
         summary.sent_total += 1;
       } else {
-        const emailPayload = renderAlertBundleEmail(bundlePayload, {
-          destination: sub.endpoint,
-          summary: bundlePayload.summary,
-        });
+        const emailPayload = renderAlertBundleEmail({ payload: bundlePayload });
         const result = await sendEmail({
           to: sub.endpoint,
           subject: emailPayload.subject,
-          html: emailPayload.html,
+          text: emailPayload.text,
         });
 
-        const [delivery] = await db.insert(alertDeliveries).values({
+        const [delivery] = await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -3700,7 +3876,7 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
           bundlePayload: bundlePayload,
           decision,
           attempts: 1,
-          lastHttpStatus: result?.status ?? null,
+          lastHttpStatus: result?.ok ? 200 : null,
           sentAt: now,
           qualityScore: systemQuality.score,
           qualityBand: systemQuality.band,
@@ -3714,7 +3890,7 @@ export async function dispatchDestinationStateSystemAlert(args: DestinationState
           deliveryId: delivery.id,
           attemptNo: 1,
           status: "SENT",
-          httpStatus: result?.status ?? null,
+          httpStatus: result?.ok ? 200 : null,
           sentAt: now,
           createdAt: now,
         });
@@ -3766,22 +3942,45 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
   let didAttempt = false;
   let dedupeBlocked = false;
 
+  const targetType = String(args.policy.targetType ?? "").toUpperCase();
+  const targetRef = String(args.policy.targetRef ?? "").trim();
+  const targetHash = hashKey(`${targetType}:${targetRef}`);
+  const policyTag = args.policy.id ? `:policy:${args.policy.id}` : "";
+
   let subscriptions: any[] = [];
-  if (String(args.policy.targetType).toUpperCase() === "SUBSCRIPTION") {
+  if (args.destinations && args.destinations.length > 0) {
+    subscriptions = args.destinations.map((dest) => ({
+      id: randomUUID(),
+      tenantId,
+      userId: dest.targetUserId ?? null,
+      scope: "GLOBAL",
+      entityType: "system",
+      entityId: GLOBAL_SCOPE_ENTITY_ID,
+      severityMin: "LOW",
+      confidenceMin: null,
+      minQualityBand: null,
+      minQualityScore: null,
+      channel: dest.destinationType,
+      endpoint: dest.destination,
+      secret: null,
+      signatureVersion: "v1",
+      isEnabled: true,
+    }));
+  } else if (targetType === "SUBSCRIPTION") {
     const [sub] = await db
       .select()
       .from(alertSubscriptions)
       .where(and(
         eq(alertSubscriptions.tenantId, tenantId),
-        eq(alertSubscriptions.id, args.policy.targetRef),
+        eq(alertSubscriptions.id, targetRef),
         alertSubscriptions.isEnabled,
       ))
       .limit(1);
     if (sub) {
       subscriptions = [sub];
     }
-  } else if (String(args.policy.targetType).toUpperCase() === "ROLE") {
-    const role = String(args.policy.targetRef ?? "").toUpperCase();
+  } else if (targetType === "ROLE") {
+    const role = targetRef.toUpperCase();
     const users = await db
       .select({ userId: tenantUsers.userId })
       .from(tenantUsers)
@@ -3801,6 +4000,44 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
           inArray(alertSubscriptions.userId, userIds),
         ));
     }
+  } else if (targetType === "USER") {
+    const users = await db
+      .select({ userId: tenantUsers.userId })
+      .from(tenantUsers)
+      .where(and(
+        eq(tenantUsers.tenantId, tenantId),
+        eq(tenantUsers.userId, targetRef),
+        eq(tenantUsers.status, "ACTIVE"),
+      ));
+    if (users.length > 0) {
+      subscriptions = await db
+        .select()
+        .from(alertSubscriptions)
+        .where(and(
+          eq(alertSubscriptions.tenantId, tenantId),
+          alertSubscriptions.isEnabled,
+          eq(alertSubscriptions.userId, targetRef),
+        ));
+    }
+  } else if (targetType === "EMAIL" || targetType === "WEBHOOK") {
+    const syntheticId = randomUUID();
+    subscriptions = [{
+      id: syntheticId,
+      tenantId,
+      userId: null,
+      scope: "GLOBAL",
+      entityType: "system",
+      entityId: GLOBAL_SCOPE_ENTITY_ID,
+      severityMin: "LOW",
+      confidenceMin: null,
+      minQualityBand: null,
+      minQualityScore: null,
+      channel: targetType,
+      endpoint: targetRef,
+      secret: null,
+      signatureVersion: "v1",
+      isEnabled: true,
+    }];
   }
 
   summary.subscriptions = subscriptions.length;
@@ -3815,8 +4052,30 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
     return { runId: runRow.id, status: "SUCCESS", summary, didAttempt: false, dedupeBlocked: false };
   }
 
-  const clusterId = `incident-escalation:${tenantId}:${args.incident.id}:level:${args.level}`;
+  const clusterId = `incident-escalation:${tenantId}:${args.incident.id}:level:${args.level}${policyTag}:target:${targetHash}`;
+  const dedupeKey = `incident-escalation:${tenantId}:${args.incident.id}:level:${args.level}${policyTag}:target:${targetHash}`;
   const day = now.toISOString().slice(0, 10);
+  const baseLog = {
+    tenantId,
+    incidentId: args.incident.id,
+    policyId: args.policy.id ?? null,
+    level: args.level,
+    targetType,
+    targetRef,
+    clusterId,
+    dedupeKey,
+  };
+  const escalationGate = {
+    level: args.level,
+    target_type: targetType,
+    target_ref: targetRef,
+    policy_id: args.policy.id,
+    dedupe_key: dedupeKey,
+    allowed: true,
+  };
+
+  const routingGate = args.routingGate;
+
   const payload = {
     type: "INCIDENT_ESCALATION",
     version: "1",
@@ -3825,8 +4084,9 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
     severity: args.incident.severity,
     destination_key: args.incident.destinationKey ?? null,
     escalation_level: args.level,
-    target_type: args.policy.targetType,
-    target_ref: args.policy.targetRef,
+    target_type: targetType,
+    target_ref: targetRef,
+    target_hash: targetHash,
     after_minutes: args.policy.afterMinutes,
     opened_at: args.incident.openedAt.toISOString(),
     title: args.incident.title,
@@ -3850,7 +4110,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
   const systemEntry: BundleCandidate = {
     candidate: systemCandidate,
     quality: systemQuality,
-    severityRank: SEVERITY_RANK[String(systemCandidate.cluster_severity).toUpperCase() as any] ?? 0,
+    severityRank: getSeverityRank(systemCandidate.cluster_severity),
     confidenceScore: Number(systemCandidate.confidence_score ?? 0),
     createdAtMs: now.getTime(),
     clusterId,
@@ -3860,7 +4120,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
     summary.candidates_total += 1;
     summary.matched_total += 1;
 
-    const dayValue = new Date(`${day}T00:00:00Z`);
+    const dayValue = day;
     const suppressed: BundleCandidate[] = [];
     const sendable: BundleCandidate[] = [];
     let skippedDedupe = 0;
@@ -3899,6 +4159,114 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
       destination: sub.endpoint,
       now,
     });
+    const destinationKey = destinationGate.destinationKey;
+
+    if (routingGate && routingGate.allowed === false) {
+      if (skippedDedupe > 0 && sendable.length === 0) {
+        dedupeBlocked = true;
+        continue;
+      }
+      const items = buildBundleItems([systemEntry], null);
+      const bundlePayloadRaw = {
+        payload_version: "1.2",
+        type: "ALERT_BUNDLE",
+        sent_at: now.toISOString(),
+        tenant_id: tenantId,
+        run_id: runRow.id,
+        subscription: {
+          id: sub.id,
+          scope: scopeValue,
+          entity: subscriptionEntity,
+          severity_min: sub.severityMin,
+          destination_type: sub.channel,
+          destination: sub.endpoint,
+        },
+        summary: {
+          matched_total: 1,
+          skipped_dedupe: 0,
+          suppressed_quality: 0,
+          sent_items: 0,
+          overflow: 0,
+          skipped_noise_budget: 0,
+        },
+        items,
+        system: payload,
+      };
+      const { payload: bundlePayload, items: finalItems, overflow: finalOverflow } = applyBundlePayloadLimit(bundlePayloadRaw, 0);
+      const decision = buildAlertDecision({
+        evaluatedAtIso,
+        day,
+        clustered: true,
+        subscription: {
+          id: sub.id,
+          scope: scopeValue,
+          entityId: String(sub.entityId),
+          severityMin: sub.severityMin,
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          enabled: Boolean(sub.isEnabled),
+        },
+        included: buildDecisionIncluded(finalItems),
+        bundle: {
+          enabled: true,
+          topN: ALERT_BUNDLE_TOP_N,
+          overflow: finalOverflow,
+        },
+        gates: {
+          severity_min_pass: true,
+          dedupe: { applied: true, ttl_hours: ALERT_DEDUPE_TTL_HOURS, blocked: false },
+          noise_budget: { applied: false, window: "24h", max: 0, used_before: 0, allowed: true },
+          quality: { applied: true, score: systemQuality.score, band: systemQuality.band, suppressed: false },
+          rate_limit: { applied: true, per_endpoint: ALERT_RATE_LIMIT_PER_ENDPOINT, allowed: true },
+          endpoint_health: defaultEndpointGate,
+          destination_state: toDecisionDestinationGate(destinationGate),
+          escalation: escalationGate,
+          routing: routingGate,
+        },
+        suppressedCounts: {
+          dedupe: 0,
+          noise_budget: 0,
+          quality: 0,
+          overflow: finalOverflow,
+        },
+      });
+
+      await insertDelivery({
+        runId: runRow.id,
+        tenantId,
+        userId: sub.userId,
+        subscriptionId: sub.id,
+        clusterId,
+        entityType: "system",
+        entityId: args.incident.id,
+        day: dayValue,
+        destinationType: sub.channel,
+        endpoint: sub.endpoint,
+        destinationKey,
+        status: "SKIPPED_DESTINATION_ROUTING",
+        skipReason: "NO_USER_CONTACT_METHOD",
+        isBundle: true,
+        bundleSize: finalItems.length,
+        bundleOverflow: finalOverflow,
+        bundlePayload: bundlePayload,
+        decision,
+        qualityScore: systemQuality.score,
+        qualityBand: systemQuality.band,
+        qualityReasons: systemQuality.reasons,
+        qualityVersion: systemQuality.version,
+        attempts: 0,
+        createdAt: now,
+      });
+      logDeliveryCreated(baseLog, {
+        status: "SKIPPED_DESTINATION_ROUTING",
+        skipReason: "NO_USER_CONTACT_METHOD",
+        destinationType: sub.channel,
+        destination: sub.endpoint,
+        destinationKey,
+      });
+      didAttempt = true;
+      continue;
+    }
 
     if (suppressed.length > 0) {
       const inserted = await recordQualityGateSuppressOnce({
@@ -3988,11 +4356,8 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
             rate_limit: { applied: false, per_endpoint: ALERT_RATE_LIMIT_PER_ENDPOINT, allowed: true },
             endpoint_health: defaultEndpointGate,
             destination_state: toDecisionDestinationGate(destinationGate),
-            escalation: {
-              level: args.level,
-              target_type: args.policy.targetType,
-              target_ref: args.policy.targetRef,
-            },
+            escalation: escalationGate,
+          routing: routingGate,
           },
           suppressedCounts: {
             dedupe: 0,
@@ -4002,7 +4367,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
           },
         });
 
-        await db.insert(alertDeliveries).values({
+        await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -4013,6 +4378,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
           day: dayValue,
           destinationType: sub.channel,
           endpoint: sub.endpoint,
+          destinationKey,
           status: "SKIPPED_QUALITY",
           skipReason: "QUALITY_BELOW_THRESHOLD",
           isBundle: true,
@@ -4026,6 +4392,13 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
           qualityVersion: systemQuality.version,
           attempts: 0,
           createdAt: now,
+        });
+        logDeliveryCreated(baseLog, {
+          status: "SKIPPED_QUALITY",
+          skipReason: "QUALITY_BELOW_THRESHOLD",
+          destinationType: sub.channel,
+          destination: sub.endpoint,
+          destinationKey,
         });
         didAttempt = true;
       } else if (skippedDedupe > 0) {
@@ -4093,11 +4466,8 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
             allowed: true,
           },
           destination_state: toDecisionDestinationGate(destinationGate),
-          escalation: {
-            level: args.level,
-            target_type: args.policy.targetType,
-            target_ref: args.policy.targetRef,
-          },
+          escalation: escalationGate,
+          routing: routingGate,
         },
         suppressedCounts: {
           dedupe: 0,
@@ -4116,7 +4486,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
         : destinationGate.state === "AUTO_PAUSED"
           ? "SKIPPED_DESTINATION_AUTO_PAUSED"
           : "SKIPPED_DESTINATION_DISABLED";
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -4127,6 +4497,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
         day: dayValue,
         destinationType: sub.channel,
         endpoint: sub.endpoint,
+        destinationKey,
         status,
         skipReason,
         isBundle: true,
@@ -4140,6 +4511,13 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
         qualityVersion: systemQuality.version,
         attempts: 0,
         createdAt: now,
+      });
+      logDeliveryCreated(baseLog, {
+        status,
+        skipReason,
+        destinationType: sub.channel,
+        destination: sub.endpoint,
+        destinationKey,
       });
       didAttempt = true;
       continue;
@@ -4183,11 +4561,8 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
             allowed: false,
           },
           destination_state: toDecisionDestinationGate(destinationGate),
-          escalation: {
-            level: args.level,
-            target_type: args.policy.targetType,
-            target_ref: args.policy.targetRef,
-          },
+          escalation: escalationGate,
+          routing: routingGate,
         },
         suppressedCounts: {
           dedupe: 0,
@@ -4197,7 +4572,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
         },
       });
 
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -4208,6 +4583,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
         day: dayValue,
         destinationType: sub.channel,
         endpoint: sub.endpoint,
+        destinationKey,
         status: "SKIPPED_ENDPOINT_DOWN",
         skipReason: "ENDPOINT_DOWN",
         isBundle: true,
@@ -4222,11 +4598,17 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
         attempts: 0,
         createdAt: now,
       });
+      logDeliveryCreated(baseLog, {
+        status: "SKIPPED_ENDPOINT_DOWN",
+        skipReason: "ENDPOINT_DOWN",
+        destinationType: sub.channel,
+        destination: sub.endpoint,
+        destinationKey,
+      });
       didAttempt = true;
       continue;
     }
 
-    const destinationKey = makeDestinationKey(sub.channel, sub.endpoint);
     const noiseBudget = await resolveNoiseBudget({
       tenantId,
       destinationType: sub.channel as any,
@@ -4268,11 +4650,8 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
             allowed: true,
           },
           destination_state: toDecisionDestinationGate(destinationGate),
-          escalation: {
-            level: args.level,
-            target_type: args.policy.targetType,
-            target_ref: args.policy.targetRef,
-          },
+          escalation: escalationGate,
+          routing: routingGate,
         },
         suppressedCounts: {
           dedupe: 0,
@@ -4281,7 +4660,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
           overflow: finalOverflow,
         },
       });
-      await db.insert(alertDeliveries).values({
+      await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -4292,6 +4671,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
         day: dayValue,
         destinationType: sub.channel,
         endpoint: sub.endpoint,
+        destinationKey,
         status: "SKIPPED_NOISE_BUDGET",
         skipReason: "NOISE_BUDGET_EXCEEDED",
         isBundle: true,
@@ -4371,11 +4751,8 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
           allowed: true,
         },
         destination_state: toDecisionDestinationGate(destinationGate),
-        escalation: {
-          level: args.level,
-          target_type: args.policy.targetType,
-          target_ref: args.policy.targetRef,
-        },
+        escalation: escalationGate,
+        routing: routingGate,
       },
       suppressedCounts: {
         dedupe: 0,
@@ -4402,7 +4779,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
         const attempts = attemptLogs.length || 1;
         const last = attemptLogs.length ? attemptLogs[attemptLogs.length - 1] : null;
 
-        const [delivery] = await db.insert(alertDeliveries).values({
+        const [delivery] = await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -4413,6 +4790,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
           day: dayValue,
           destinationType: sub.channel,
           endpoint: sub.endpoint,
+          destinationKey,
           status: "SENT",
           isBundle: true,
           bundleSize: finalItems.length,
@@ -4432,7 +4810,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
 
         const baseAttempt = Math.max((delivery?.attempts ?? 0) - attempts, 0);
         const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "SUCCESS", latency_ms: last?.latency_ms ?? null, http_status: last?.http_status ?? result?.status ?? null }])
-          .map((log) => ({
+          .map((log: any) => ({
             tenantId,
             deliveryId: delivery.id,
             attemptNo: baseAttempt + log.attempt,
@@ -4449,7 +4827,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
       } else if (sub.channel === "EMAIL") {
         const email = renderAlertBundleEmail({ payload: bundlePayload });
         await sendEmail({ to: sub.endpoint, subject: email.subject, text: email.text });
-        const [delivery] = await db.insert(alertDeliveries).values({
+        const [delivery] = await insertDelivery({
           runId: runRow.id,
           tenantId,
           userId: sub.userId,
@@ -4460,6 +4838,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
           day: dayValue,
           destinationType: sub.channel,
           endpoint: sub.endpoint,
+          destinationKey,
           status: "SENT",
           isBundle: true,
           bundleSize: finalItems.length,
@@ -4506,7 +4885,15 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
       didAttempt = true;
 
       const attemptLogs = error?.attemptLogs ?? [];
-      const [delivery] = await db.insert(alertDeliveries).values({
+      const lastAttempt = attemptLogs.length ? attemptLogs[attemptLogs.length - 1] : null;
+      const errorMessage = error?.message ?? "Alert send failed";
+      const errorCategory =
+        error?.name === "AbortError"
+          ? "network"
+          : String(errorMessage).includes("Webhook response")
+            ? "http"
+            : "unknown";
+      const [delivery] = await insertDelivery({
         runId: runRow.id,
         tenantId,
         userId: sub.userId,
@@ -4517,6 +4904,7 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
         day: dayValue,
         destinationType: sub.channel,
         endpoint: sub.endpoint,
+        destinationKey,
         status: "FAILED",
         isBundle: true,
         bundleSize: finalItems.length,
@@ -4524,18 +4912,33 @@ export async function dispatchIncidentEscalationSystemAlert(args: IncidentEscala
         bundlePayload: bundlePayload,
         decision,
         attempts: attemptLogs.length || 1,
-        lastHttpStatus: attemptLogs.length ? attemptLogs[attemptLogs.length - 1]?.http_status : null,
-        latencyMs: attemptLogs.length ? attemptLogs[attemptLogs.length - 1]?.latency_ms : null,
-        error: error?.message ?? "Alert send failed",
+        lastHttpStatus: lastAttempt?.http_status ?? null,
+        latencyMs: lastAttempt?.latency_ms ?? null,
+        error: errorMessage,
         qualityScore: systemQuality.score,
         qualityBand: systemQuality.band,
         qualityReasons: systemQuality.reasons,
         qualityVersion: systemQuality.version,
         createdAt: now,
       }).returning();
+      logDeliveryCreated(baseLog, {
+        status: "FAILED",
+        destinationType: sub.channel,
+        destination: sub.endpoint,
+        destinationKey,
+        errorCategory,
+      });
+      logDeliveryResult(baseLog, {
+        status: "FAILED",
+        destinationType: sub.channel,
+        destination: sub.endpoint,
+        destinationKey,
+        latencyMs: lastAttempt?.latency_ms ?? null,
+        errorCategory,
+      });
 
       const attemptRows = (attemptLogs.length ? attemptLogs : [{ attempt: 1, status: "FAILED", latency_ms: null, http_status: null }])
-        .map((log) => ({
+        .map((log: any) => ({
           tenantId,
           deliveryId: delivery.id,
           attemptNo: log.attempt,

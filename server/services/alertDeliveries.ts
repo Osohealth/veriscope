@@ -7,7 +7,7 @@ export type AlertDeliveryFilters = {
   tenantId: string;
   userId: string;
   days?: number;
-  day?: Date | null;
+  day?: Date | string | null;
   entityId?: string;
   subscriptionId?: string;
   subscriptionIds?: string[];
@@ -68,7 +68,12 @@ export const buildAlertDeliveriesWhere = (
     const cutoff = new Date(Date.now() - filters.days * 24 * 60 * 60 * 1000);
     conditions.push(sql`${alertDeliveries.createdAt} >= ${cutoff}`);
   }
-  if (filters.day) conditions.push(eq(alertDeliveries.day, filters.day));
+  if (filters.day) {
+    const dayValue = filters.day instanceof Date
+      ? filters.day.toISOString().slice(0, 10)
+      : String(filters.day);
+    conditions.push(eq(alertDeliveries.day, dayValue));
+  }
   if (filters.entityId) conditions.push(eq(alertDeliveries.entityId, filters.entityId));
   if (filters.subscriptionId) conditions.push(eq(alertDeliveries.subscriptionId, filters.subscriptionId));
   if (filters.subscriptionIds && filters.subscriptionIds.length > 0) {

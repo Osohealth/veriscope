@@ -1,0 +1,24 @@
+Browserslist: browsers data (caniuse-lite) is 17 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\refinery_units.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\refinery_utilization.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\refinery_crack_spreads.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\sd_models_daily.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\sd_forecasts_weekly.csv. Skipping.
+[CSV IMPORT] Missing file: C:\Users\deanm\OneDrive\Documents\Veriscope AI\veriscope\attached_assets\extracted_data\research_insights_daily.csv. Skipping.
+{"timestamp":"2026-03-07T14:18:58.622Z","level":"warn","requestId":"d0d43b9a-1652-4514-8bda-3865bc1b0d3f","route":"/api/dev/incidents/create-demo","method":"POST","statusCode":404,"latencyMs":402,"message":"POST /api/dev/incidents/create-demo 404 402ms"}
+{"timestamp":"2026-03-07T16:21:18.070Z","level":"warn","requestId":"31a5136a-cd6e-439e-87ab-c5f7fee2eb09","route":"/v1/signals","method":"GET","statusCode":400,"latencyMs":303,"message":"GET /v1/signals 400 303ms"}
+{"timestamp":"2026-03-07T16:21:18.930Z","level":"warn","requestId":"68a1cebd-6385-4fdf-8ca8-1dd0d5888b45","route":"/v1/signals","method":"GET","statusCode":404,"latencyMs":137,"message":"GET /v1/signals 404 137ms"}
+{"timestamp":"2026-03-07T16:21:19.728Z","level":"warn","requestId":"0cbc6c49-da04-4bda-8a18-85e8f4c3e132","route":"/v1/signals","method":"GET","statusCode":404,"latencyMs":130,"message":"GET /v1/signals 404 130ms"}
+{"timestamp":"2026-03-07T16:21:19.882Z","level":"warn","requestId":"2705ce82-a04b-4119-a96c-243b5a5acaf1","route":"/v1/signals","method":"GET","statusCode":404,"latencyMs":128,"message":"GET /v1/signals 404 128ms"}
+{"timestamp":"2026-03-07T16:21:20.455Z","level":"warn","requestId":"86ecf001-9216-4329-aeb4-e57c79015069","route":"/v1/signals","method":"GET","statusCode":400,"latencyMs":77,"message":"GET /v1/signals 400 77ms"}
+{"timestamp":"2026-03-07T16:23:23.144Z","level":"warn","requestId":"a2b0152a-8fbb-42d3-a897-a27fbf0f5b20","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/vessels 401 3ms"}
+{"timestamp":"2026-03-07T16:23:35.018Z","level":"warn","requestId":"28170d78-396b-42c7-9780-40af50c13793","route":"/api/dev/demo-api-key","method":"POST","statusCode":404,"latencyMs":2,"message":"POST /api/dev/demo-api-key 404 2ms"}
+{"timestamp":"2026-03-07T16:23:43.430Z","level":"warn","requestId":"05faa012-debb-4a95-a24e-557bceb3cf47","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":13,"message":"GET /api/vessels 401 13ms"}
+{"timestamp":"2026-03-07T16:23:46.182Z","level":"warn","requestId":"2e730dc0-a13c-4544-bc25-4d47f4864e63","route":"/api/dev/demo-api-key","method":"POST","statusCode":404,"latencyMs":2,"message":"POST /api/dev/demo-api-key 404 2ms"}
+{"timestamp":"2026-03-07T16:23:51.950Z","level":"warn","requestId":"688fae70-58b6-4088-b558-6db3f9347c93","route":"/api/vessels","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/vessels 401 3ms"}
+{"timestamp":"2026-03-07T16:23:54.594Z","level":"warn","requestId":"2fb6cbbc-4aab-42b7-bc23-e65825191a0a","route":"/api/dev/demo-api-key","method":"POST","statusCode":404,"latencyMs":9,"message":"POST /api/dev/demo-api-key 404 9ms"}
+{"timestamp":"2026-03-07T16:24:02.023Z","level":"warn","requestId":"0edc343c-12a9-4e3e-b584-08ebb369d69e","route":"/api/ml-predictions/latest/refined_products","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/ml-predictions/latest/refined_products 401 3ms"}
+{"timestamp":"2026-03-07T16:24:02.031Z","level":"warn","requestId":"d213dd35-0b76-46b9-b6a9-9052b3cadf8d","route":"/api/refineries","method":"GET","statusCode":401,"latencyMs":3,"message":"GET /api/refineries 401 3ms"}
+{"timestamp":"2026-03-07T16:24:02.034Z","level":"warn","requestId":"262b986a-e5e2-4a30-b009-dcd35982289f","route":"/api/refinery/utilization","method":"GET","statusCode":401,"latencyMs":2,"message":"GET /api/refinery/utilization 401 2ms"}

@@ -45,7 +45,7 @@ export async function listAlertNoiseBudgets(tenantId: string, window: NoiseWindo
       destination_type: destinationType,
       window,
       max_deliveries: row?.maxDeliveries ?? defaults.max_deliveries,
-      source: row ? "CUSTOM" : "DEFAULT",
+      source: (row ? "CUSTOM" : "DEFAULT") as NoiseBudgetItem["source"],
     };
   });
 

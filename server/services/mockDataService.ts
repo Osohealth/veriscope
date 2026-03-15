@@ -95,7 +95,8 @@ class MockDataService {
         timezone: 'Asia/Dubai',
         unlocode: 'AEFJR',
         countryCode: 'AE',
-        geofenceRadiusKm: '10'
+        geofenceRadiusKm: '10',
+        type: 'oil_terminal'
       },
       {
         name: 'Rotterdam',
@@ -106,7 +107,8 @@ class MockDataService {
         timezone: 'Europe/Amsterdam',
         unlocode: 'NLRTM',
         countryCode: 'NL',
-        geofenceRadiusKm: '15'
+        geofenceRadiusKm: '15',
+        type: 'oil_terminal'
       },
       {
         name: 'Singapore',
@@ -117,7 +119,8 @@ class MockDataService {
         timezone: 'Asia/Singapore',
         unlocode: 'SGSIN',
         countryCode: 'SG',
-        geofenceRadiusKm: '12'
+        geofenceRadiusKm: '12',
+        type: 'oil_terminal'
       }
     ];
 
@@ -242,23 +245,23 @@ class MockDataService {
     const ports = await storage.getPorts();
     
     for (const port of ports) {
-      let sites: Array<{portId: string; name: string; siteType: string; capacity: number; latitude: string; longitude: string}> = [];
+      let sites: Array<{portId: string; name: string; siteType: string; capacity: number; latitude: number; longitude: number}> = [];
       
       if (port.code === 'FJR') {
         sites = [
-          { portId: port.id, name: 'Fujairah Site A', siteType: 'tank_farm', capacity: 1500000, latitude: '25.1145', longitude: '56.3688' },
-          { portId: port.id, name: 'Fujairah Site B', siteType: 'tank_farm', capacity: 2200000, latitude: '25.1267', longitude: '56.3633' },
-          { portId: port.id, name: 'Fujairah Site C', siteType: 'tank_farm', capacity: 1800000, latitude: '25.1089', longitude: '56.3795' }
+          { portId: port.id, name: 'Fujairah Site A', siteType: 'tank_farm', capacity: 1500000, latitude: 25.1145, longitude: 56.3688 },
+          { portId: port.id, name: 'Fujairah Site B', siteType: 'tank_farm', capacity: 2200000, latitude: 25.1267, longitude: 56.3633 },
+          { portId: port.id, name: 'Fujairah Site C', siteType: 'tank_farm', capacity: 1800000, latitude: 25.1089, longitude: 56.3795 }
         ];
       } else if (port.code === 'RTM') {
         sites = [
-          { portId: port.id, name: 'Rotterdam Tank Terminal A', siteType: 'tank_farm', capacity: 3500000, latitude: '51.9156', longitude: '4.4683' },
-          { portId: port.id, name: 'Rotterdam Tank Terminal B', siteType: 'tank_farm', capacity: 4200000, latitude: '51.9298', longitude: '4.4521' }
+          { portId: port.id, name: 'Rotterdam Tank Terminal A', siteType: 'tank_farm', capacity: 3500000, latitude: 51.9156, longitude: 4.4683 },
+          { portId: port.id, name: 'Rotterdam Tank Terminal B', siteType: 'tank_farm', capacity: 4200000, latitude: 51.9298, longitude: 4.4521 }
         ];
       } else if (port.code === 'SIN') {
         sites = [
-          { portId: port.id, name: 'Jurong Island Terminal', siteType: 'tank_farm', capacity: 5000000, latitude: '1.2650', longitude: '103.6800' },
-          { portId: port.id, name: 'Pulau Bukom Terminal', siteType: 'tank_farm', capacity: 4500000, latitude: '1.2300', longitude: '103.7600' }
+          { portId: port.id, name: 'Jurong Island Terminal', siteType: 'tank_farm', capacity: 5000000, latitude: 1.265, longitude: 103.68 },
+          { portId: port.id, name: 'Pulau Bukom Terminal', siteType: 'tank_farm', capacity: 4500000, latitude: 1.23, longitude: 103.76 }
         ];
       }
 
@@ -271,8 +274,8 @@ class MockDataService {
           await storage.createStorageFillData({
             siteId: newSite.id,
             timestamp: new Date(),
-            fillIndex: Math.random() * 0.6 + 0.2, // 20-80% fill
-            confidence: 0.8 + Math.random() * 0.2,
+            fillIndex: String((Math.random() * 0.6 + 0.2).toFixed(4)), // 20-80% fill
+            confidence: String((0.8 + Math.random() * 0.2).toFixed(4)),
             source: 'SAR',
             metadata: { initialization: true }
           });
@@ -294,9 +297,9 @@ class MockDataService {
           arrivals: Math.floor(Math.random() * 8) + 3,
           departures: Math.floor(Math.random() * 6) + 2,
           queueLength: Math.floor(Math.random() * 15) + 5,
-          averageWaitHours: Math.random() * 10 + 8,
+          averageWaitHours: String((Math.random() * 10 + 8).toFixed(2)),
           totalVessels: Math.floor(Math.random() * 25) + 35,
-          throughputMT: Math.random() * 1.5 + 1.2,
+          throughputMT: String((Math.random() * 1.5 + 1.2).toFixed(2)),
           byClass: {
             VLCC: Math.floor(Math.random() * 8) + 5,
             Suezmax: Math.floor(Math.random() * 12) + 8,

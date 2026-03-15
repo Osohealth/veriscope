@@ -47,6 +47,10 @@ import TankScope from "@/pages/tankscope";
 import WatchlistsPage from "@/pages/watchlists";
 import AlertRulesPage from "@/pages/alert-rules";
 import AlertsPage from "@/pages/alerts";
+import AlertsCommandPage from "@/pages/alerts-command";
+import ViewsPage from "@/pages/views";
+import InvestigationsPage from "@/pages/investigations";
+import InvestigationDetailPage from "@/pages/investigation-detail";
 import AlertsHealthPage from "@/pages/alerts-health";
 import AlertsDestinationsPage from "@/pages/alerts-destinations";
 import AlertSubscriptionsPage from "@/pages/alert-subscriptions";
@@ -54,9 +58,16 @@ import IncidentsPage from "@/pages/incidents";
 import InviteAcceptPage from "@/pages/invite-accept";
 import TeamPage from "@/pages/team";
 import AuditPage from "@/pages/audit";
+import EscalationsPage from "@/pages/escalations";
 import DataExportsPage from "@/pages/data-exports";
 import RefinerySatellite from "@/pages/refinery-satellite";
 import PortDetailPage from "@/pages/port-detail";
+import AuthGate from "@/components/auth-gate";
+import RouteBoundary from "@/components/route-boundary";
+import TerminalPage from "@/pages/terminal";
+import FlowsPage from "@/pages/flows";
+import CongestionPage from "@/pages/congestion";
+import CommandPage from "@/pages/command";
 
 // Maritime subsections (AIS, Port Events, Containers, Bunkering, and Inbox have full pages, Predictive Schedules is a placeholder)
 const PredictiveSchedulesPage = createModulePage("Predictive Schedules", "Event forecasts up to 6 weeks ahead", "/maritime", "Back to Maritime");
@@ -65,12 +76,144 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/platform" component={DashboardHome} />
-      <Route path="/home" component={DashboardHome} />
+      <Route path="/platform">
+        {() => (
+          <AuthGate
+            title="Explore Dashboard"
+            description="Sign in or create an account to unlock the Veriscope platform."
+          >
+            <DashboardHome />
+          </AuthGate>
+        )}
+      </Route>
+      <Route path="/home">
+        {() => (
+          <AuthGate
+            title="Explore Dashboard"
+            description="Sign in or create an account to unlock the Veriscope platform."
+          >
+            <DashboardHome />
+          </AuthGate>
+        )}
+      </Route>
       <Route path="/landing" component={Home} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/signals" component={SignalsPage} />
-      <Route path="/alerts" component={AlertsPage} />
+      <Route path="/dashboard">
+        {() => (
+          <AuthGate
+            title="Dashboard Locked"
+            description="Sign in or create an account to access the classic dashboard."
+          >
+            <Dashboard />
+          </AuthGate>
+        )}
+      </Route>
+      <Route path="/terminal">
+        {() => (
+          <RouteBoundary name="terminal">
+            <AuthGate
+              title="Terminal Locked"
+              description="Sign in or create an account to access Terminal Mode."
+            >
+              <TerminalPage />
+            </AuthGate>
+          </RouteBoundary>
+        )}
+      </Route>
+      <Route path="/flows">
+        {() => (
+          <RouteBoundary name="flows">
+            <AuthGate
+              title="Flows Locked"
+              description="Sign in or create an account to access Flow Intelligence."
+            >
+              <FlowsPage />
+            </AuthGate>
+          </RouteBoundary>
+        )}
+      </Route>
+      <Route path="/congestion">
+        {() => (
+          <RouteBoundary name="congestion">
+            <AuthGate
+              title="Congestion Locked"
+              description="Sign in or create an account to access Port Congestion."
+            >
+              <CongestionPage />
+            </AuthGate>
+          </RouteBoundary>
+        )}
+      </Route>
+      <Route path="/command">
+        {() => (
+          <RouteBoundary name="command">
+            <AuthGate
+              title="Command Locked"
+              description="Sign in or create an account to access Command Mode."
+            >
+              <CommandPage />
+            </AuthGate>
+          </RouteBoundary>
+        )}
+      </Route>
+      <Route path="/signals">
+        {() => (
+          <AuthGate
+            title="Signals Locked"
+            description="Sign in or create an account to view real-time signals."
+          >
+            <SignalsPage />
+          </AuthGate>
+        )}
+      </Route>
+      <Route path="/alerts">
+        {() => (
+          <RouteBoundary name="alerts">
+            <AuthGate
+              title="Alerts Locked"
+              description="Sign in or create an account to access Alert Command."
+            >
+              <AlertsCommandPage />
+            </AuthGate>
+          </RouteBoundary>
+        )}
+      </Route>
+      <Route path="/alerts/legacy" component={AlertsPage} />
+      <Route path="/views">
+        {() => (
+          <RouteBoundary name="views">
+            <AuthGate
+              title="Views Locked"
+              description="Sign in or create an account to access saved views."
+            >
+              <ViewsPage />
+            </AuthGate>
+          </RouteBoundary>
+        )}
+      </Route>
+      <Route path="/investigations">
+        {() => (
+          <RouteBoundary name="investigations">
+            <AuthGate
+              title="Investigations Locked"
+              description="Sign in or create an account to access investigations."
+            >
+              <InvestigationsPage />
+            </AuthGate>
+          </RouteBoundary>
+        )}
+      </Route>
+      <Route path="/investigations/:id">
+        {() => (
+          <RouteBoundary name="investigation detail">
+            <AuthGate
+              title="Investigations Locked"
+              description="Sign in or create an account to access investigations."
+            >
+              <InvestigationDetailPage />
+            </AuthGate>
+          </RouteBoundary>
+        )}
+      </Route>
       <Route path="/incidents" component={IncidentsPage} />
       <Route path="/alerts/health" component={AlertsHealthPage} />
       <Route path="/alerts/destinations" component={AlertsDestinationsPage} />
@@ -78,6 +221,7 @@ function Router() {
       <Route path="/invite/accept" component={InviteAcceptPage} />
       <Route path="/settings/team" component={TeamPage} />
       <Route path="/settings/audit" component={AuditPage} />
+      <Route path="/settings/escalations" component={EscalationsPage} />
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/careers" component={Careers} />

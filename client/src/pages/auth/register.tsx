@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "wouter";
 import { ArrowLeft, Mail, Lock, User, Building2, Phone, CheckCircle, Zap, BarChart3, Globe } from "lucide-react";
+import { ensureDevApiKey, markAuthenticated } from "@/lib/auth";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -49,6 +50,15 @@ export default function Register() {
     }
 
     try {
+      if (import.meta.env.DEV) {
+        const apiKey = await ensureDevApiKey();
+        markAuthenticated(apiKey ?? "vs_demo_key");
+        setSuccess(true);
+        setTimeout(() => {
+          window.location.href = "/platform";
+        }, 800);
+        return;
+      }
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,7 +80,7 @@ export default function Register() {
 
       setSuccess(true);
       setTimeout(() => {
-        window.location.href = "/";
+        window.location.href = "/platform";
       }, 2000);
     } catch (err) {
       setError("An error occurred. Please try again.");

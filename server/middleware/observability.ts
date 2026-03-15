@@ -4,8 +4,8 @@ import { randomUUID } from 'crypto';
 declare global {
   namespace Express {
     interface Request {
-      requestId: string;
-      startTime: number;
+      requestId?: string;
+      startTime?: number;
     }
   }
 }
@@ -204,7 +204,8 @@ export function requestTrackingMiddleware(req: Request, res: Response, next: Nex
   res.setHeader('X-Request-ID', req.requestId);
   
   res.on('finish', () => {
-    const latency = Date.now() - req.startTime;
+    const startTime = req.startTime ?? Date.now();
+    const latency = Date.now() - startTime;
     metricsCollector.incrementRequests();
     metricsCollector.recordLatency(latency);
     

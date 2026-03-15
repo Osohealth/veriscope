@@ -59,7 +59,8 @@ class WebSocketManager {
       });
     });
     
-    setInterval(() => this.cleanupThrottles(), 1000);
+    const cleanupInterval = setInterval(() => this.cleanupThrottles(), 1000);
+    cleanupInterval.unref?.();
     
     logger.info('WebSocket manager initialized');
   }

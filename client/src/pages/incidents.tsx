@@ -52,11 +52,50 @@ type AuditEvent = {
   created_at?: string | null;
 };
 
+type EscalationPolicy = {
+  id: string;
+  incident_type: string;
+  level: number;
+  after_minutes: number;
+  severity_min: string;
+  target_type: string;
+  target_ref: string;
+};
+
+type EscalationDelivery = {
+  id: string;
+  created_at?: string | null;
+  level?: number | null;
+  destination_type?: string | null;
+  status?: string | null;
+  destination_key?: string | null;
+};
+
+type EscalationNext = {
+  level?: number | null;
+  after_minutes?: number | null;
+  due_at?: string | null;
+  eta_seconds?: number | null;
+  reason: string;
+};
+
+type EscalationSnapshot = {
+  has_policy: boolean;
+  incident_type: string;
+  severity: string;
+  current_level: number;
+  last_escalated_at?: string | null;
+  next: EscalationNext;
+  policies: EscalationPolicy[];
+  deliveries: EscalationDelivery[];
+};
+
 type Filters = {
   status: "ALL" | IncidentStatus;
   type: IncidentTypeFilter;
   destination_key?: string;
   incident_id?: string;
+  severity_min?: string;
 };
 
 const STATUS_OPTIONS: Filters["status"][] = ["ALL", "OPEN", "ACKED", "RESOLVED"];
@@ -78,6 +117,7 @@ const parseFiltersFromUrl = (location: string): Filters => {
     type: parseIncidentTypeFilter(params.get("type")),
     destination_key: params.get("destination_key") ?? undefined,
     incident_id: params.get("incident_id") ?? undefined,
+    severity_min: params.get("severity_min") ?? undefined,
   };
 };
 
@@ -87,6 +127,7 @@ const buildQueryString = (filters: Filters, cursor?: string | null) => {
   if (filters.type !== "ALL") params.set("type", filters.type);
   if (filters.destination_key) params.set("destination_key", filters.destination_key);
   if (filters.incident_id) params.set("incident_id", filters.incident_id);
+  if (filters.severity_min) params.set("severity_min", filters.severity_min);
   params.set("limit", "20");
   if (cursor) params.set("cursor", cursor);
   return params.toString();
@@ -98,6 +139,7 @@ const buildListQueryString = (filters: Filters, cursor?: string | null) => {
   const type = mapIncidentTypeToApi(filters.type);
   if (type) params.set("type", type);
   if (filters.destination_key) params.set("destination_key", filters.destination_key);
+  if (filters.severity_min) params.set("severity_min", filters.severity_min);
   params.set("limit", "20");
   if (cursor) params.set("cursor", cursor);
   return params.toString();
@@ -128,6 +170,23 @@ const summarizeActor = (item: AuditEvent) => {
 const getUpdatedAt = (incident?: IncidentItem | null) =>
   incident?.resolved_at ?? incident?.acked_at ?? incident?.opened_at ?? null;
 
+const incidentTypeToEscalationFilter = (type?: string | null) => {
+  const upper = String(type ?? "").toUpperCase();
+  if (upper.includes("SLA")) return "SLA";
+  if (upper.includes("ENDPOINT")) return "ENDPOINT";
+  return "ALL";
+};
+
+const getEscalationLevel = (delivery: any) => {
+  const decisionLevel = delivery?.decision?.escalation?.level ?? delivery?.decision?.gates?.escalation?.level;
+  if (Number.isFinite(decisionLevel)) return Number(decisionLevel);
+  const explicitLevel = delivery?.level;
+  if (Number.isFinite(explicitLevel)) return Number(explicitLevel);
+  const clusterId = String(delivery?.cluster_id ?? "");
+  const match = clusterId.match(/:level:(\d+)/i);
+  return match ? Number(match[1]) : null;
+};
+
 export default function IncidentsPage() {
   const { toast } = useToast();
   const { role } = useAuth();
@@ -151,6 +210,9 @@ export default function IncidentsPage() {
   const [auditLoadingMore, setAuditLoadingMore] = useState(false);
   const [mutatingIds, setMutatingIds] = useState<Record<string, boolean>>({});
   const [showSystemEvents, setShowSystemEvents] = useState(true);
+  const [escalation, setEscalation] = useState<EscalationSnapshot | null>(null);
+  const [showEscalationPolicies, setShowEscalationPolicies] = useState(false);
+  const [runningEscalations, setRunningEscalations] = useState(false);
   const playbookItems = useMemo(() => {
     if (!selected) return [];
     const destinationKey = selected.destination_key;
@@ -284,6 +346,8 @@ export default function IncidentsPage() {
       setSelected(null);
       setAuditItems([]);
       setAuditCursor(null);
+      setEscalation(null);
+      setShowEscalationPolicies(false);
       return;
     }
     const controller = new AbortController();
@@ -292,6 +356,7 @@ export default function IncidentsPage() {
       try {
         const payload = await apiFetchJson(`/v1/incidents/${selectedId}`, { signal: controller.signal });
         setSelected(payload?.item ?? null);
+        setEscalation(payload?.escalation ?? null);
         const auditPayload = await apiFetchJson(`/v1/audit-events?resource_type=INCIDENT&resource_id=${selectedId}&limit=20&days=365`, { signal: controller.signal });
         setAuditItems(Array.isArray(auditPayload?.items) ? auditPayload.items : []);
         setAuditCursor(auditPayload?.next_cursor ?? null);
@@ -299,6 +364,7 @@ export default function IncidentsPage() {
         setSelected(null);
         setAuditItems([]);
         setAuditCursor(null);
+        setEscalation(null);
       } finally {
         setSelectedLoading(false);
       }
@@ -366,6 +432,33 @@ export default function IncidentsPage() {
       toast({ title: "Resolve failed", description: err?.message ?? "Unable to resolve incident.", variant: "destructive" });
     } finally {
       setMutatingIds((prev) => ({ ...prev, [incidentId]: false }));
+    }
+  };
+
+  const runEscalationsNow = async () => {
+    if (!selected) return;
+    setRunningEscalations(true);
+    try {
+      const response = await apiFetchJson("/api/admin/incidents/escalations/run", { method: "POST" });
+      const escalatedCount = response?.escalated ?? 0;
+      const processedCount = response?.processed ?? 0;
+      const skipped = response?.skipped ? " (skipped)" : "";
+      toast({ title: "Escalations run", description: `Escalated ${escalatedCount} of ${processedCount}${skipped}` });
+      setDetailRefresh((prev) => prev + 1);
+      setFilters((prev) => ({ ...prev }));
+    } catch (err: any) {
+      const message = String(err?.message ?? "");
+      if (message.startsWith("HTTP 404")) {
+        toast({
+          title: "Run disabled",
+          description: "Run is disabled (dev-only). Enable DEV_ROUTES_ENABLED=true.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Run failed", description: err?.message ?? "Unable to run escalations.", variant: "destructive" });
+      }
+    } finally {
+      setRunningEscalations(false);
     }
   };
 
@@ -717,6 +810,158 @@ export default function IncidentsPage() {
                     </CardContent>
                   </Card>
                 )}
+
+                <Card className="border-border/60 bg-card/70">
+                  <CardContent className="py-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-semibold">Escalation</div>
+                      <Badge variant="outline">L{Math.max(0, escalation?.current_level ?? 0)}</Badge>
+                    </div>
+                    <div className="grid gap-2 text-xs text-muted-foreground">
+                      <div>
+                        Last escalated: {formatRelativeTime(escalation?.last_escalated_at ?? null)}
+                      </div>
+                      <div>
+                        {(() => {
+                          if (!escalation?.has_policy) {
+                            return (
+                              <>
+                                No escalation policy configured.{" "}
+                                <Link href="/settings/escalations">
+                                  <a className="text-primary">Open policies</a>
+                                </Link>
+                              </>
+                            );
+                          }
+                          if (escalation.next?.reason === "INCIDENT_NOT_OPEN") {
+                            return "Incident not OPEN.";
+                          }
+                          if (escalation.next?.reason === "ALREADY_SENT") {
+                            return "No further escalation levels configured.";
+                          }
+                          if (escalation.next?.reason === "READY") {
+                            return "Due now.";
+                          }
+                          if (escalation.next?.reason === "NOT_DUE") {
+                            const etaSeconds = Number(escalation.next?.eta_seconds ?? 0);
+                            const etaMinutes = Math.max(1, Math.ceil(etaSeconds / 60));
+                            return `Next L${escalation.next?.level ?? ""} in ${etaMinutes}m (due ${escalation.next?.due_at ? new Date(escalation.next.due_at).toLocaleTimeString() : "--"})`;
+                          }
+                          return "Escalation timing unavailable.";
+                        })()}
+                      </div>
+                      {selected.status !== "OPEN" && (
+                        <div className="text-muted-foreground">Escalation runs only while OPEN.</div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowEscalationPolicies((prev) => !prev)}
+                      >
+                        {showEscalationPolicies ? "Hide policies" : `View policies (${escalation?.policies?.length ?? 0})`}
+                      </Button>
+                      {!escalation?.has_policy && (
+                        <Link href={`/settings/escalations?type=${incidentTypeToEscalationFilter(escalation?.incident_type ?? selected.type)}`}>
+                          <a className="inline-flex">
+                            <Button size="sm" variant="default">
+                              Create policy
+                            </Button>
+                          </a>
+                        </Link>
+                      )}
+                      {role === "OWNER" && escalation?.next?.reason === "READY" && (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          disabled={runningEscalations}
+                          onClick={runEscalationsNow}
+                        >
+                          {runningEscalations ? "Running..." : "Run escalations now"}
+                        </Button>
+                      )}
+                    </div>
+                    {showEscalationPolicies && (
+                      <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+                        {escalation?.policies?.length ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Level</TableHead>
+                                <TableHead>After</TableHead>
+                                <TableHead>Severity</TableHead>
+                                <TableHead>Target</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {escalation.policies.map((policy) => (
+                                <TableRow key={policy.id}>
+                                  <TableCell className="text-xs">{policy.incident_type}</TableCell>
+                                  <TableCell className="text-xs">L{policy.level}</TableCell>
+                                  <TableCell className="text-xs">{policy.after_minutes}m</TableCell>
+                                  <TableCell className="text-xs">{policy.severity_min}</TableCell>
+                                  <TableCell className="text-xs">{policy.target_type}:{policy.target_ref}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">No policies configured.</div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/60 bg-card/70">
+                  <CardContent className="py-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-semibold">Escalation deliveries</div>
+                      <span className="text-xs text-muted-foreground">{escalation?.deliveries?.length ?? 0} total</span>
+                    </div>
+                    {(escalation?.deliveries?.length ?? 0) === 0 ? (
+                      <div className="text-xs text-muted-foreground">No escalation deliveries yet.</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Level</TableHead>
+                            <TableHead>Destination</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {escalation?.deliveries?.map((delivery) => (
+                            <TableRow key={delivery.id}>
+                              <TableCell className="text-xs text-muted-foreground">{formatRelativeTime(delivery.created_at)}</TableCell>
+                              <TableCell className="text-xs">
+                                {(() => {
+                                  const level = getEscalationLevel(delivery);
+                                  return level === null ? "L?" : `L${level}`;
+                                })()}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {delivery.destination_type ?? "--"} {delivery.destination_key ? `· ${delivery.destination_key.slice(0, 8)}...` : ""}
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                {delivery.status ?? "--"}
+                              </TableCell>
+                              <TableCell>
+                                <Link href={`/alerts?delivery_id=${delivery.id}`}>
+                                  <a className="text-xs text-primary">Open delivery</a>
+                                </Link>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
 
                 <Card className="border-border/60 bg-card/70">
                   <CardContent className="py-4">

@@ -4,6 +4,7 @@ import { incidents } from "@shared/schema";
 import { writeAuditEvent } from "./auditLog";
 import { listDestinations } from "./alertDestinationStateService";
 import { runIncidentEscalations } from "./incidentEscalationService";
+import { logOpsEvent } from "./opsTelemetry";
 
 const clampMinutes = (value?: number) => {
   const parsed = Number.isFinite(Number(value)) ? Number(value) : 30;
@@ -81,6 +82,12 @@ export async function autoAckIncidents(args: {
           type: row.type,
           destination_key: row.destination_key ?? null,
         },
+      });
+      logOpsEvent("INCIDENT_ACKED", {
+        tenantId: args.tenantId,
+        incidentId: row.id,
+        type: row.type,
+        destinationKey: row.destination_key ?? null,
       });
     }
 
@@ -194,6 +201,12 @@ export async function autoResolveIncidents(args: {
           type: row.type,
           destination_key: row.destination_key ?? null,
         },
+      });
+      logOpsEvent("INCIDENT_RESOLVED", {
+        tenantId: args.tenantId,
+        incidentId: row.id,
+        type: row.type,
+        destinationKey: row.destination_key ?? null,
       });
     }
 

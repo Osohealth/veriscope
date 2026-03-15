@@ -1,8 +1,8 @@
 import type { AlertDecision } from "@shared/alertDecisionDto";
 import { PLAYBOOK_VERSION } from "@shared/alertPlaybook";
 
-type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-type DestinationType = "WEBHOOK" | "EMAIL";
+type Severity = string;
+type DestinationType = string;
 
 type SubscriptionLike = {
   id: string;
@@ -19,9 +19,9 @@ type SelectedClusterLike = {
   cluster_type: string;
   cluster_severity: Severity;
   confidence_score: number;
-  confidence_band: "HIGH" | "MEDIUM" | "LOW";
+  confidence_band: string;
   cluster_summary: string;
-  entity?: { id: string; type: string; name: string; code: string; unlocode: string } | null;
+  entity?: { id: string; type: string; name: string; code: string; unlocode: string | null } | null;
 };
 
 export function redactDestination(dest: string): string {
@@ -44,7 +44,7 @@ export function buildAlertDecision(args: {
   subscription: SubscriptionLike;
   included: SelectedClusterLike[];
   bundle: { enabled: boolean; topN: number; overflow: number; excludedPreview?: AlertDecision["selection"]["bundle"]["excluded_preview"] };
-  gates: AlertDecision["gates"];
+  gates: any;
   suppressedCounts: AlertDecision["suppressed_counts"];
 }): AlertDecision {
   const { evaluatedAtIso, day, clustered, subscription, included, bundle, suppressedCounts } = args;
@@ -94,5 +94,5 @@ export function buildAlertDecision(args: {
     },
     gates,
     suppressed_counts: suppressedCounts,
-  };
+  } as AlertDecision;
 }

@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import swaggerUi from "swagger-ui-express";
 import { randomBytes, randomUUID } from "node:crypto";
-import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { storage } from "./storage";
 import { aisService } from "./services/aisService";
 import { signalsService } from "./services/signalsService";
@@ -31,8 +31,13 @@ import { getIncidentById, getIncidentsSummary, listIncidents } from "./services/
 import { getIncidentMetricsV1 } from "./services/incidentMetrics";
 import { getIncidentAutomationHealth } from "./services/incidentAutomationScheduler";
 import { autoAckIncidents, autoResolveIncidents } from "./services/incidentAutomationService";
-import { deleteIncidentEscalationPolicy, listIncidentEscalationPolicies, upsertIncidentEscalationPolicy } from "./services/incidentEscalationService";
+import { deleteIncidentEscalationPolicy, getIncidentEscalationSnapshot, listIncidentEscalationPolicies, runIncidentEscalations, upsertIncidentEscalationPolicy } from "./services/incidentEscalationService";
+import { previewRouting } from "./services/alertRoutingPreviewService";
+import { validateRoutingPolicyDraft } from "./services/alertRoutingValidationService";
+import { getRoutingHealthForPolicy } from "./services/alertRoutingHealthService";
 import { applyAutoPauseFromEndpointHealth, bulkUpdateDestinationStates, canTransitionDestinationState, getDestinationDetail, listDestinations, upsertDestinationState } from "./services/alertDestinationStateService";
+import { listTeamUsersDirectory } from "./services/teamUsersDirectory";
+import { createUserContactMethod, deleteUserContactMethod, listUserContactMethods, updateUserContactMethod } from "./services/userContactMethodsService";
 import { getDestinationGate } from "./services/alertDestinationGate";
 import { listAlertNoiseBudgets, upsertAlertNoiseBudget } from "./services/alertNoiseBudgetService";
 import { getDestinationOverrides, resolveNoiseBudget, resolveSlaThresholds, upsertDestinationOverrides } from "./services/alertDestinationOverridesService";
@@ -46,6 +51,7 @@ import { authService } from "./services/authService";
 import { sessionService } from "./services/sessionService";
 import { auditService } from "./services/auditService";
 import { writeAuditEvent } from "./services/auditLog";
+import { OPS_SCHEMA_VERSION, getOpsSnapshot, logOpsEvent, resetOpsTelemetry } from "./services/opsTelemetry";
 import { requestTrackingMiddleware, metricsCollector, getHealthStatus, setWsHealth, setDbHealth } from "./middleware/observability";
 import { authRateLimiter, apiRateLimiter } from "./middleware/rateLimiter";
 import { wsManager } from "./services/wsManager";
@@ -55,8 +61,8 @@ import { parsePaginationParams, paginateArray, parseGeoQueryParams, filterByGeoR
 import { openApiSpec } from "./openapi";
 import { getAuthenticatedUser, createRepository, listRepositories } from "./services/githubService";
 import { db } from "./db";
-import { alertDedupe, alertDeliveries, alertDeliveryAttempts, alertDlq, alertEndpointHealth, alertRuns, alertSubscriptions, apiKeys, auditEvents, incidents, portCalls, portDailyBaselines, ports, signals, tenantInvites, tenantUsers, vessels } from "@shared/schema";
-import { SEVERITY_RANK } from "@shared/signalTypes";
+import { alertDedupe, alertDeliveries, alertDeliveryAttempts, alertDlq, alertEndpointHealth, alertRuns, alertRules, alertSubscriptions, apiKeys, auditEvents, commodities, incidents, portCalls, portDailyBaselines, ports, signals, tenantInvites, tenantUsers, tradeFlows, users, vessels } from "@shared/schema";
+import { SEVERITY_RANK, type SignalSeverity, type ConfidenceBand } from "@shared/signalTypes";
 import { WEBHOOK_TIMEOUT_MS } from "./config/alerting";
 import { authenticateApiKey } from "./middleware/apiKeyAuth";
 import { generateApiKey, hashApiKey } from "./services/apiKeyService";
@@ -93,6 +99,62 @@ const isValidWebhookUrl = (value: string, allowHttp: boolean) => {
 };
 const generateSecret = () => randomBytes(24).toString("base64url");
 
+const resolveAlertRuleUserId = async (tenantId: string, authUserId: string) => {
+  const [userRow] = await db
+    .select({ id: users.id, email: users.email })
+    .from(users)
+    .where(eq(users.id, authUserId))
+    .limit(1);
+  if (userRow) return userRow.id;
+
+  const [tenantRow] = await db
+    .select({ email: tenantUsers.email })
+    .from(tenantUsers)
+    .where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, authUserId)))
+    .limit(1);
+
+  const email = tenantRow?.email ?? `api+${authUserId.slice(0, 6)}@veriscope.dev`;
+  const [emailRow] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  if (emailRow) return emailRow.id;
+
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
+  try {
+    await db
+      .insert(users)
+      .values({
+        id: authUserId,
+        email,
+        passwordHash: "api_key_only",
+        role: "analyst",
+        isActive: true,
+      })
+      .onConflictDoNothing();
+  } catch {
+    // Ignore insert errors; we will re-check below.
+  }
+
+  const [created] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.id, authUserId))
+    .limit(1);
+  if (created) return created.id;
+
+  const [afterEmail] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  return afterEmail?.id ?? null;
+};
+
 const ensureRole = (req: any, res: any, minRole: "OWNER" | "OPERATOR" | "VIEWER") => {
   try {
     requireAlertRole(req.auth, minRole);
@@ -106,13 +168,36 @@ const ensureRole = (req: any, res: any, minRole: "OWNER" | "OPERATOR" | "VIEWER"
       message: "Role is not permitted for this operation.",
       metadata: { path: req.path, method: req.method, role: req.auth?.role, required: minRole },
     });
-    res.status(error?.status ?? 403).json({ error: error?.message ?? "Forbidden" });
+    const status = error?.status ?? 403;
+    const code = status === 401 ? "UNAUTHORIZED" : "FORBIDDEN";
+    res.status(status).json({ error: code, detail: error?.message ?? "Forbidden" });
     return false;
   }
 };
 
+const isDevRouteEnabled = () =>
+  process.env.DEV_ROUTES_ENABLED === "true";
+
+const ensureAdminDev = (req: any, res: any) => {
+  if (!ensureRole(req, res, "OWNER")) return false;
+  if (!isDevRouteEnabled()) {
+    res.status(404).json({ error: "NOT_FOUND" });
+    return false;
+  }
+  return true;
+};
+
 const TEAM_ROLES = ["OWNER", "OPERATOR", "VIEWER"] as const;
 const TEAM_STATUSES = ["ACTIVE", "INVITED", "DISABLED"] as const;
+
+const APP_VERSION = process.env.APP_VERSION
+  ?? process.env.GIT_SHA
+  ?? process.env.VERCEL_GIT_COMMIT_SHA
+  ?? "dev";
+const BUILD_SHA = process.env.BUILD_SHA
+  ?? process.env.GIT_SHA
+  ?? process.env.VERCEL_GIT_COMMIT_SHA
+  ?? null;
 
 const normalizeTeamRole = (value?: string, fallback: (typeof TEAM_ROLES)[number] = "VIEWER") => {
   const role = String(value ?? fallback).toUpperCase();
@@ -134,7 +219,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get('/health', (req, res) => {
     const status = getHealthStatus();
-    res.status(status.status === 'healthy' ? 200 : status.status === 'degraded' ? 200 : 503).json(status);
+    res.status(status.status === 'healthy' ? 200 : status.status === 'degraded' ? 200 : 503).json({
+      ...status,
+      app_version: APP_VERSION,
+      build_sha: BUILD_SHA,
+      ops_schema_version: OPS_SCHEMA_VERSION,
+    });
   });
 
   app.get('/health/alerts', authenticateApiKey, async (req, res) => {
@@ -192,6 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const incidentMetrics = tenantId
         ? await getIncidentMetricsV1({ tenantId, days: 7 })
         : null;
+      const opsSnapshot = getOpsSnapshot();
 
       res.json({
         status: "ok",
@@ -220,6 +311,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           : null,
         incident_automation: getIncidentAutomationHealth(),
+        ops: {
+          deliveries: {
+            created_total: opsSnapshot.counters.deliveries_created_total,
+            success_total: opsSnapshot.counters.deliveries_success_total,
+            failure_total: opsSnapshot.counters.deliveries_failure_total,
+            blocked_cooldown_total: opsSnapshot.counters.deliveries_blocked_cooldown_total,
+            blocked_dlq_total: opsSnapshot.counters.deliveries_blocked_dlq_total,
+          },
+          latency_ms: opsSnapshot.delivery_latency_ms,
+          escalations: {
+            runs_total: opsSnapshot.counters.escalation_runs_total,
+            runs_skipped_lock_total: opsSnapshot.counters.escalation_runs_skipped_lock_total,
+            runs_escalated_total: opsSnapshot.counters.escalation_runs_escalated_total,
+            duration_ms: opsSnapshot.escalation_run_duration_ms,
+          },
+        },
       });
     } catch (error: any) {
       res.status(500).json({ status: "error", error: error.message || "Alert health check failed" });
@@ -238,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" && process.env.DEMO_SERVER !== "1") {
     setTimeout(async () => {
       try {
         const demoUserId = "00000000-0000-0000-0000-000000000001";
@@ -410,7 +517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         day.setUTCDate(day.getUTCDate() - (index + 1));
         return {
           portId: port.id,
-          day,
+          day: formatSignalDay(day),
           arrivals: 100,
           departures: 90,
           uniqueVessels: 80,
@@ -449,7 +556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const seed = {
         portId: port.id,
-        day: parsedDay,
+        day: formatSignalDay(parsedDay),
         arrivals: 60,
         departures: 20,
         uniqueVessels: 18,
@@ -490,17 +597,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Dev-only: webhook sink for demo success
   app.post('/api/dev/webhook-sink', (req, res) => {
-    if (process.env.NODE_ENV === "production" && process.env.DEV_ROUTES_ENABLED !== "true") {
-      return res.status(404).json({ error: "Not found" });
+    if (!isDevRouteEnabled()) {
+      return res.status(404).json({ error: "NOT_FOUND" });
     }
     res.json({ ok: true });
+  });
+
+  // Dev-only: issue a demo API key for local UI login
+  app.post('/api/dev/demo-api-key', async (req, res) => {
+    if (!isDevRouteEnabled()) {
+      return res.status(404).json({ error: "NOT_FOUND" });
+    }
+    try {
+      const demoUserId = "00000000-0000-0000-0000-000000000001";
+      const demoTenantId = TENANT_DEMO_ID;
+      const [member] = await db
+        .select()
+        .from(tenantUsers)
+        .where(and(eq(tenantUsers.tenantId, demoTenantId), eq(tenantUsers.userId, demoUserId)))
+        .limit(1);
+      if (!member) {
+        await db.insert(tenantUsers).values({
+          tenantId: demoTenantId,
+          userId: demoUserId,
+          email: "demo@veriscope.dev",
+          role: "OWNER",
+          status: "ACTIVE",
+          createdBy: demoUserId,
+        });
+      }
+      const rawKey = process.env.DEMO_API_KEY || generateApiKey("vs_demo");
+      await db.insert(apiKeys).values({
+        tenantId: demoTenantId,
+        userId: demoUserId,
+        keyHash: hashApiKey(rawKey),
+        name: "dev-ui-login",
+        label: "dev-ui-login",
+        role: "OWNER",
+        isActive: true,
+        createdAt: new Date(),
+      });
+      res.json({ api_key: rawKey });
+    } catch (error: any) {
+      res.status(500).json({ error: "DEMO_API_KEY_FAILED", detail: error?.message ?? "Failed to issue key" });
+    }
   });
 
   // Dev-only: seed alert subscriptions for demo
   app.post('/api/dev/alert-subscriptions/seed', authenticateApiKey, async (req, res) => {
     if (!ensureRole(req, res, "OWNER")) return;
     try {
-      if (process.env.NODE_ENV !== "development") {
+      if (!isDevRouteEnabled()) {
         return res.status(404).json({ error: "Not found" });
       }
       if (process.env.NODE_ENV === 'production') {
@@ -595,7 +742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.post('/api/dev/seed-rotterdam-week', authenticateApiKey, async (req, res) => {
       if (!ensureRole(req, res, "OWNER")) return;
       try {
-        if (process.env.NODE_ENV !== "development") {
+        if (!isDevRouteEnabled()) {
           return res.status(404).json({ error: "Not found" });
         }
         if (process.env.NODE_ENV === 'production') {
@@ -690,8 +837,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           departureTime: departure,
           berthNumber: `B-${(idx % 20) + 1}`,
           purpose: idx % 3 === 0 ? 'loading' : idx % 3 === 1 ? 'discharging' : 'bunkering',
-          waitTimeHours: (idx % 6) + 1,
-          berthTimeHours: dwellHours,
+          waitTimeHours: String((idx % 6) + 1),
+          berthTimeHours: String(dwellHours),
           metadata: { seed: seedTag },
         };
       });
@@ -719,17 +866,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const allowHttp = process.env.NODE_ENV !== "production";
       const validation = validateAlertSubscriptionInput(req.body ?? {}, allowHttp);
-      if (!validation.ok) {
-        return res.status(400).json({ error: validation.errors[0] });
+      if (!validation.ok || !validation.value) {
+        return res.status(400).json({ error: validation.errors?.[0] ?? "Invalid subscription" });
       }
+
+      const values = {
+        tenantId: TENANT_DEMO_ID,
+        ...validation.value,
+        entityId: validation.value.entityId,
+        entityType: validation.value.entityType,
+        scope: "PORT",
+        updatedAt: new Date(),
+      };
 
       const [created] = await db
         .insert(alertSubscriptions)
-        .values({
-          tenantId: TENANT_DEMO_ID,
-          ...validation.value,
-          updatedAt: new Date(),
-        })
+        .values(values)
         .returning();
 
       res.json(created);
@@ -758,6 +910,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ items: rows });
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Failed to list subscriptions" });
+    }
+  });
+
+  // Dev-only: create a demo incident for UI testing
+  app.post('/api/dev/incidents/create-demo', authenticateApiKey, async (req, res) => {
+    if (!ensureRole(req, res, "OWNER")) return;
+    try {
+      if (process.env.DEV_ROUTES_ENABLED !== "true") {
+        return res.status(404).json({ error: "Not found" });
+      }
+      const tenantId = req.auth?.tenantId;
+      if (!tenantId) return res.status(401).json({ error: "API key required" });
+
+      const [portRow] = await db
+        .select()
+        .from(ports)
+        .where(eq(ports.unlocode, "NLRTM"))
+        .limit(1);
+      const [fallbackPort] = portRow ? [portRow] : await db.select().from(ports).limit(1);
+      const port = portRow ?? fallbackPort ?? null;
+      const hub = port?.unlocode ?? port?.code ?? "NLRTM";
+      const title = `Demo congestion alert - ${hub}`;
+      const summary = port
+        ? `Synthetic congestion incident for ${port.name}.`
+        : "Synthetic congestion incident for demo port.";
+
+      const actorApiKeyId = req.auth?.apiKeyId ?? null;
+      const actorId = actorApiKeyId && isValidUuid(actorApiKeyId) ? actorApiKeyId : null;
+      const now = new Date();
+
+      const [created] = await db
+        .insert(incidents)
+        .values({
+          tenantId,
+          type: "PORT_CONGESTION",
+          destinationKey: `demo-congestion:${hub}`,
+          status: "OPEN",
+          severity: "HIGH",
+          title,
+          summary,
+          openedAt: now,
+          openedByActorType: "API_KEY",
+          openedByActorId: actorId,
+        })
+        .returning();
+
+      await writeAuditEvent(req.auditContext, {
+        action: "INCIDENT.OPENED",
+        resourceType: "INCIDENT",
+        resourceId: created.id,
+        status: "SUCCESS",
+        severity: "SECURITY",
+        message: title,
+        metadata: {
+          type: created.type,
+          destination_key: created.destinationKey ?? null,
+        },
+      });
+      logOpsEvent("INCIDENT_CREATED", {
+        tenantId,
+        incidentId: created.id,
+        type: created.type,
+        severity: created.severity,
+        destinationKey: created.destinationKey ?? null,
+        actorType: "API_KEY",
+        actorApiKeyId: actorApiKeyId,
+      });
+
+      res.json({
+        version: "1",
+        item: {
+          id: created.id,
+          tenant_id: created.tenantId,
+          type: created.type,
+          destination_key: created.destinationKey ?? null,
+          status: created.status,
+          severity: created.severity,
+          title: created.title,
+          summary: created.summary,
+          opened_at: created.openedAt,
+          acked_at: created.ackedAt ?? null,
+          resolved_at: created.resolvedAt ?? null,
+          opened_by_actor_type: created.openedByActorType,
+          opened_by_actor_id: created.openedByActorId ?? null,
+          acked_by_actor_type: created.ackedByActorType ?? null,
+          acked_by_actor_id: created.ackedByActorId ?? null,
+          resolved_by_actor_type: created.resolvedByActorType ?? null,
+          resolved_by_actor_id: created.resolvedByActorId ?? null,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to create demo incident" });
     }
   });
 
@@ -963,6 +1207,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/metrics', (req, res) => {
     res.json(metricsCollector.getMetrics());
+  });
+
+  app.get('/metrics/ops', (_req, res) => {
+    res.json({
+      version: "1",
+      app_version: APP_VERSION,
+      build_sha: BUILD_SHA,
+      ...getOpsSnapshot(),
+    });
   });
 
   // ===== GITHUB INTEGRATION ENDPOINTS =====
@@ -1510,11 +1763,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clustered: clusteredFlag,
       });
 
-      let entityMap: Map<string, { id: string; name: string; code: string; unlocode: string }> | null = null;
+      let entityMap: Map<string, SignalEntity> | null = null;
       if (includeEntity) {
         const portIds = Array.from(new Set(items
-          .filter((signal) => signal.entityType === 'port')
-          .map((signal) => signal.entityId)));
+          .filter((signal: any) => signal.entityType === 'port')
+          .map((signal: any) => signal.entityId)))
+          .filter((value): value is string => Boolean(value));
         if (portIds.length > 0) {
           const portRows = await db
             .select({
@@ -1525,14 +1779,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             })
             .from(ports)
             .where(inArray(ports.id, portIds));
-          entityMap = new Map(portRows.map((row) => [row.id, row]));
+          entityMap = new Map(portRows.map((row) => [row.id, {
+            id: row.id,
+            type: "port",
+            name: row.name,
+            code: row.code,
+            unlocode: row.unlocode ?? "",
+          }]));
         } else {
           entityMap = new Map();
         }
       }
 
       const compat = String(req.query.compat ?? "false").toLowerCase() === "true";
-      const mapped = items.map((signal) => buildSignalResponse(signal, {
+      const mapped = items.map((signal: any) => buildSignalResponse(signal, {
         compat,
         includeEntity,
         entityMap: entityMap ?? new Map<string, SignalEntity>(),
@@ -1573,7 +1833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: "port",
             name: portRow[0].name,
             code: portRow[0].code,
-            unlocode: portRow[0].unlocode,
+            unlocode: portRow[0].unlocode ?? "",
           }]]);
         }
       }
@@ -1589,6 +1849,425 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // V1 Flows - Summary
+  app.get('/v1/flows/summary', optionalAuth, async (req, res) => {
+    try {
+      const { commodity, origin, destination, hub, region, time } = req.query;
+      const flowRows = await db.select().from(tradeFlows).orderBy(desc(tradeFlows.createdAt)).limit(500);
+
+      const commodityIds = [...new Set(flowRows.map((row) => row.commodityId).filter(Boolean))];
+      const portIds = [...new Set(flowRows.flatMap((row) => [row.originPortId, row.destinationPortId]).filter(Boolean))];
+
+      const [commodityRows, portRows] = await Promise.all([
+        commodityIds.length
+          ? db.select().from(commodities).where(inArray(commodities.id, commodityIds))
+          : Promise.resolve([]),
+        portIds.length ? db.select().from(ports).where(inArray(ports.id, portIds)) : Promise.resolve([]),
+      ]);
+
+      const commodityMap = new Map(commodityRows.map((row) => [row.id, row]));
+      const portMap = new Map(portRows.map((row) => [row.id, row]));
+
+      const normalize = (value?: string) => value?.toLowerCase();
+      const matchPort = (portId?: string | null, query?: string) => {
+        if (!query) return true;
+        const port = portId ? portMap.get(portId) : null;
+        if (!port) return false;
+        const q = normalize(query);
+        return [port.name, port.unlocode, port.code].some((field) => normalize(field)?.includes(q ?? ""));
+      };
+
+      const filtered = flowRows.filter((row) => {
+        if (commodity) {
+          const commodityRow = commodityMap.get(row.commodityId);
+          const q = normalize(String(commodity));
+          if (!commodityRow || !normalize(commodityRow.name)?.includes(q ?? "")) return false;
+        }
+        if (!matchPort(row.originPortId, origin as string | undefined)) return false;
+        if (!matchPort(row.destinationPortId, destination as string | undefined)) return false;
+        if (!matchPort(row.originPortId, hub as string | undefined) && !matchPort(row.destinationPortId, hub as string | undefined)) {
+          if (hub) return false;
+        }
+        if (region) {
+          const regionValue = normalize(String(region));
+          const originPort = row.originPortId ? portMap.get(row.originPortId) : null;
+          const destinationPort = row.destinationPortId ? portMap.get(row.destinationPortId) : null;
+          if (
+            !originPort?.region?.toLowerCase().includes(regionValue ?? "") &&
+            !destinationPort?.region?.toLowerCase().includes(regionValue ?? "")
+          ) {
+            return false;
+          }
+        }
+        if (time && time !== "live") {
+          const now = new Date();
+          const days = time === "24h" ? 1 : time === "30d" ? 30 : 7;
+          const cutoff = new Date(now);
+          cutoff.setUTCDate(cutoff.getUTCDate() - days);
+          const created = row.createdAt ?? row.departureDate ?? row.loadingDate;
+          if (created && created < cutoff) return false;
+        }
+        return true;
+      });
+
+      const volumes = filtered.map((row) => Number(row.cargoVolume || 0));
+      const totalVolume = volumes.reduce((sum, value) => sum + value, 0);
+      const regionValue = region ? normalize(String(region)) : null;
+      const importVolume = regionValue
+        ? filtered.reduce((sum, row) => {
+            const destPort = row.destinationPortId ? portMap.get(row.destinationPortId) : null;
+            if (destPort?.region?.toLowerCase().includes(regionValue)) {
+              return sum + Number(row.cargoVolume || 0);
+            }
+            return sum;
+          }, 0)
+        : Math.round(totalVolume * 0.48);
+      const exportVolume = totalVolume - importVolume;
+      const netFlow = exportVolume - importVolume;
+      const avgVolume = volumes.length ? totalVolume / volumes.length : 0;
+      const maxDelta = volumes.length
+        ? Math.max(...volumes.map((value) => (avgVolume ? (value - avgVolume) / avgVolume * 100 : 0)))
+        : 0;
+
+      res.json({
+        totalVolume,
+        importVolume,
+        exportVolume,
+        netFlow,
+        topLaneDelta: Number(maxDelta.toFixed(1)),
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to load flow summary" });
+    }
+  });
+
+  // V1 Flows - Lanes
+  app.get('/v1/flows/lanes', optionalAuth, async (req, res) => {
+    try {
+      const { commodity, origin, destination, hub, region, time, limit = "50" } = req.query;
+      const flowRows = await db.select().from(tradeFlows).orderBy(desc(tradeFlows.createdAt)).limit(500);
+
+      const commodityIds = [...new Set(flowRows.map((row) => row.commodityId).filter(Boolean))];
+      const portIds = [...new Set(flowRows.flatMap((row) => [row.originPortId, row.destinationPortId]).filter(Boolean))];
+
+      const [commodityRows, portRows] = await Promise.all([
+        commodityIds.length
+          ? db.select().from(commodities).where(inArray(commodities.id, commodityIds))
+          : Promise.resolve([]),
+        portIds.length ? db.select().from(ports).where(inArray(ports.id, portIds)) : Promise.resolve([]),
+      ]);
+
+      const commodityMap = new Map(commodityRows.map((row) => [row.id, row]));
+      const portMap = new Map(portRows.map((row) => [row.id, row]));
+      const normalize = (value?: string) => value?.toLowerCase();
+      const matchPort = (portId?: string | null, query?: string) => {
+        if (!query) return true;
+        const port = portId ? portMap.get(portId) : null;
+        if (!port) return false;
+        const q = normalize(query);
+        return [port.name, port.unlocode, port.code].some((field) => normalize(field)?.includes(q ?? ""));
+      };
+
+      const filtered = flowRows.filter((row) => {
+        if (commodity) {
+          const commodityRow = commodityMap.get(row.commodityId);
+          const q = normalize(String(commodity));
+          if (!commodityRow || !normalize(commodityRow.name)?.includes(q ?? "")) return false;
+        }
+        if (!matchPort(row.originPortId, origin as string | undefined)) return false;
+        if (!matchPort(row.destinationPortId, destination as string | undefined)) return false;
+        if (!matchPort(row.originPortId, hub as string | undefined) && !matchPort(row.destinationPortId, hub as string | undefined)) {
+          if (hub) return false;
+        }
+        if (region) {
+          const regionValue = normalize(String(region));
+          const originPort = row.originPortId ? portMap.get(row.originPortId) : null;
+          const destinationPort = row.destinationPortId ? portMap.get(row.destinationPortId) : null;
+          if (
+            !originPort?.region?.toLowerCase().includes(regionValue ?? "") &&
+            !destinationPort?.region?.toLowerCase().includes(regionValue ?? "")
+          ) {
+            return false;
+          }
+        }
+        if (time && time !== "live") {
+          const now = new Date();
+          const days = time === "24h" ? 1 : time === "30d" ? 30 : 7;
+          const cutoff = new Date(now);
+          cutoff.setUTCDate(cutoff.getUTCDate() - days);
+          const created = row.createdAt ?? row.departureDate ?? row.loadingDate;
+          if (created && created < cutoff) return false;
+        }
+        return true;
+      });
+
+      const volumes = filtered.map((row) => Number(row.cargoVolume || 0));
+      const avg = volumes.length ? volumes.reduce((sum, value) => sum + value, 0) / volumes.length : 0;
+      const std = volumes.length
+        ? Math.sqrt(volumes.reduce((sum, value) => sum + Math.pow(value - avg, 2), 0) / volumes.length)
+        : 0;
+
+      const items = filtered
+        .map((row) => {
+          const originPort = row.originPortId ? portMap.get(row.originPortId) : null;
+          const destinationPort = row.destinationPortId ? portMap.get(row.destinationPortId) : null;
+          const commodityRow = commodityMap.get(row.commodityId);
+          const volume = Number(row.cargoVolume || 0);
+          const deltaPct = avg ? ((volume - avg) / avg) * 100 : 0;
+          const zScore = std ? (volume - avg) / std : 0;
+
+          return {
+            id: row.id,
+            originId: row.originPortId,
+            originName: originPort?.name ?? "Unknown",
+            originLat: originPort?.latitude ?? null,
+            originLng: originPort?.longitude ?? null,
+            destinationId: row.destinationPortId,
+            destinationName: destinationPort?.name ?? "Unknown",
+            destinationLat: destinationPort?.latitude ?? null,
+            destinationLng: destinationPort?.longitude ?? null,
+            commodity: commodityRow?.name ?? "Unknown",
+            volume,
+            unit: commodityRow?.unit ?? "bbl",
+            deltaPct: Number(deltaPct.toFixed(1)),
+            zScore: Number(zScore.toFixed(2)),
+          };
+        })
+        .slice(0, Math.min(parseInt(String(limit)) || 50, 200));
+
+      res.json({ items });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to load flow lanes" });
+    }
+  });
+
+  // V1 Flows - Timeseries
+  app.get('/v1/flows/timeseries', optionalAuth, async (req, res) => {
+    try {
+      const { time = "7d" } = req.query;
+      const days = time === "24h" ? 1 : time === "30d" ? 30 : 7;
+      const now = new Date();
+      const start = new Date(now);
+      start.setUTCDate(start.getUTCDate() - days);
+
+      const flowRows = await db
+        .select()
+        .from(tradeFlows)
+        .where(and(eq(tradeFlows.status, "in_transit")))
+        .orderBy(desc(tradeFlows.createdAt))
+        .limit(500);
+
+      const seriesMap = new Map<string, number>();
+      flowRows.forEach((row) => {
+        const created = row.createdAt ?? row.departureDate ?? row.loadingDate ?? now;
+        if (created < start) return;
+        const day = created.toISOString().slice(0, 10);
+        seriesMap.set(day, (seriesMap.get(day) ?? 0) + Number(row.cargoVolume || 0));
+      });
+
+      const current = Array.from(seriesMap.entries())
+        .sort(([a], [b]) => (a > b ? 1 : -1))
+        .map(([day, volume]) => ({ day, volume }));
+
+      const previous = current.map((point) => ({
+        day: point.day,
+        volume: Number((point.volume * 0.9).toFixed(2)),
+      }));
+
+      res.json({ current, previous });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to load flow timeseries" });
+    }
+  });
+
+  const hashString = (value: string) => {
+    let hash = 5381;
+    for (let i = 0; i < value.length; i += 1) {
+      hash = ((hash << 5) + hash) ^ value.charCodeAt(i);
+    }
+    return Math.abs(hash);
+  };
+
+  const seededRange = (seed: string, min: number, max: number) => {
+    const ratio = (hashString(seed) % 10000) / 10000;
+    return min + ratio * (max - min);
+  };
+
+  const buildCongestionRow = (port: typeof ports.$inferSelect) => {
+    const seed = port.id ?? port.unlocode ?? port.code ?? port.name ?? "port";
+    const vesselCount = Math.round(seededRange(`${seed}-vessel`, 12, 90));
+    const queueCount = Math.min(vesselCount, Math.round(seededRange(`${seed}-queue`, 4, 60)));
+    const avgWaitHours = Number(seededRange(`${seed}-wait`, 6, 96).toFixed(1));
+    const dwellHours = Number((avgWaitHours + seededRange(`${seed}-dwell`, 12, 72)).toFixed(1));
+    const throughputEstimate = Math.round(seededRange(`${seed}-throughput`, 40, 180));
+    const riskScore = Math.min(100, Math.round(queueCount * 1.3 + avgWaitHours * 0.6 + dwellHours * 0.2));
+    const severity = riskScore >= 75 ? "high" : riskScore >= 45 ? "medium" : "low";
+    const whyItMatters =
+      severity === "high"
+        ? "Extended queues are driving elevated dwell risk."
+        : severity === "medium"
+          ? "Wait times are trending above baseline."
+          : "Port operations are stable with manageable queues.";
+
+    return {
+      id: port.id,
+      portId: port.id,
+      portName: port.name,
+      vesselCount,
+      queueCount,
+      avgWaitHours,
+      dwellHours,
+      throughputEstimate,
+      riskScore,
+      severity,
+      whyItMatters,
+      latitude: port.latitude != null ? Number(port.latitude) : null,
+      longitude: port.longitude != null ? Number(port.longitude) : null,
+    };
+  };
+
+  // V1 Congestion - Summary
+  app.get('/v1/congestion/summary', optionalAuth, async (req, res) => {
+    try {
+      const { region, hub, limit = "120" } = req.query;
+      const portRows = await db.select().from(ports).limit(200);
+
+      const normalized = (value?: string | null) => value?.toLowerCase() ?? "";
+      const hubValue = normalized(String(hub ?? ""));
+      const regionValue = normalized(String(region ?? ""));
+
+      const filtered = portRows.filter((port) => {
+        if (hubValue) {
+          if (
+            ![port.name, port.unlocode, port.code].some((field) =>
+              normalized(field).includes(hubValue)
+            )
+          ) {
+            return false;
+          }
+        }
+        if (regionValue) {
+          if (!normalized(port.region).includes(regionValue)) return false;
+        }
+        return true;
+      });
+
+      const items = filtered
+        .map(buildCongestionRow)
+        .sort((a, b) => b.riskScore - a.riskScore)
+        .slice(0, Math.min(parseInt(String(limit)) || 120, 200));
+
+      const portsMonitored = items.length;
+      const congestedPorts = items.filter((item) => item.riskScore >= 60).length;
+      const avgWaitHours =
+        portsMonitored > 0
+          ? Number(
+              (
+                items.reduce((sum, item) => sum + item.avgWaitHours, 0) / portsMonitored
+              ).toFixed(1)
+            )
+          : 0;
+      const maxDwellHours = items.reduce((max, item) => Math.max(max, item.dwellHours), 0);
+      const topRiskPort = items[0]?.portName ?? null;
+
+      res.json({
+        portsMonitored,
+        congestedPorts,
+        avgWaitHours,
+        maxDwellHours,
+        topRiskPort,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to load congestion summary" });
+    }
+  });
+
+  // V1 Congestion - Ports
+  app.get('/v1/congestion/ports', optionalAuth, async (req, res) => {
+    try {
+      const { region, hub, limit = "50" } = req.query;
+      const portRows = await db.select().from(ports).limit(200);
+
+      const normalized = (value?: string | null) => value?.toLowerCase() ?? "";
+      const hubValue = normalized(String(hub ?? ""));
+      const regionValue = normalized(String(region ?? ""));
+
+      const items = portRows
+        .filter((port) => port.latitude !== null && port.longitude !== null)
+        .filter((port) => {
+          if (hubValue) {
+            if (
+              ![port.name, port.unlocode, port.code].some((field) =>
+                normalized(field).includes(hubValue)
+              )
+            ) {
+              return false;
+            }
+          }
+          if (regionValue) {
+            if (!normalized(port.region).includes(regionValue)) return false;
+          }
+          return true;
+        })
+        .map(buildCongestionRow)
+        .sort((a, b) => b.riskScore - a.riskScore)
+        .slice(0, Math.min(parseInt(String(limit)) || 50, 200));
+
+      res.json({ items });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to load congestion ports" });
+    }
+  });
+
+  // V1 Congestion - Timeseries
+  app.get('/v1/congestion/timeseries', optionalAuth, async (req, res) => {
+    try {
+      const { portId, time = "7d" } = req.query;
+      if (!portId || typeof portId !== "string") {
+        res.status(400).json({ error: "portId required" });
+        return;
+      }
+
+      const portRows = await db.select().from(ports).where(eq(ports.id, portId)).limit(1);
+      const port = portRows[0];
+      if (!port) {
+        res.status(404).json({ error: "Port not found" });
+        return;
+      }
+
+      const days = time === "24h" ? 1 : time === "30d" ? 30 : 14;
+      const now = new Date();
+      const series = [];
+
+      for (let i = days - 1; i >= 0; i -= 1) {
+        const day = new Date(now);
+        day.setUTCDate(day.getUTCDate() - i);
+        const dayKey = day.toISOString().slice(0, 10);
+        const seed = `${port.id}-${dayKey}`;
+        const queueCount = Math.round(seededRange(`${seed}-queue`, 4, 55));
+        const arrivals = Math.round(seededRange(`${seed}-arrivals`, 10, 70));
+        const departures = Math.max(0, arrivals - Math.round(seededRange(`${seed}-departures`, 4, 30)));
+        const waitHours = Number(seededRange(`${seed}-wait`, 6, 96).toFixed(1));
+
+        series.push({
+          day: dayKey,
+          queueCount,
+          arrivals,
+          departures,
+          waitHours,
+        });
+      }
+
+      res.json({
+        portId: port.id,
+        portName: port.name,
+        series,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to load congestion timeseries" });
+    }
+  });
+
   // V1 Auth context (API key)
   app.get('/v1/me', authenticateApiKey, (req, res) => {
     if (!ensureRole(req, res, "VIEWER")) return;
@@ -1601,12 +2280,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===== TEAM & ACCESS MANAGEMENT =====
-  app.get('/v1/team/members', authenticateApiKey, async (req, res) => {
-    if (!ensureRole(req, res, "VIEWER")) return;
-    try {
-      const tenantId = req.auth?.tenantId;
-      const userId = req.auth?.userId;
-      if (!tenantId || !userId) return res.status(401).json({ error: "API key required" });
+    app.get('/v1/team/members', authenticateApiKey, async (req, res) => {
+      if (!ensureRole(req, res, "VIEWER")) return;
+      try {
+        const tenantId = req.auth?.tenantId;
+        const userId = req.auth?.userId;
+        if (!tenantId || !userId) return res.status(401).json({ error: "API key required" });
 
       const members = await db
         .select()
@@ -1614,25 +2293,252 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(tenantUsers.tenantId, tenantId))
         .orderBy(desc(tenantUsers.createdAt));
 
-      res.json({
-        version: "1",
-        items: members.map((row) => ({
-          id: row.id,
-          user_id: row.userId,
-          email: row.email,
-          display_name: row.displayName ?? null,
-          role: row.role,
-          status: row.status,
-          created_at: row.createdAt,
-          created_by: row.createdBy ?? null,
-          revoked_at: row.revokedAt ?? null,
-          revoked_by: row.revokedBy ?? null,
-        })),
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message || "Failed to list team members" });
-    }
-  });
+        res.json({
+          version: "1",
+          items: members.map((row) => ({
+            id: row.id,
+            user_id: row.userId,
+            email: row.email,
+            display_name: row.displayName ?? null,
+            role: row.role,
+            status: row.status,
+            created_at: row.createdAt,
+            created_by: row.createdBy ?? null,
+            revoked_at: row.revokedAt ?? null,
+            revoked_by: row.revokedBy ?? null,
+          })),
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to list team members" });
+      }
+    });
+
+    app.get('/v1/team/users', authenticateApiKey, async (req, res) => {
+      if (!ensureRole(req, res, "VIEWER")) return;
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) return res.status(401).json({ error: "API key required" });
+
+        const query = req.query?.query ? String(req.query.query) : undefined;
+        const limit = Math.min(parseInt(String(req.query?.limit ?? "20")) || 20, 50);
+        let cursorCreatedAt: string | null = null;
+        let cursorId: string | null = null;
+        if (req.query?.cursor) {
+          try {
+            const decoded = Buffer.from(String(req.query.cursor), "base64").toString("utf8");
+            const [createdAtIso, id] = decoded.split("|");
+            const createdAtMs = Date.parse(createdAtIso);
+            if (createdAtIso && id && !Number.isNaN(createdAtMs)) {
+              cursorCreatedAt = createdAtIso;
+              cursorId = id;
+            } else {
+              return res.status(400).json({ error: "Invalid cursor" });
+            }
+          } catch {
+            return res.status(400).json({ error: "Invalid cursor" });
+          }
+        }
+
+        const { items, nextCursor } = await listTeamUsersDirectory({
+          tenantId,
+          query,
+          limit,
+          cursorCreatedAt,
+          cursorId,
+        });
+
+        res.json({
+          version: "1",
+          items,
+          next_cursor: nextCursor,
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to list team users" });
+      }
+    });
+
+    app.get('/v1/users/:user_id/contact-methods', authenticateApiKey, async (req, res) => {
+      if (!ensureRole(req, res, "VIEWER")) return;
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) return res.status(401).json({ error: "API key required" });
+
+        const userId = String(req.params.user_id ?? "");
+        if (!isValidUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
+
+        const [user] = await db
+          .select()
+          .from(tenantUsers)
+          .where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId)))
+          .limit(1);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const activeOnly = String(req.query?.active_only ?? "true").toLowerCase() !== "false";
+        const items = await listUserContactMethods({ tenantId, userId, activeOnly });
+
+        res.json({ version: "1", items });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to list contact methods" });
+      }
+    });
+
+    app.post('/v1/users/:user_id/contact-methods', authenticateApiKey, async (req, res) => {
+      if (!ensureRole(req, res, "OWNER")) return;
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) return res.status(401).json({ error: "API key required" });
+
+        const userId = String(req.params.user_id ?? "");
+        if (!isValidUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
+
+        const row = await createUserContactMethod({
+          tenantId,
+          userId,
+          input: {
+            type: req.body?.type,
+            value: req.body?.value,
+            label: req.body?.label ?? null,
+            is_primary: req.body?.is_primary,
+          },
+        });
+
+        await writeAuditEvent(req.auditContext, {
+          action: "USER.CONTACT_METHOD_CREATED",
+          resourceType: "user",
+          resourceId: userId,
+          severity: "INFO",
+          status: "SUCCESS",
+          message: "User contact method created",
+          metadata: {
+            contact_method_id: row.id,
+            type: row.type,
+            is_primary: row.isPrimary,
+            is_active: row.isActive,
+          },
+          tenantId,
+        });
+
+        res.json({
+          version: "1",
+          item: {
+            id: row.id,
+            tenant_id: row.tenantId,
+            user_id: row.userId,
+            type: row.type,
+            value: row.value,
+            label: row.label ?? null,
+            is_primary: row.isPrimary,
+            is_verified: row.isVerified,
+            is_active: row.isActive,
+            created_at: row.createdAt,
+          },
+        });
+      } catch (error: any) {
+        if (error?.message === "User not found") {
+          return res.status(404).json({ error: "User not found" });
+        }
+        res.status(400).json({ error: error.message || "Failed to create contact method" });
+      }
+    });
+
+    app.patch('/v1/users/:user_id/contact-methods/:id', authenticateApiKey, async (req, res) => {
+      if (!ensureRole(req, res, "OWNER")) return;
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) return res.status(401).json({ error: "API key required" });
+
+        const userId = String(req.params.user_id ?? "");
+        if (!isValidUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
+
+        const methodId = String(req.params.id ?? "");
+        if (!isValidUuid(methodId)) return res.status(400).json({ error: "Invalid contact method id" });
+
+        const row = await updateUserContactMethod({
+          tenantId,
+          userId,
+          id: methodId,
+          patch: {
+            label: req.body?.label,
+            is_primary: req.body?.is_primary,
+            is_active: req.body?.is_active,
+          },
+        });
+
+        await writeAuditEvent(req.auditContext, {
+          action: "USER.CONTACT_METHOD_UPDATED",
+          resourceType: "user",
+          resourceId: userId,
+          severity: "INFO",
+          status: "SUCCESS",
+          message: "User contact method updated",
+          metadata: {
+            contact_method_id: row.id,
+            type: row.type,
+            is_primary: row.isPrimary,
+            is_active: row.isActive,
+          },
+          tenantId,
+        });
+
+        res.json({
+          version: "1",
+          item: {
+            id: row.id,
+            tenant_id: row.tenantId,
+            user_id: row.userId,
+            type: row.type,
+            value: row.value,
+            label: row.label ?? null,
+            is_primary: row.isPrimary,
+            is_verified: row.isVerified,
+            is_active: row.isActive,
+            created_at: row.createdAt,
+          },
+        });
+      } catch (error: any) {
+        if (error?.message === "Contact method not found") {
+          return res.status(404).json({ error: "Contact method not found" });
+        }
+        res.status(400).json({ error: error.message || "Failed to update contact method" });
+      }
+    });
+
+    app.delete('/v1/users/:user_id/contact-methods/:id', authenticateApiKey, async (req, res) => {
+      if (!ensureRole(req, res, "OWNER")) return;
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) return res.status(401).json({ error: "API key required" });
+
+        const userId = String(req.params.user_id ?? "");
+        if (!isValidUuid(userId)) return res.status(400).json({ error: "Invalid user id" });
+
+        const methodId = String(req.params.id ?? "");
+        if (!isValidUuid(methodId)) return res.status(400).json({ error: "Invalid contact method id" });
+
+        const row = await deleteUserContactMethod({ tenantId, userId, id: methodId });
+
+        await writeAuditEvent(req.auditContext, {
+          action: "USER.CONTACT_METHOD_DELETED",
+          resourceType: "user",
+          resourceId: userId,
+          severity: "INFO",
+          status: "SUCCESS",
+          message: "User contact method deleted",
+          metadata: {
+            contact_method_id: row.id,
+            type: row.type,
+          },
+          tenantId,
+        });
+
+        res.json({ version: "1", ok: true });
+      } catch (error: any) {
+        if (error?.message === "Contact method not found") {
+          return res.status(404).json({ error: "Contact method not found" });
+        }
+        res.status(400).json({ error: error.message || "Failed to delete contact method" });
+      }
+    });
 
   app.patch('/v1/team/members/:id', authenticateApiKey, async (req, res) => {
     if (!ensureRole(req, res, "OWNER")) return;
@@ -1661,7 +2567,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               eq(tenantUsers.role, "OWNER"),
               eq(tenantUsers.status, "ACTIVE"),
             ));
-          if ((ownerCount?.count ?? 0) <= 1) {
+          if (Number(ownerCount?.count ?? 0) <= 1) {
             return res.status(400).json({ error: "Cannot demote last OWNER" });
           }
         }
@@ -1679,7 +2585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               eq(tenantUsers.role, "OWNER"),
               eq(tenantUsers.status, "ACTIVE"),
             ));
-          if ((ownerCount?.count ?? 0) <= 1) {
+          if (Number(ownerCount?.count ?? 0) <= 1) {
             return res.status(400).json({ error: "Cannot disable last OWNER" });
           }
         }
@@ -1788,7 +2694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             eq(tenantUsers.role, "OWNER"),
             eq(tenantUsers.status, "ACTIVE"),
           ));
-        if ((ownerCount?.count ?? 0) <= 1) {
+        if (Number(ownerCount?.count ?? 0) <= 1) {
           return res.status(400).json({ error: "Cannot revoke last OWNER" });
         }
       }
@@ -2267,7 +3173,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return { rank, confidence };
       };
       for (const row of signalRows) {
-        const key = `${row.clusterId}|${row.entityId}|${row.day instanceof Date ? formatSignalDay(row.day) : String(row.day)}`;
+        const dayValue = (row.day as unknown) instanceof Date
+          ? formatSignalDay(row.day as unknown as Date)
+          : String(row.day);
+        const key = `${row.clusterId}|${row.entityId}|${dayValue}`;
         const existing = signalMap.get(key);
         if (!existing) {
           signalMap.set(key, row);
@@ -2280,15 +3189,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      let entityMap: Map<string, { id: string; name: string; code: string; unlocode: string }> | null = null;
+      let entityMap: Map<string, SignalEntity> | null = null;
       if (includeEntity) {
-        const portIds = Array.from(new Set(items.map((row) => row.entityId)));
+        const portIds = Array.from(new Set(items.map((row) => row.entityId)))
+          .filter((value): value is string => Boolean(value));
         if (portIds.length > 0) {
           const portRows = await db
             .select({ id: ports.id, name: ports.name, code: ports.code, unlocode: ports.unlocode })
             .from(ports)
             .where(inArray(ports.id, portIds));
-          entityMap = new Map(portRows.map((row) => [row.id, row]));
+          entityMap = new Map(portRows.map((row) => [row.id, {
+            id: row.id,
+            type: "port",
+            name: row.name,
+            code: row.code,
+            unlocode: row.unlocode ?? "",
+          }]));
         } else {
           entityMap = new Map();
         }
@@ -2343,7 +3259,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           suppressed_counts: decision?.suppressed_counts ?? null,
         } : null;
         const entityRow = includeEntity ? entityMap?.get(row.entityId) : undefined;
-        const key = `${row.clusterId}|${row.entityId}|${row.day instanceof Date ? formatSignalDay(row.day) : String(row.day)}`;
+        const dayValue = (row.day as unknown) instanceof Date
+          ? formatSignalDay(row.day as Date)
+          : String(row.day);
+        const key = `${row.clusterId}|${row.entityId}|${dayValue}`;
         const signalRow = signalMap.get(key);
         const systemParts = String(row.clusterId ?? "").startsWith("sla:") ? String(row.clusterId).split(":") : null;
         const systemMeta = systemParts && systemParts.length >= 5
@@ -2389,9 +3308,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           entityType: "port",
           entityId: signalRow.entityId,
           clusterId: signalRow.clusterId,
-          clusterSeverity: signalRow.clusterSeverity,
+          clusterSeverity: signalRow.clusterSeverity as SignalSeverity | null,
           confidenceScore: signalRow.confidenceScore,
-          confidenceBand: signalRow.confidenceBand,
+          confidenceBand: signalRow.confidenceBand as ConfidenceBand | null,
           clusterSummary: signalRow.clusterSummary,
           metadata: signalRow.metadata ?? {},
         }) : systemMeta && systemClusterType
@@ -2754,9 +3673,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           entityType: "port",
           entityId: signalRow.entityId,
           clusterId: signalRow.clusterId,
-          clusterSeverity: signalRow.clusterSeverity,
+          clusterSeverity: signalRow.clusterSeverity as SignalSeverity | null,
           confidenceScore: signalRow.confidenceScore,
-          confidenceBand: signalRow.confidenceBand,
+          confidenceBand: signalRow.confidenceBand as ConfidenceBand | null,
           clusterSummary: signalRow.clusterSummary,
           metadata: signalRow.metadata ?? {},
         }) : systemMeta && systemClusterType
@@ -2868,37 +3787,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    app.patch('/v1/tenant-settings', authenticateApiKey, async (req, res) => {
-      if (!ensureRole(req, res, "OWNER")) return;
-      try {
-        const tenantId = req.auth?.tenantId;
-        if (!tenantId) return res.status(401).json({ error: "API key required" });
-        const current = await getTenantSettings(tenantId);
-        const updated = await upsertTenantSettings(tenantId, {
-          audit_retention_days: req.body?.audit_retention_days,
-        });
+      app.patch('/v1/tenant-settings', authenticateApiKey, async (req, res) => {
+        if (!ensureRole(req, res, "OWNER")) return;
+        try {
+          const tenantId = req.auth?.tenantId;
+          if (!tenantId) return res.status(401).json({ error: "API key required" });
+          const current = await getTenantSettings(tenantId);
+          const updated = await upsertTenantSettings(tenantId, {
+            audit_retention_days: req.body?.audit_retention_days,
+            allowed_email_domains: req.body?.allowed_email_domains,
+            allowed_webhook_hosts: req.body?.allowed_webhook_hosts,
+          });
 
-        await writeAuditEvent(req.auditContext, {
-          action: "SETTINGS.AUDIT_RETENTION_UPDATED",
-          resourceType: "TENANT_SETTINGS",
-          resourceId: tenantId,
-          severity: "SECURITY",
-          status: "SUCCESS",
-          message: "Audit retention updated",
-          metadata: {
-            from_days: current.audit_retention_days,
-            to_days: updated.audit_retention_days,
-          },
-        });
+          await writeAuditEvent(req.auditContext, {
+            action: "SETTINGS.AUDIT_RETENTION_UPDATED",
+            resourceType: "TENANT_SETTINGS",
+            resourceId: tenantId,
+            severity: "SECURITY",
+            status: "SUCCESS",
+            message: "Audit retention updated",
+            metadata: {
+              from_days: current.audit_retention_days,
+              to_days: updated.audit_retention_days,
+              allowed_email_domains: updated.allowed_email_domains,
+              allowed_webhook_hosts: updated.allowed_webhook_hosts,
+            },
+          });
 
-        res.json({ version: "1", ...updated });
-      } catch (error: any) {
+          res.json({ version: "1", ...updated });
+        } catch (error: any) {
         res.status(400).json({ error: error.message || "Failed to update tenant settings" });
       }
     });
 
     app.post('/api/admin/audit/purge', authenticateApiKey, async (req, res) => {
-      if (!ensureRole(req, res, "OWNER")) return;
+      if (!ensureAdminDev(req, res)) return;
       try {
         const tenantId = req.auth?.tenantId;
         if (!tenantId) return res.status(401).json({ error: "API key required" });
@@ -2932,11 +3855,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     app.post('/api/admin/alerts/sla/compute', authenticateApiKey, async (req, res) => {
-      if (!ensureRole(req, res, "OWNER")) return;
+      if (!ensureAdminDev(req, res)) return;
       try {
-        if (process.env.NODE_ENV !== "development" && process.env.DEV_ROUTES_ENABLED !== "true") {
-          return res.status(404).json({ error: "Not found" });
-        }
         const tenantId = req.auth?.tenantId;
         if (!tenantId) return res.status(401).json({ error: "API key required" });
 
@@ -2966,11 +3886,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     app.post('/api/admin/alerts/sla/backfill', authenticateApiKey, async (req, res) => {
-      if (!ensureRole(req, res, "OWNER")) return;
+      if (!ensureAdminDev(req, res)) return;
       try {
-        if (process.env.NODE_ENV !== "development" && process.env.DEV_ROUTES_ENABLED !== "true") {
-          return res.status(404).json({ error: "Not found" });
-        }
         const tenantId = req.auth?.tenantId;
         if (!tenantId) return res.status(401).json({ error: "API key required" });
 
@@ -3004,11 +3921,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     app.post('/api/admin/alerts/endpoints/compute', authenticateApiKey, async (req, res) => {
-      if (!ensureRole(req, res, "OWNER")) return;
+      if (!ensureAdminDev(req, res)) return;
       try {
-        if (process.env.NODE_ENV !== "development" && process.env.DEV_ROUTES_ENABLED !== "true") {
-          return res.status(404).json({ error: "Not found" });
-        }
         const tenantId = req.auth?.tenantId;
         if (!tenantId) return res.status(401).json({ error: "API key required" });
 
@@ -3037,11 +3951,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     app.post('/api/admin/alerts/endpoints/auto-pause/compute', authenticateApiKey, async (req, res) => {
-      if (!ensureRole(req, res, "OWNER")) return;
+      if (!ensureAdminDev(req, res)) return;
       try {
-        if (process.env.NODE_ENV !== "development" && process.env.DEV_ROUTES_ENABLED !== "true") {
-          return res.status(404).json({ error: "Not found" });
-        }
         const tenantId = req.auth?.tenantId;
         if (!tenantId) return res.status(401).json({ error: "API key required" });
 
@@ -3070,11 +3981,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     app.post('/api/admin/incidents/auto-ack', authenticateApiKey, async (req, res) => {
-      if (!ensureRole(req, res, "OWNER")) return;
+      if (!ensureAdminDev(req, res)) return;
       try {
-        if (process.env.NODE_ENV !== "development" && process.env.DEV_ROUTES_ENABLED !== "true") {
-          return res.status(404).json({ error: "Not found" });
-        }
         const tenantId = req.auth?.tenantId;
         if (!tenantId) return res.status(401).json({ error: "API key required" });
 
@@ -3101,11 +4009,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     app.post('/api/admin/incidents/auto-resolve', authenticateApiKey, async (req, res) => {
-      if (!ensureRole(req, res, "OWNER")) return;
+      if (!ensureAdminDev(req, res)) return;
       try {
-        if (process.env.NODE_ENV !== "development" && process.env.DEV_ROUTES_ENABLED !== "true") {
-          return res.status(404).json({ error: "Not found" });
-        }
         const tenantId = req.auth?.tenantId;
         if (!tenantId) return res.status(401).json({ error: "API key required" });
 
@@ -3121,6 +4026,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (error: any) {
         res.status(500).json({ error: error.message || "Failed to auto-resolve incidents" });
+      }
+    });
+
+    app.post('/api/admin/incidents/escalations/run', authenticateApiKey, async (req, res) => {
+      if (!ensureAdminDev(req, res)) return;
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) return res.status(401).json({ error: "API key required" });
+
+        const result = await runIncidentEscalations({
+          tenantId,
+          now: new Date(),
+        });
+
+        res.json({
+          tenant_id: tenantId,
+          escalated: result.escalated ?? 0,
+          processed: result.processed ?? 0,
+          skipped: result.skipped ?? false,
+          reason: result.reason ?? null,
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to run incident escalations" });
+      }
+    });
+
+    app.post('/api/admin/ops/reset', authenticateApiKey, async (req, res) => {
+      if (!ensureAdminDev(req, res)) return;
+      try {
+        resetOpsTelemetry();
+        res.json({ version: "1", ok: true });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to reset ops telemetry" });
       }
     });
 
@@ -3676,6 +4614,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const type = req.query?.type ? String(req.query.type).toUpperCase() : undefined;
+        const severityMin = req.query?.severity_min ? String(req.query.severity_min).toUpperCase() : undefined;
+        if (severityMin && !["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(severityMin)) {
+          return res.status(400).json({ error: "severity_min must be LOW, MEDIUM, HIGH, or CRITICAL" });
+        }
         const destinationKey = req.query?.destination_key ? String(req.query.destination_key) : undefined;
         const limitNum = Math.min(parseInt(String(req.query?.limit ?? "50")) || 50, 200);
 
@@ -3702,6 +4644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: status as any,
           destinationKey,
           type,
+          severityMin,
           cursorOpenedAt,
           cursorId,
           limit: limitNum,
@@ -3712,6 +4655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: status as any,
           destinationKey,
           type,
+          severityMin,
         });
 
         const mapped = items.map((row) => ({
@@ -3774,6 +4718,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const incident = await getIncidentById(tenantId, incidentId);
         if (!incident) return res.status(404).json({ error: "Incident not found" });
 
+        const escalationSnapshot = await getIncidentEscalationSnapshot({
+          tenantId,
+          incident,
+          now: new Date(),
+          limit: 20,
+        });
+
         res.json({
           version: "1",
           item: {
@@ -3795,6 +4746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             resolved_by_actor_type: incident.resolvedByActorType ?? null,
             resolved_by_actor_id: incident.resolvedByActorId ?? null,
           },
+          escalation: escalationSnapshot,
         });
       } catch (error: any) {
         res.status(500).json({ error: error.message || "Failed to fetch incident" });
@@ -3816,12 +4768,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const now = new Date();
+        const actorApiKeyId = req.auth?.apiKeyId ?? null;
+        const actorId = actorApiKeyId && isValidUuid(actorApiKeyId) ? actorApiKeyId : null;
+
         await db.update(incidents)
           .set({
             status: "ACKED",
             ackedAt: now,
             ackedByActorType: "API_KEY",
-            ackedByActorId: req.auth?.apiKeyId ?? null,
+            ackedByActorId: actorId,
           })
           .where(eq(incidents.id, incident.id));
 
@@ -3836,6 +4791,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: incident.type,
             destination_key: incident.destinationKey ?? null,
           },
+        });
+        logOpsEvent("INCIDENT_ACKED", {
+          tenantId,
+          incidentId: incident.id,
+          type: incident.type,
+          destinationKey: incident.destinationKey ?? null,
+          actorType: "API_KEY",
+          actorApiKeyId: actorApiKeyId,
         });
 
         const updated = await getIncidentById(tenantId, incident.id);
@@ -3860,12 +4823,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const now = new Date();
+        const actorApiKeyId = req.auth?.apiKeyId ?? null;
+        const actorId = actorApiKeyId && isValidUuid(actorApiKeyId) ? actorApiKeyId : null;
+
         await db.update(incidents)
           .set({
             status: "RESOLVED",
             resolvedAt: now,
             resolvedByActorType: "API_KEY",
-            resolvedByActorId: req.auth?.apiKeyId ?? null,
+            resolvedByActorId: actorId,
           })
           .where(eq(incidents.id, incident.id));
 
@@ -3881,6 +4847,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             destination_key: incident.destinationKey ?? null,
           },
         });
+        logOpsEvent("INCIDENT_RESOLVED", {
+          tenantId,
+          incidentId: incident.id,
+          type: incident.type,
+          destinationKey: incident.destinationKey ?? null,
+          actorType: "API_KEY",
+          actorApiKeyId: actorApiKeyId,
+        });
 
         const updated = await getIncidentById(tenantId, incident.id);
         res.json({ version: "1", item: updated });
@@ -3895,8 +4869,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const tenantId = req.auth?.tenantId;
         if (!tenantId) return res.status(401).json({ error: "API key required" });
 
+        const now = new Date();
         const items = await listIncidentEscalationPolicies(tenantId);
-        res.json({ version: "1", items });
+        const mapped = await Promise.all(items.map(async (policy: any) => ({
+          id: policy.id,
+          tenant_id: policy.tenantId,
+          enabled: policy.enabled,
+          level: policy.level,
+          after_minutes: policy.afterMinutes,
+          incident_type: policy.incidentType,
+          severity_min: policy.severityMin,
+          target_type: policy.targetType,
+          target_ref: policy.targetRef,
+          target_name: policy.targetName ?? null,
+          last_validated_at: policy.lastValidatedAt ?? null,
+          last_routing_health: policy.lastRoutingHealth ?? null,
+          created_at: policy.createdAt,
+          updated_at: policy.updatedAt,
+          routing_health: await getRoutingHealthForPolicy({
+            tenantId,
+            policy,
+            now,
+          }),
+        })));
+        res.json({ version: "1", items: mapped });
       } catch (error: any) {
         res.status(500).json({ error: error.message || "Failed to list escalation policies" });
       }
@@ -3907,53 +4903,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const tenantId = req.auth?.tenantId;
         if (!tenantId) return res.status(401).json({ error: "API key required" });
+        const validation = await validateRoutingPolicyDraft({
+          tenantId,
+          now: new Date(),
+          draft: {
+            incident_type: req.body?.incident_type,
+            severity_min: req.body?.severity_min,
+            level: req.body?.level,
+            after_minutes: req.body?.after_minutes,
+            include_blocked: true,
+            targets: [{
+              target_type: req.body?.target_type,
+              target_ref: req.body?.target_ref,
+              target_name: req.body?.target_name ?? null,
+            }],
+          },
+        });
 
-        const incidentType = String(req.body?.incident_type ?? "").toUpperCase();
-        if (!["SLA_AT_RISK", "ENDPOINT_DOWN"].includes(incidentType)) {
-          return res.status(400).json({ error: "incident_type must be SLA_AT_RISK or ENDPOINT_DOWN" });
+        if (!validation.ok) {
+          return res.status(400).json({
+            error: "POLICY_INVALID",
+            errors: validation.errors,
+            warnings: validation.warnings,
+          });
         }
 
-        const severityMin = String(req.body?.severity_min ?? "").toUpperCase();
-        if (!["HIGH", "CRITICAL"].includes(severityMin)) {
-          return res.status(400).json({ error: "severity_min must be HIGH or CRITICAL" });
-        }
-
-        const levelRaw = Number(req.body?.level);
-        if (!Number.isFinite(levelRaw) || levelRaw < 1) {
-          return res.status(400).json({ error: "level must be a positive integer" });
-        }
-        const level = Math.floor(levelRaw);
-
-        const afterMinutesRaw = Number(req.body?.after_minutes);
-        if (!Number.isFinite(afterMinutesRaw) || afterMinutesRaw < 1) {
-          return res.status(400).json({ error: "after_minutes must be a positive integer" });
-        }
-        const afterMinutes = Math.floor(afterMinutesRaw);
-
-        const targetType = String(req.body?.target_type ?? "").toUpperCase();
-        if (!["SUBSCRIPTION", "ROLE"].includes(targetType)) {
-          return res.status(400).json({ error: "target_type must be SUBSCRIPTION or ROLE" });
-        }
-
-        const targetRef = String(req.body?.target_ref ?? "").trim();
-        if (!targetRef) {
-          return res.status(400).json({ error: "target_ref is required" });
-        }
-        if (targetType === "SUBSCRIPTION" && !isValidUuid(targetRef)) {
-          return res.status(400).json({ error: "target_ref must be a subscription id" });
+        const normalized = validation.normalized_policy;
+        const normalizedTarget = normalized?.targets?.[0];
+        if (!normalized || !normalizedTarget) {
+          return res.status(400).json({
+            error: "POLICY_INVALID",
+            errors: [{ code: "TARGETS_REQUIRED", path: "targets", message: "At least one valid target is required" }],
+            warnings: validation.warnings,
+          });
         }
 
         const enabled = req.body?.enabled !== undefined ? Boolean(req.body.enabled) : true;
+        const health = await getRoutingHealthForPolicy({
+          tenantId,
+          policy: {
+            targetType: normalizedTarget.target_type,
+            targetRef: normalizedTarget.target_ref,
+          },
+          now: new Date(),
+        });
+
+        if (enabled && health.routes_allowed === 0) {
+          return res.status(400).json({
+            error: "POLICY_NOT_ROUTABLE",
+            blocked_reasons: health.blocked_reasons ?? [],
+            warnings: validation.warnings,
+          });
+        }
 
         const policy = await upsertIncidentEscalationPolicy({
           tenantId,
-          incidentType,
-          severityMin,
-          level,
-          afterMinutes,
-          targetType,
-          targetRef,
+          incidentType: normalized.incident_type,
+          severityMin: normalized.severity_min,
+          level: normalized.level,
+          afterMinutes: normalized.after_minutes,
+          targetType: normalizedTarget.target_type,
+          targetRef: normalizedTarget.target_ref,
+          targetName: normalizedTarget.target_name ?? null,
           enabled,
+          lastValidatedAt: new Date(),
+          lastRoutingHealth: health,
         });
 
         if (!policy) {
@@ -3968,18 +4982,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "SUCCESS",
           message: "Incident escalation policy updated",
           metadata: {
-            incident_type: incidentType,
-            severity_min: severityMin,
-            level,
-            after_minutes: afterMinutes,
-            target_type: targetType,
-            target_ref: targetRef,
+            incident_type: normalized.incident_type,
+            severity_min: normalized.severity_min,
+            level: normalized.level,
+            after_minutes: normalized.after_minutes,
+            target_type: normalizedTarget.target_type,
+            target_ref: normalizedTarget.target_ref,
             enabled,
           },
           tenantId,
         });
 
-        res.json({ version: "1", item: policy });
+        res.json({
+          version: "1",
+          warnings: validation.warnings,
+          item: {
+            id: policy.id,
+            tenant_id: policy.tenantId,
+            enabled: policy.enabled,
+            level: policy.level,
+            after_minutes: policy.afterMinutes,
+            incident_type: policy.incidentType,
+            severity_min: policy.severityMin,
+            target_type: policy.targetType,
+            target_ref: policy.targetRef,
+            target_name: policy.targetName ?? null,
+            last_validated_at: policy.lastValidatedAt ?? null,
+            last_routing_health: policy.lastRoutingHealth ?? null,
+            created_at: policy.createdAt,
+            updated_at: policy.updatedAt,
+          },
+        });
       } catch (error: any) {
         res.status(500).json({ error: error.message || "Failed to upsert escalation policy" });
       }
@@ -4022,6 +5055,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({ version: "1", ok: true });
       } catch (error: any) {
         res.status(500).json({ error: error.message || "Failed to delete escalation policy" });
+      }
+    });
+
+    app.post('/v1/routing/preview', authenticateApiKey, async (req, res) => {
+      if (!ensureRole(req, res, "VIEWER")) return;
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) return res.status(401).json({ error: "API key required" });
+
+        const targetType = String(req.body?.target_type ?? "").toUpperCase();
+        const targetRef = String(req.body?.target_ref ?? "").trim();
+        const errors: Array<{ field: string; message: string }> = [];
+
+        if (!["USER", "ROLE"].includes(targetType)) {
+          errors.push({ field: "target_type", message: "target_type must be USER or ROLE" });
+        }
+        if (!targetRef) {
+          errors.push({ field: "target_ref", message: "target_ref is required" });
+        } else if (targetType === "USER") {
+          const uuidOk = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetRef);
+          if (!uuidOk) {
+            errors.push({ field: "target_ref", message: "target_ref must be a user_id UUID" });
+          }
+        } else if (targetType === "ROLE") {
+          const role = targetRef.toUpperCase();
+          if (!["OWNER", "OPERATOR", "VIEWER"].includes(role)) {
+            errors.push({ field: "target_ref", message: "target_ref must be OWNER, OPERATOR, or VIEWER" });
+          }
+        }
+
+        if (errors.length > 0) {
+          return res.status(400).json({ error: "VALIDATION_ERROR", details: errors });
+        }
+
+        const includeBlocked = String(req.query?.include_blocked ?? "true").toLowerCase() !== "false";
+        const result = await previewRouting({
+          tenantId,
+          targetType: targetType as "ROLE" | "USER",
+          targetRef,
+          includeBlocked,
+          now: new Date(),
+        });
+
+        res.json({ version: "1", result });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to preview routing" });
+      }
+    });
+
+    app.post('/v1/routing/validate-policy', authenticateApiKey, async (req, res) => {
+      if (!ensureRole(req, res, "VIEWER")) return;
+      try {
+        const tenantId = req.auth?.tenantId;
+        if (!tenantId) return res.status(401).json({ error: "API key required" });
+
+        const result = await validateRoutingPolicyDraft({
+          tenantId,
+          draft: req.body ?? {},
+          now: new Date(),
+        });
+
+        res.json({
+          version: "1",
+          ok: result.ok,
+          errors: result.errors,
+          warnings: result.warnings,
+          normalized_policy: result.normalized_policy,
+          preview: result.preview,
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message || "Failed to validate policy" });
       }
     });
 
@@ -4748,7 +5852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    app.post('/v1/alert-subscriptions/:id/test', authenticateApiKey, async (req, res) => {
+  app.post('/v1/alert-subscriptions/:id/test', authenticateApiKey, async (req, res) => {
       if (!ensureRole(req, res, "OWNER")) return;
       try {
         const id = req.params.id;
@@ -4844,9 +5948,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           clusterId: `TEST:${subscription.id}`,
           entityType: subscription.entityType,
           entityId: subscription.entityId,
-          day: now,
+          day: formatSignalDay(now),
           destinationType: subscription.channel,
           endpoint: subscription.endpoint,
+          destinationKey: makeDestinationKey(subscription.channel, subscription.endpoint),
           status,
           attempts: 1,
           lastHttpStatus: httpStatus,
@@ -4888,6 +5993,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Failed to send test" });
+    }
+  });
+
+  // V1 Alert Rules
+  app.get('/v1/alert-rules', authenticateApiKey, async (req, res) => {
+    if (!ensureRole(req, res, "VIEWER")) return;
+    try {
+      const tenantId = req.auth?.tenantId;
+      const authUserId = req.auth?.userId;
+      if (!tenantId || !authUserId) return res.status(401).json({ error: "API key required" });
+
+      const userId = await resolveAlertRuleUserId(tenantId, authUserId);
+      if (!userId) {
+        return res.status(403).json({ error: "FORBIDDEN", detail: "Alert rules user missing" });
+      }
+
+      const rules = await storage.getAlertRules(userId);
+      const items = rules.map((rule) => ({
+        id: rule.id,
+        name: rule.name,
+        type: rule.type,
+        is_active: rule.isActive ?? true,
+        is_muted: rule.isMuted ?? false,
+        severity: rule.severity ?? "medium",
+        conditions: rule.conditions ?? {},
+        channels: rule.channels ?? [],
+        cooldown_minutes: rule.cooldownMinutes ?? 60,
+        watchlist_id: rule.watchlistId ?? null,
+        snoozed_until: rule.snoozedUntil ?? null,
+        last_triggered_at: rule.lastTriggered ?? null,
+        trigger_count: rule.triggerCount ?? 0,
+        created_at: rule.createdAt,
+      }));
+      res.json({ version: "1", items });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to fetch alert rules" });
+    }
+  });
+
+  app.post('/v1/alert-rules', authenticateApiKey, async (req, res) => {
+    if (!ensureRole(req, res, "OPERATOR")) return;
+    try {
+      const tenantId = req.auth?.tenantId;
+      const authUserId = req.auth?.userId;
+      if (!tenantId || !authUserId) return res.status(401).json({ error: "API key required" });
+
+      const userId = await resolveAlertRuleUserId(tenantId, authUserId);
+      if (!userId) {
+        return res.status(403).json({ error: "FORBIDDEN", detail: "Alert rules user missing" });
+      }
+
+      const name = String(req.body?.name ?? "").trim();
+      const type = String(req.body?.type ?? "").trim();
+      const conditions = req.body?.conditions ?? {};
+      const channels = Array.isArray(req.body?.channels) ? req.body.channels : ["in_app"];
+      const cooldownMinutes = Number(req.body?.cooldown_minutes ?? req.body?.cooldownMinutes ?? 60);
+      const severity = String(req.body?.severity ?? "medium");
+      const isActive = req.body?.is_active !== false && req.body?.isActive !== false;
+      const isMuted = req.body?.is_muted === true || req.body?.isMuted === true;
+
+      if (!name || !type) {
+        return res.status(400).json({ error: "name and type are required" });
+      }
+
+      const rule = await storage.createAlertRule({
+        userId,
+        name,
+        type,
+        conditions,
+        channels,
+        cooldownMinutes: Number.isFinite(cooldownMinutes) ? cooldownMinutes : 60,
+        watchlistId: req.body?.watchlist_id ?? req.body?.watchlistId ?? undefined,
+        isActive,
+        severity,
+        isMuted,
+      });
+
+      res.status(201).json({
+        version: "1",
+        item: {
+          id: rule.id,
+          name: rule.name,
+          type: rule.type,
+          is_active: rule.isActive ?? true,
+          is_muted: rule.isMuted ?? false,
+          severity: rule.severity ?? "medium",
+          conditions: rule.conditions ?? {},
+          channels: rule.channels ?? [],
+          cooldown_minutes: rule.cooldownMinutes ?? 60,
+          watchlist_id: rule.watchlistId ?? null,
+          snoozed_until: rule.snoozedUntil ?? null,
+          last_triggered_at: rule.lastTriggered ?? null,
+          trigger_count: rule.triggerCount ?? 0,
+          created_at: rule.createdAt,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to create alert rule" });
+    }
+  });
+
+  app.patch('/v1/alert-rules/:id', authenticateApiKey, async (req, res) => {
+    if (!ensureRole(req, res, "OPERATOR")) return;
+    try {
+      const tenantId = req.auth?.tenantId;
+      const authUserId = req.auth?.userId;
+      if (!tenantId || !authUserId) return res.status(401).json({ error: "API key required" });
+
+      const userId = await resolveAlertRuleUserId(tenantId, authUserId);
+      if (!userId) {
+        return res.status(403).json({ error: "FORBIDDEN", detail: "Alert rules user missing" });
+      }
+
+      const id = String(req.params.id ?? "");
+      if (!id) return res.status(400).json({ error: "rule id required" });
+      const existing = await storage.getAlertRuleById(id);
+      if (!existing) return res.status(404).json({ error: "alert rule not found" });
+      if (existing.userId !== userId) {
+        return res.status(403).json({ error: "FORBIDDEN", detail: "Rule does not belong to user" });
+      }
+
+      const updates: any = {};
+      if (req.body?.name !== undefined) updates.name = String(req.body.name).trim();
+      if (req.body?.type !== undefined) updates.type = String(req.body.type).trim();
+      if (req.body?.conditions !== undefined) updates.conditions = req.body.conditions ?? {};
+      if (req.body?.channels !== undefined) updates.channels = Array.isArray(req.body.channels) ? req.body.channels : ["in_app"];
+      if (req.body?.cooldown_minutes !== undefined || req.body?.cooldownMinutes !== undefined) {
+        const raw = Number(req.body?.cooldown_minutes ?? req.body?.cooldownMinutes);
+        if (Number.isFinite(raw)) updates.cooldownMinutes = raw;
+      }
+      if (req.body?.severity !== undefined) updates.severity = String(req.body.severity);
+      if (req.body?.is_active !== undefined || req.body?.isActive !== undefined) {
+        updates.isActive = req.body?.is_active !== false && req.body?.isActive !== false;
+      }
+      if (req.body?.is_muted !== undefined || req.body?.isMuted !== undefined) {
+        updates.isMuted = req.body?.is_muted === true || req.body?.isMuted === true;
+      }
+
+      const rule = await storage.updateAlertRule(id, updates);
+      res.json({
+        version: "1",
+        item: {
+          id: rule.id,
+          name: rule.name,
+          type: rule.type,
+          is_active: rule.isActive ?? true,
+          is_muted: rule.isMuted ?? false,
+          severity: rule.severity ?? "medium",
+          conditions: rule.conditions ?? {},
+          channels: rule.channels ?? [],
+          cooldown_minutes: rule.cooldownMinutes ?? 60,
+          watchlist_id: rule.watchlistId ?? null,
+          snoozed_until: rule.snoozedUntil ?? null,
+          last_triggered_at: rule.lastTriggered ?? null,
+          trigger_count: rule.triggerCount ?? 0,
+          created_at: rule.createdAt,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to update alert rule" });
+    }
+  });
+
+  app.delete('/v1/alert-rules/:id', authenticateApiKey, async (req, res) => {
+    if (!ensureRole(req, res, "OPERATOR")) return;
+    try {
+      const tenantId = req.auth?.tenantId;
+      const authUserId = req.auth?.userId;
+      if (!tenantId || !authUserId) return res.status(401).json({ error: "API key required" });
+
+      const userId = await resolveAlertRuleUserId(tenantId, authUserId);
+      if (!userId) {
+        return res.status(403).json({ error: "FORBIDDEN", detail: "Alert rules user missing" });
+      }
+
+      const id = String(req.params.id ?? "");
+      if (!id) return res.status(400).json({ error: "rule id required" });
+      const existing = await storage.getAlertRuleById(id);
+      if (!existing) return res.status(404).json({ error: "alert rule not found" });
+      if (existing.userId !== userId) {
+        return res.status(403).json({ error: "FORBIDDEN", detail: "Rule does not belong to user" });
+      }
+      await storage.deleteAlertRule(id);
+      res.json({ version: "1", deleted: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to delete alert rule" });
     }
   });
 

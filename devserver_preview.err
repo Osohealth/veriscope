@@ -1,0 +1,156 @@
+{"timestamp":"2026-02-19T18:55:48.285Z","level":"warn","requestId":"c4f4fee5-0c7c-4a01-b4db-bd5285c3dfd8","route":"/v1/incident-escalation-policies","method":"PATCH","statusCode":400,"latencyMs":321,"message":"PATCH /v1/incident-escalation-policies 400 321ms"}
+{"timestamp":"2026-02-19T18:56:10.871Z","level":"warn","requestId":"a372ada7-e7b9-4d9a-a91c-3a84b6a3570f","route":"/v1/incident-escalation-policies","method":"PATCH","statusCode":400,"latencyMs":425,"message":"PATCH /v1/incident-escalation-policies 400 425ms"}
+{"timestamp":"2026-02-19T18:56:22.287Z","level":"warn","requestId":"0b545f44-c9ad-4801-a1f0-b2b475b43ac2","route":"/v1/incident-escalation-policies","method":"PATCH","statusCode":400,"latencyMs":453,"message":"PATCH /v1/incident-escalation-policies 400 453ms"}
+{"timestamp":"2026-02-19T18:56:44.179Z","level":"warn","requestId":"349c0117-fff8-4518-9b88-e362bbd19d62","route":"/v1/incident-escalation-policies","method":"PATCH","statusCode":400,"latencyMs":438,"message":"PATCH /v1/incident-escalation-policies 400 438ms"}
+Browserslist: browsers data (caniuse-lite) is 16 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Initialization error: ErrorEvent {
+  Symbol(kTarget): WebSocket {
+    _events: [Object: null prototype] {
+      error: [Function],
+      message: [Function],
+      close: [Function],
+      open: [Function]
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech/v2',
+    _req: null,
+    Symbol(shapeMode): false,
+    Symbol(kCapture): false
+  },
+  Symbol(kType): 'error',
+  Symbol(kError): Error: getaddrinfo ENOTFOUND ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech'
+  },
+  Symbol(kMessage): 'getaddrinfo ENOTFOUND ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech'
+}
+Initialization error: ErrorEvent {
+  Symbol(kTarget): WebSocket {
+    _events: [Object: null prototype] {
+      error: [Function],
+      message: [Function],
+      close: [Function],
+      open: [Function]
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech/v2',
+    _req: null,
+    Symbol(shapeMode): false,
+    Symbol(kCapture): false
+  },
+  Symbol(kType): 'error',
+  Symbol(kError): Error: getaddrinfo ENOTFOUND ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech'
+  },
+  Symbol(kMessage): 'getaddrinfo ENOTFOUND ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech'
+}
+{"timestamp":"2026-02-19T20:26:02.905Z","level":"error","requestId":"4d4c0705-1d47-49d0-b792-54f720639327","route":"/api/init","method":"POST","statusCode":500,"latencyMs":11262,"message":"POST /api/init 500 11262ms"}
+{"timestamp":"2026-02-19T20:26:02.906Z","level":"error","requestId":"f51522a2-5358-4e54-b258-1437c6624f90","route":"/api/init","method":"POST","statusCode":500,"latencyMs":2250,"message":"POST /api/init 500 2250ms"}
+
+file:///C:/Users/deanm/OneDrive/Documents/Veriscope%20AI/veriscope/node_modules/@neondatabase/serverless/index.mjs:1345
+o?t(o):n(u)},"cb"),s=new r(function(o,u){n=o,t=u}).catch(o=>{throw Error.captureStackTrace(
+                                                                         ^
+ErrorEvent {
+  Symbol(kTarget): WebSocket {
+    _events: [Object: null prototype] {
+      error: [Function: onError] {
+        Symbol(kIsForOnEventAttribute): false,
+        Symbol(kListener): [Function (anonymous)]
+      },
+      message: [Function: onMessage] {
+        Symbol(kIsForOnEventAttribute): false,
+        Symbol(kListener): [Function (anonymous)]
+      },
+      close: [Function: onClose] {
+        Symbol(kIsForOnEventAttribute): false,
+        Symbol(kListener): [Function (anonymous)]
+      },
+      open: [Function: onOpen] {
+        Symbol(kIsForOnEventAttribute): false,
+        Symbol(kListener): [Function: handleWebSocketOpen]
+      }
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: Buffer(0) [Uint8Array] [],
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech/v2',
+    _req: null,
+    Symbol(shapeMode): false,
+    Symbol(kCapture): false
+  },
+  Symbol(kType): 'error',
+  Symbol(kError): Error: getaddrinfo ENOTFOUND ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech'
+  },
+  Symbol(kMessage): 'getaddrinfo ENOTFOUND ep-old-truth-agorlwtl.c-2.eu-central-1.aws.neon.tech'
+}
+
+Node.js v24.13.0

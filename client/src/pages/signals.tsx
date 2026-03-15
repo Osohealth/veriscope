@@ -11,6 +11,7 @@ import { METRIC_LABELS, formatMetricValue } from "@shared/metrics";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, ArrowLeft, Clock, MapPin, Signal, SlidersHorizontal } from "lucide-react";
 import { Link } from "wouter";
+import { clearAuthStorage } from "@/lib/auth";
 
 type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
@@ -249,9 +250,22 @@ export default function SignalsPage() {
                 Clustered market events with explainability and data quality.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters update the feed instantly for demo-ready views.
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <SlidersHorizontal className="h-4 w-4" />
+                Filters update the feed instantly for demo-ready views.
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  clearAuthStorage();
+                  window.location.href = "/";
+                }}
+                data-testid="button-sign-out"
+              >
+                Sign out
+              </Button>
             </div>
           </div>
         </div>

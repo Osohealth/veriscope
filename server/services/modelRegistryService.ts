@@ -5,7 +5,7 @@ import {
   ModelRegistryEntry,
   ModelPrediction
 } from '@shared/schema';
-import { eq, desc, and, isNotNull } from 'drizzle-orm';
+import { eq, desc, and, isNotNull, gte, lte } from 'drizzle-orm';
 
 interface DriftMetrics {
   modelId: string;
@@ -227,14 +227,22 @@ export class ModelRegistryService {
     }
   }
 
-  async getBacktestResults(modelId: string): Promise<BacktestResult | null> {
+  async getBacktestResults(modelId: string, startDate?: Date, endDate?: Date): Promise<BacktestResult | null> {
     try {
       const model = await this.getModel(modelId);
       if (!model) return null;
 
+      const conditions = [eq(modelPredictions.modelId, modelId)];
+      if (startDate) {
+        conditions.push(gte(modelPredictions.predictionDate, startDate));
+      }
+      if (endDate) {
+        conditions.push(lte(modelPredictions.predictionDate, endDate));
+      }
+
       const predictions = await db.select()
         .from(modelPredictions)
-        .where(eq(modelPredictions.modelId, modelId))
+        .where(and(...conditions))
         .orderBy(desc(modelPredictions.predictionDate));
 
       const backtested = predictions.filter(p => p.actualValue !== null);

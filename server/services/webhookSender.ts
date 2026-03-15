@@ -1,6 +1,5 @@
 import { buildSignalClusterAlertPayload } from "./signalAlertService";
 import { createHmac, createHash } from "node:crypto";
-import { WEBHOOK_RETRY_ATTEMPTS, WEBHOOK_TIMEOUT_MS } from "../config/alerting";
 
 type WebhookSendArgs = {
   endpoint: string;
@@ -28,6 +27,16 @@ export class WebhookSendError extends Error {
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const getWebhookTimeoutMs = () => {
+  const raw = process.env.WEBHOOK_TIMEOUT_MS;
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 5000;
+};
+const getWebhookRetryAttempts = () => {
+  const raw = process.env.WEBHOOK_RETRY_ATTEMPTS;
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
+};
 
 export const computeIdempotencyKey = (subscriptionId: string, clusterId: string, day: string) => {
   const raw = `${subscriptionId}|${clusterId}|${day}`;
@@ -78,8 +87,8 @@ export const buildWebhookRequest = (args: {
 };
 
 export async function sendWebhook(args: WebhookSendArgs) {
-  const timeoutMs = args.timeoutMs ?? WEBHOOK_TIMEOUT_MS;
-  const attempts = args.attempts ?? WEBHOOK_RETRY_ATTEMPTS;
+  const timeoutMs = args.timeoutMs ?? getWebhookTimeoutMs();
+  const attempts = args.attempts ?? getWebhookRetryAttempts();
   const backoffs = [0, 250, 1000];
   let lastStatus: number | undefined;
   let lastError: Error | undefined;

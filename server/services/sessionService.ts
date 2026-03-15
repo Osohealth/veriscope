@@ -174,9 +174,10 @@ class SessionService {
 
 export const sessionService = new SessionService();
 
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const cleaned = sessionService.cleanupExpiredTokens();
   if (cleaned > 0) {
     console.log(`Cleaned up ${cleaned} expired refresh tokens`);
   }
 }, 60 * 60 * 1000);
+cleanupInterval.unref?.();

@@ -54,7 +54,9 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
-      enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token"),
+      enabled:
+        typeof window !== "undefined" &&
+        (!!localStorage.getItem("access_token") || !!localStorage.getItem("api_key")),
     },
     mutations: {
       retry: false,
@@ -66,7 +68,7 @@ export function getAuthToken(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
-  return localStorage.getItem("access_token");
+  return localStorage.getItem("access_token") || localStorage.getItem("api_key");
 }
 
 export function getAuthHeaders(extra?: Record<string, string>): Record<string, string> {

@@ -160,7 +160,8 @@ export async function evaluatePortSignalsForDay(
   opts: { portIds?: string[] } = {},
 ) {
   const targetDay = getUtcDayStart(day);
-  const conditions = [eq(portDailyBaselines.day, targetDay)];
+  const targetDayKey = formatSignalDay(targetDay);
+  const conditions = [eq(portDailyBaselines.day, targetDayKey)];
 
   if (opts.portIds && opts.portIds.length > 0) {
     conditions.push(inArray(portDailyBaselines.portId, opts.portIds));
@@ -181,8 +182,8 @@ export async function evaluatePortSignalsForDay(
       .where(
         and(
           inArray(portDailyBaselines.portId, portIds),
-          lt(portDailyBaselines.day, targetDay),
-          gte(portDailyBaselines.day, sql`${targetDay}::date - interval '30 days'`),
+          lt(portDailyBaselines.day, targetDayKey),
+          gte(portDailyBaselines.day, sql`${targetDayKey}::date - interval '30 days'`),
         ),
       )
       .groupBy(portDailyBaselines.portId);
@@ -196,7 +197,7 @@ export async function evaluatePortSignalsForDay(
 
   for (const row of baselineRows) {
     const portId = row.portId;
-    const dayKey = formatSignalDay(targetDay);
+    const dayKey = targetDayKey;
 
     const arrivals = toNumber(row.arrivals) ?? 0;
     const arrivalsAvg = toNumber(row.arrivals30dAvg);
@@ -237,7 +238,7 @@ export async function evaluatePortSignalsForDay(
             signalType: "PORT_ARRIVALS_ANOMALY",
             entityType: PORT_ENTITY_TYPE,
             entityId: portId,
-            day: targetDay,
+            day: dayKey,
             severity,
             value: arrivals,
             baseline: arrivalsAvg,
@@ -308,7 +309,7 @@ export async function evaluatePortSignalsForDay(
           signalType: "PORT_DWELL_SPIKE",
           entityType: PORT_ENTITY_TYPE,
           entityId: portId,
-          day: targetDay,
+          day: dayKey,
           severity,
           value: dwellHours,
           baseline: dwellAvg,
@@ -377,7 +378,7 @@ export async function evaluatePortSignalsForDay(
           signalType: "PORT_CONGESTION_BUILDUP",
           entityType: PORT_ENTITY_TYPE,
           entityId: portId,
-          day: targetDay,
+          day: dayKey,
           severity,
           value: openCalls,
           baseline: openCallsAvg,
@@ -529,11 +530,11 @@ export async function listSignals(filters: SignalListFilters) {
   }
 
   if (filters.dayFrom) {
-    conditions.push(gte(signals.day, filters.dayFrom));
+    conditions.push(gte(signals.day, formatSignalDay(filters.dayFrom)));
   }
 
   if (filters.dayTo) {
-    conditions.push(lte(signals.day, filters.dayTo));
+    conditions.push(lte(signals.day, formatSignalDay(filters.dayTo)));
   }
 
   const whereSql = conditions.length > 0 ? sql`${sql.join(conditions, sql` AND `)}` : sql`1=1`;
@@ -575,9 +576,9 @@ export async function listSignals(filters: SignalListFilters) {
     `);
 
     const total = Number((totalResult as any).rows?.[0]?.count ?? 0);
-    const items = ((itemsResult as any).rows ?? [])
-      .map(normalizeSignalRow)
-      .sort((a, b) => {
+    const items = (((itemsResult as any).rows ?? [])
+      .map(normalizeSignalRow)) as ReturnType<typeof normalizeSignalRow>[];
+    items.sort((a, b) => {
         const rankA = SEVERITY_RANK[(a.clusterSeverity ?? "LOW") as SignalSeverity] ?? 0;
         const rankB = SEVERITY_RANK[(b.clusterSeverity ?? "LOW") as SignalSeverity] ?? 0;
         if (rankA !== rankB) return rankB - rankA;
