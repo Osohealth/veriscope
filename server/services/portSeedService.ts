@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { ports, vessels, portCalls } from '@shared/schema';
 import { sql } from 'drizzle-orm';
+import { logger } from '../middleware/observability';
 
 const globalPorts = [
   { name: "Rotterdam", code: "NLRTM", unlocode: "NLRTM", country: "Netherlands", countryCode: "NL", region: "Europe", lat: 51.9225, lng: 4.4792, timezone: "Europe/Amsterdam", type: "oil_terminal" },
@@ -264,20 +265,20 @@ const globalPorts = [
 ];
 
 export async function seedGlobalPorts(): Promise<void> {
-  console.log(`Seeding ${globalPorts.length} global ports...`);
-  
+  logger.info(`Seeding ${globalPorts.length} global ports`);
+
   const existingPorts = await db.select({ code: ports.code }).from(ports);
   const existingCodes = new Set(existingPorts.map(p => p.code));
-  
+
   let inserted = 0;
   let skipped = 0;
-  
+
   for (const port of globalPorts) {
     if (existingCodes.has(port.code)) {
       skipped++;
       continue;
     }
-    
+
     try {
       await db.insert(ports).values({
         name: port.name,
@@ -295,11 +296,11 @@ export async function seedGlobalPorts(): Promise<void> {
       });
       inserted++;
     } catch (err) {
-      console.error(`Failed to insert port ${port.code}:`, err);
+      logger.error(`Failed to insert port ${port.code}`, { error: err });
     }
   }
-  
-  console.log(`Ports seeded: ${inserted} inserted, ${skipped} skipped (already exist)`);
+
+  logger.info(`Ports seeded: ${inserted} inserted, ${skipped} skipped (already exist)`);
 }
 
 export async function getPortCount(): Promise<number> {
@@ -309,50 +310,50 @@ export async function getPortCount(): Promise<number> {
 
 // Port call seeding for arrivals/departures/dwell time statistics
 export async function seedPortCalls(): Promise<void> {
-  console.log('Seeding port call data...');
-  
+  logger.info('Seeding port call data');
+
   // Get vessels and core ports (both 3-char and 5-char codes)
   const allVessels = await db.select().from(vessels);
   const corePorts = await db.select().from(ports).where(
     sql`code IN ('FJR', 'RTM', 'SIN', 'NLRTM', 'SGSIN', 'AEFJR')`
   );
-  
+
   if (allVessels.length === 0 || corePorts.length === 0) {
-    console.log('No vessels or core ports found, skipping port call seeding');
+    logger.info('No vessels or core ports found, skipping port call seeding');
     return;
   }
-  
+
   // Check if port calls already exist
   const existingCalls = await db.select({ count: sql<number>`count(*)` }).from(portCalls);
   const existingCount = Number(existingCalls[0]?.count || 0);
-  
+
   if (existingCount > 0) {
-    console.log(`Port calls already exist (${existingCount}), skipping seeding`);
+    logger.info(`Port calls already exist (${existingCount}), skipping seeding`);
     return;
   }
-  
+
   const now = new Date();
   let inserted = 0;
-  
+
   // Generate port calls for the last 7 days
   for (const vessel of allVessels) {
     // Each vessel makes 2-4 port calls over the last 7 days
     const numCalls = 2 + Math.floor(Math.random() * 3);
-    
+
     for (let i = 0; i < numCalls; i++) {
       const port = corePorts[Math.floor(Math.random() * corePorts.length)];
-      
+
       // Random time within the last 7 days
       const daysAgo = Math.random() * 7;
       const arrivalTime = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
-      
+
       // Dwell time between 4-72 hours
       const dwellHours = 4 + Math.random() * 68;
       const departureTime = new Date(arrivalTime.getTime() + dwellHours * 60 * 60 * 1000);
-      
+
       // If departure is in the future, mark as still in port
       const isCompleted = departureTime < now;
-      
+
       try {
         await db.insert(portCalls).values({
           vesselId: vessel.id,
@@ -367,12 +368,12 @@ export async function seedPortCalls(): Promise<void> {
         });
         inserted++;
       } catch (err) {
-        console.error(`Failed to insert port call:`, err);
+        logger.error('Failed to insert port call', { error: err });
       }
     }
   }
-  
-  console.log(`Port calls seeded: ${inserted} records created`);
+
+  logger.info(`Port calls seeded: ${inserted} records created`);
 }
 
 export async function getPortCallCount(): Promise<number> {

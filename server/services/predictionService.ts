@@ -1,8 +1,9 @@
 import OpenAI from 'openai';
 import { storage } from '../storage';
+import { logger } from '../middleware/observability';
 import { type InsertPrediction } from '@shared/schema';
 
-const openai = new OpenAI({ 
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'demo-key'
 });
 
@@ -15,14 +16,14 @@ class PredictionService {
       try {
         await this.generatePredictions();
       } catch (error) {
-        console.error('Prediction service error:', error);
+        logger.error('Prediction service error', { error });
       }
     }, 6 * 60 * 60 * 1000);
-    
+
     // Generate initial predictions
     this.generatePredictions();
-    
-    console.log('Prediction service started');
+
+    logger.info('Prediction service started');
   }
 
   stopPredictionService() {
@@ -30,13 +31,13 @@ class PredictionService {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    console.log('Prediction service stopped');
+    logger.info('Prediction service stopped');
   }
 
   private async generatePredictions() {
     // Generate predictions for crude oil commodities
     const commodities = await storage.getCommodities();
-    const crudeOilCommodities = commodities.filter(c => 
+    const crudeOilCommodities = commodities.filter(c =>
       c.code === 'BRENT' || c.code === 'WTI' || c.category === 'crude_oil'
     );
 
@@ -53,21 +54,21 @@ class PredictionService {
     try {
       // Collect current maritime features including delay data
       const features = await this.collectFeatures();
-      
+
       // Get market for crude oil
       const markets = await storage.getMarkets();
       const crudeMarket = markets.find(m => m.code === 'BRENT' || m.code === 'WTI') || markets[0];
-      
+
       // Generate AI prediction with delay-adjusted features
       const prediction = await this.aiPredict(commodityId, crudeMarket.id, timeframe, features);
-      
+
       // Save prediction
       await storage.createPrediction(prediction);
-      
-      console.log(`Generated ${timeframe} prediction for commodity ${commodityId} with delay adjustments`);
-      
+
+      logger.info(`Generated ${timeframe} prediction for commodity ${commodityId} with delay adjustments`);
+
     } catch (error) {
-      console.error(`Failed to generate ${commodityId} ${timeframe} prediction:`, error);
+      logger.error(`Failed to generate ${commodityId} ${timeframe} prediction`, { error });
     }
   }
 
@@ -111,7 +112,7 @@ class PredictionService {
     const sites = await storage.getStorageSites();
     let totalFill = 0;
     let siteCount = 0;
-    
+
     for (const site of sites) {
       const fillData = await storage.getLatestStorageFillData(site.id);
       if (fillData && fillData.fillIndex) {
@@ -119,7 +120,7 @@ class PredictionService {
         siteCount++;
       }
     }
-    
+
     features.storageUtilization = siteCount > 0 ? totalFill / siteCount : 0;
     features.averageWaitTime = ports.length > 0 ? features.averageWaitTime / ports.length : 0;
     features.averageDelayHours = ports.length > 0 ? features.averageDelayHours / ports.length : 0;
@@ -170,10 +171,10 @@ class PredictionService {
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{}');
-    
+
     // Calculate valid until time based on timeframe
     const validHours = timeframe === '1D' ? 24 : timeframe === '1W' ? 168 : 24;
-    
+
     return {
       commodityId,
       marketId,
@@ -193,11 +194,11 @@ class PredictionService {
     const directions = ['up', 'down', 'stable'];
     const direction = directions[Math.floor(Math.random() * directions.length)];
     const confidence = 0.4 + Math.random() * 0.2; // 40-60% confidence for fallback
-    
+
     const basePrice = 80 + Math.random() * 10; // Random price between 80-90
     const priceChange = (Math.random() - 0.5) * 2; // Random change +/- 1
     const predictedPrice = basePrice + priceChange;
-    
+
     const validHours = timeframe === '1D' ? 24 : timeframe === '1W' ? 168 : 24;
 
     return {

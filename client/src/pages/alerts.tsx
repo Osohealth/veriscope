@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import { apiFetchJson } from "@/lib/apiFetch";
 import { AlertTriangle, ArrowLeft, Clock, RefreshCcw } from "lucide-react";
@@ -668,31 +668,31 @@ export default function AlertsPage() {
                 </div>
               )}
 
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    disabled={!selected.dlq_pending || Boolean(selected.dlq_terminal)}
-                    onClick={async () => {
-                      try {
-                        await apiFetchJson(`/api/alerts/retry-delivery/${selected.id}`, { method: "POST" });
-                        toast({ title: "Retry queued", description: "Delivery retry triggered." });
-                        setFilters((prev) => ({ ...prev }));
-                        setSelectedId(selected.id);
-                      } catch {
-                        toast({ title: "Retry failed", description: "Unable to retry delivery.", variant: "destructive" });
-                      }
-                    }}
-                  >
-                    <RefreshCcw className="h-4 w-4 mr-2" />
-                    Retry now
-                  </Button>
-                  {!selected.dlq_pending && (
-                    <span className="text-xs text-muted-foreground">Retry available only for DLQ pending items.</span>
-                  )}
-                  {selected.dlq_pending && selected.dlq_terminal && (
-                    <span className="text-xs text-muted-foreground">Retry disabled: max attempts reached.</span>
-                  )}
-                </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  disabled={!selected.dlq_pending || Boolean(selected.dlq_terminal)}
+                  onClick={async () => {
+                    try {
+                      await apiFetchJson(`/api/alerts/retry-delivery/${selected.id}`, { method: "POST" });
+                      toast({ title: "Retry queued", description: "Delivery retry triggered." });
+                      setFilters((prev) => ({ ...prev }));
+                      setSelectedId(selected.id);
+                    } catch {
+                      toast({ title: "Retry failed", description: "Unable to retry delivery.", variant: "destructive" });
+                    }
+                  }}
+                >
+                  <RefreshCcw className="h-4 w-4 mr-2" />
+                  Retry now
+                </Button>
+                {!selected.dlq_pending && (
+                  <span className="text-xs text-muted-foreground">Retry available only for DLQ pending items.</span>
+                )}
+                {selected.dlq_pending && selected.dlq_terminal && (
+                  <span className="text-xs text-muted-foreground">Retry disabled: max attempts reached.</span>
+                )}
+              </div>
             </div>
           )}
         </SheetContent>

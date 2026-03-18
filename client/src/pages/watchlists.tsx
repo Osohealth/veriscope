@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Ship, Anchor, Droplets, Plus, Trash2, Edit2, Eye, Star } from "lucide-react";
 import type { Watchlist } from "@shared/schema";
@@ -238,10 +238,10 @@ export default function WatchlistsPage() {
                       className="bg-slate-800 border-slate-700 text-white flex-1"
                     />
                   )}
-                  <Button 
+                  <Button
                     data-testid="button-add-item"
-                    onClick={handleAddItem} 
-                    variant="outline" 
+                    onClick={handleAddItem}
+                    variant="outline"
                     className="border-slate-700"
                   >
                     Add
@@ -284,9 +284,9 @@ export default function WatchlistsPage() {
             <Star className="h-12 w-12 mx-auto text-slate-600 mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No Watchlists Yet</h3>
             <p className="text-slate-400 mb-4">Create your first watchlist to start tracking vessels, ports, or commodities</p>
-            <Button 
+            <Button
               data-testid="button-create-first-watchlist"
-              onClick={() => setIsCreateOpen(true)} 
+              onClick={() => setIsCreateOpen(true)}
               className="bg-blue-600 hover:bg-blue-700"
             >
               Create Your First Watchlist

@@ -1,9 +1,10 @@
 import { db } from '../db';
-import { 
-  mlPricePredictions, 
-  vessels, 
-  vesselPositions, 
-  ports, 
+import { logger } from '../middleware/observability';
+import {
+  mlPricePredictions,
+  vessels,
+  vesselPositions,
+  ports,
   portCalls,
   storageFacilities
 } from '@shared/schema';
@@ -11,39 +12,39 @@ import { eq, gte, and, sql } from 'drizzle-orm';
 
 // ML-based price prediction service using vessel and port data
 export class MLPredictionService {
-  
+
   // Calculate port congestion index based on vessel activity
   private async calculateCongestionIndex(portId?: string): Promise<number> {
     try {
       // Get active port calls in the last 24 hours
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      
-      const query = portId 
+
+      const query = portId
         ? db.select().from(portCalls).where(
-            and(
-              eq(portCalls.portId, portId),
-              gte(portCalls.arrivalTime, yesterday)
-            )
+          and(
+            eq(portCalls.portId, portId),
+            gte(portCalls.arrivalTime, yesterday)
           )
+        )
         : db.select().from(portCalls).where(gte(portCalls.arrivalTime, yesterday));
-      
+
       const activeCalls = await query;
-      
+
       // Calculate average waiting time
       const waitingCalls = activeCalls.filter(call => !call.departureTime && call.arrivalTime);
       const avgWaitHours = waitingCalls.length > 0
         ? waitingCalls.reduce((sum, call) => {
-            const waitMs = Date.now() - new Date(call.arrivalTime!).getTime();
-            return sum + (waitMs / (1000 * 60 * 60));
-          }, 0) / waitingCalls.length
+          const waitMs = Date.now() - new Date(call.arrivalTime!).getTime();
+          return sum + (waitMs / (1000 * 60 * 60));
+        }, 0) / waitingCalls.length
         : 0;
-      
+
       // Congestion index: 0-100 based on vessels waiting and wait time
       const congestionIndex = Math.min(100, (waitingCalls.length * 10) + (avgWaitHours * 2));
-      
+
       return congestionIndex;
     } catch (error) {
-      console.error('Error calculating congestion:', error);
+      logger.error('Error calculating congestion', { error });
       return 0;
     }
   }
@@ -60,7 +61,7 @@ export class MLPredictionService {
   }> {
     try {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      
+
       // Get recent port calls
       const recentCalls = await db.select({
         id: portCalls.id,
@@ -76,20 +77,20 @@ export class MLPredictionService {
         : [];
 
       // Count vessel types
-      const bulkCarrierCount = vesselDetails.filter(v => 
-        v.vesselType?.toLowerCase().includes('bulk') || 
+      const bulkCarrierCount = vesselDetails.filter(v =>
+        v.vesselType?.toLowerCase().includes('bulk') ||
         v.vesselType?.toLowerCase().includes('panamax') ||
         v.vesselType?.toLowerCase().includes('capesize')
       ).length;
-      
-      const oilCarrierCount = vesselDetails.filter(v => 
-        v.vesselType?.toLowerCase().includes('vlcc') || 
+
+      const oilCarrierCount = vesselDetails.filter(v =>
+        v.vesselType?.toLowerCase().includes('vlcc') ||
         v.vesselType?.toLowerCase().includes('suezmax') ||
         v.vesselType?.toLowerCase().includes('aframax') ||
         v.vesselType?.toLowerCase().includes('tanker')
       ).length;
-      
-      const lngCarrierCount = vesselDetails.filter(v => 
+
+      const lngCarrierCount = vesselDetails.filter(v =>
         v.vesselType?.toLowerCase().includes('lng')
       ).length;
 
@@ -97,9 +98,9 @@ export class MLPredictionService {
       const waitingCalls = recentCalls.filter(call => !call.departureTime && call.arrivalTime);
       const avgWaitTimeHours = waitingCalls.length > 0
         ? waitingCalls.reduce((sum, call) => {
-            const waitMs = Date.now() - new Date(call.arrivalTime!).getTime();
-            return sum + (waitMs / (1000 * 60 * 60));
-          }, 0) / waitingCalls.length
+          const waitMs = Date.now() - new Date(call.arrivalTime!).getTime();
+          return sum + (waitMs / (1000 * 60 * 60));
+        }, 0) / waitingCalls.length
         : 0;
 
       // Get storage utilization (affects supply/demand balance)
@@ -121,7 +122,7 @@ export class MLPredictionService {
         storageUtilization: Number(storageUtilization.toFixed(2)),
       };
     } catch (error) {
-      console.error('Error extracting features:', error);
+      logger.error('Error extracting features', { error });
       return {
         vesselArrivals: 0,
         avgWaitTimeHours: 0,
@@ -150,22 +151,22 @@ export class MLPredictionService {
   } {
     // Regression-based ML model
     // Coefficients learned from historical data patterns
-    
+
     let baseChange = 0;
     let confidence = 0.75; // Base confidence
-    
+
     // Feature weights (simplified ML regression coefficients)
     const congestionWeight = -0.15; // High congestion -> lower prices (supply backup)
     const waitTimeWeight = -0.08;   // Long wait times -> lower prices
     const arrivalWeight = 0.12;     // More arrivals -> higher demand signal
     const storageWeight = -0.10;    // High storage -> lower prices (oversupply)
-    
+
     // Calculate price change based on weighted features
     baseChange += features.portCongestionIndex * congestionWeight;
     baseChange += features.avgWaitTimeHours * waitTimeWeight;
     baseChange += features.vesselArrivals * arrivalWeight;
     baseChange += features.storageUtilization * storageWeight;
-    
+
     // Commodity-specific adjustments
     if (commodityType === 'crude_oil' || commodityType === 'oil') {
       baseChange += features.oilCarrierCount * 0.20; // Oil tankers boost oil prices
@@ -177,18 +178,18 @@ export class MLPredictionService {
       baseChange += features.bulkCarrierCount * 0.18;
       confidence += features.bulkCarrierCount > 0 ? 0.12 : 0;
     }
-    
+
     // Add market volatility factor
     const volatility = Math.random() * 0.3 - 0.15; // +/- 15% random noise
     const priceChange = baseChange + volatility;
-    
+
     // Calculate percentage change (assuming base price ~$80)
     const basePrice = 80;
     const priceChangePercent = (priceChange / basePrice) * 100;
-    
+
     // Ensure confidence is between 0.5 and 0.95
     confidence = Math.max(0.5, Math.min(0.95, confidence));
-    
+
     return {
       priceChange: Number(priceChange.toFixed(4)),
       priceChangePercent: Number(priceChangePercent.toFixed(3)),
@@ -217,17 +218,17 @@ export class MLPredictionService {
     try {
       // Extract features from vessel/port data
       const features = await this.extractFeatures(commodityType);
-      
+
       // Run ML prediction model
       const prediction = this.predictPriceChange(features, commodityType);
-      
+
       // Calculate predicted price
       const predictedPrice = currentPrice + prediction.priceChange;
-      
+
       // Prepare dates
       const predictionDate = new Date().toISOString().split('T')[0];
       const targetDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
+
       // Store prediction in database
       const [saved] = await db.insert(mlPricePredictions).values({
         commodityType,
@@ -247,7 +248,7 @@ export class MLPredictionService {
         modelVersion: 'v1.0',
         modelType: 'regression',
       }).returning();
-      
+
       return {
         ...saved,
         predictedPrice: parseFloat(saved.predictedPrice),
@@ -263,7 +264,7 @@ export class MLPredictionService {
         portCongestionIndex: features.portCongestionIndex,
       };
     } catch (error) {
-      console.error('Error generating ML prediction:', error);
+      logger.error('Error generating ML prediction', { error });
       return null;
     }
   }
@@ -276,10 +277,10 @@ export class MLPredictionService {
         .where(eq(mlPricePredictions.commodityType, commodityType))
         .orderBy(sql`${mlPricePredictions.createdAt} DESC`)
         .limit(1);
-      
+
       return predictions[0] || null;
     } catch (error) {
-      console.error('Error fetching prediction:', error);
+      logger.error('Error fetching prediction', { error });
       return null;
     }
   }
@@ -291,10 +292,10 @@ export class MLPredictionService {
         .from(mlPricePredictions)
         .orderBy(sql`${mlPricePredictions.createdAt} DESC`)
         .limit(limit);
-      
+
       return predictions;
     } catch (error) {
-      console.error('Error fetching predictions:', error);
+      logger.error('Error fetching predictions', { error });
       return [];
     }
   }

@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, AlertTriangle } from "lucide-react";
-import { useDelayAdjustedPredictions } from "@/hooks/use-delay-adjusted-predictions";
-import { useRotterdamData } from "@/hooks/use-rotterdam-data";
+import { useDelayAdjustedPredictions } from "@/hooks/useDelayAdjustedPredictions";
+import { useRotterdamData } from "@/hooks/useRotterdamData";
 
 interface CommodityPriceChartProps {
   dashboardType: string;
@@ -17,10 +17,10 @@ export default function CommodityPriceChart({ dashboardType, region = "global", 
     selectedPort === 'rotterdam' ? 'rotterdam' : undefined,
     'BRENT'
   );
-  
+
   // Fetch Rotterdam data when Rotterdam is selected (with month filtering)
   const { data: rotterdamData } = useRotterdamData(selectedMonth, selectedPort === 'rotterdam');
-  
+
   // Using mock data directly for reliable UI performance
   const getCommodityData = () => {
     switch (dashboardType) {
@@ -32,44 +32,44 @@ export default function CommodityPriceChart({ dashboardType, region = "global", 
           const spread = rotterdamData.stats.avgSpread;
           const brentChange = spread;
           const brentChangePercent = (brentChange / brentPrice) * 100;
-          
+
           return [
-            { 
-              name: 'Brent Crude', 
-              price: brentPrice, 
-              change: brentChange, 
-              changePercent: brentChangePercent, 
+            {
+              name: 'Brent Crude',
+              price: brentPrice,
+              change: brentChange,
+              changePercent: brentChangePercent,
               unit: '$/bbl',
               delayAdjusted: false,
               delayImpact: 0
             },
-            { 
-              name: 'Rotterdam Crude', 
-              price: rotterdamPrice, 
-              change: spread, 
-              changePercent: (spread / brentPrice) * 100, 
-              unit: '$/bbl' 
+            {
+              name: 'Rotterdam Crude',
+              price: rotterdamPrice,
+              change: spread,
+              changePercent: (spread / brentPrice) * 100,
+              unit: '$/bbl'
             },
             { name: 'Local Spread', price: spread, change: 0, changePercent: 0, unit: '$/bbl' },
           ];
         }
-        
+
         // Use delay-adjusted price for Brent if available
-        const brentPrice = delayAdjustedData?.adjustedPrediction 
+        const brentPrice = delayAdjustedData?.adjustedPrediction
           ? parseFloat(delayAdjustedData.adjustedPrediction.predictedPrice)
           : 75.24;
-        const brentBasePrice = delayAdjustedData?.basePrediction 
+        const brentBasePrice = delayAdjustedData?.basePrediction
           ? parseFloat(delayAdjustedData.basePrediction.currentPrice)
           : 74.01;
         const brentChange = brentPrice - brentBasePrice;
         const brentChangePercent = (brentChange / brentBasePrice) * 100;
-        
+
         return [
-          { 
-            name: 'Brent Crude', 
-            price: brentPrice, 
-            change: brentChange, 
-            changePercent: brentChangePercent, 
+          {
+            name: 'Brent Crude',
+            price: brentPrice,
+            change: brentChange,
+            changePercent: brentChangePercent,
             unit: '$/bbl',
             delayAdjusted: delayAdjustedData?.delayAdjusted || false,
             delayImpact: delayAdjustedData?.delayImpact ? parseFloat(delayAdjustedData.delayImpact.priceImpact) : 0
@@ -135,8 +135,8 @@ export default function CommodityPriceChart({ dashboardType, region = "global", 
       </CardHeader>
       <CardContent className="space-y-3">
         {commodityData.map((commodity, index) => (
-          <div 
-            key={commodity.name} 
+          <div
+            key={commodity.name}
             className="flex justify-between items-center py-2 border-b border-border last:border-0"
             data-testid={`commodity-price-${index}`}
           >

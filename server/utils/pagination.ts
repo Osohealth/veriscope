@@ -18,6 +18,13 @@ export interface PaginatedResponse<T> {
   };
 }
 
+/** Safely parse a user-supplied limit/count parameter with a bounded range. */
+export function parseSafeLimit(value: unknown, defaultVal: number, max: number): number {
+  const n = parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(n) || n < 1) return defaultVal;
+  return Math.min(n, max);
+}
+
 export function parsePaginationParams(req: Request, defaults: { page?: number; limit?: number } = {}): PaginationParams {
   const defaultPage = defaults.page ?? 1;
   const defaultLimit = defaults.limit ?? 50;
@@ -84,7 +91,7 @@ export function buildSortParams(req: Request, allowedFields: string[], defaultFi
 
 export function buildFilterParams(req: Request, allowedFilters: string[]): Record<string, string | undefined> {
   const filters: Record<string, string | undefined> = {};
-  
+
   for (const filter of allowedFilters) {
     const value = req.query[filter];
     if (typeof value === 'string' && value.trim()) {
@@ -121,7 +128,7 @@ export function haversineDistance(lat1: number, lng1: number, lat2: number, lng2
   const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
     Math.sin(dLng / 2) * Math.sin(dLng / 2);
@@ -143,11 +150,11 @@ export function filterByGeoRadius<T extends { latitude?: number | string | null;
     .map(item => {
       const lat = typeof item.latitude === 'string' ? parseFloat(item.latitude) : item.latitude;
       const lng = typeof item.longitude === 'string' ? parseFloat(item.longitude) : item.longitude;
-      
+
       if (!lat || !lng) return null;
 
       const distance = haversineDistance(geo.lat!, geo.lng!, lat, lng);
-      
+
       if (distance <= geo.radiusKm!) {
         return { ...item, distance };
       }
@@ -157,8 +164,8 @@ export function filterByGeoRadius<T extends { latitude?: number | string | null;
     .sort((a, b) => a.distance - b.distance);
 }
 
-export function getBoundingBox(lat: number, lng: number, radiusKm: number): { 
-  minLat: number; maxLat: number; minLng: number; maxLng: number 
+export function getBoundingBox(lat: number, lng: number, radiusKm: number): {
+  minLat: number; maxLat: number; minLng: number; maxLng: number
 } {
   const latDelta = radiusKm / 111.32;
   const lngDelta = radiusKm / (111.32 * Math.cos(toRad(lat)));

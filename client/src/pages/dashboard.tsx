@@ -3,16 +3,16 @@ import Sidebar from "@/components/Sidebar";
 import MapPanel from "@/components/MapPanel";
 import RightPanel from "@/components/RightPanel";
 import { NotificationPanel } from "@/components/NotificationPanel";
-import { DataFreshnessIndicator } from "@/components/data-freshness-indicator";
-import { WatchlistFilter } from "@/components/watchlist-filter";
-import { useWatchlistFilter } from "@/hooks/use-watchlist-filter";
+import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
+import { WatchlistFilter } from "@/components/WatchlistFilter";
+import { useWatchlistFilter } from "@/hooks/useWatchlistFilter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Bell, Calendar, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useVessels } from "@/hooks/use-vessels";
-import { useNotifications } from "@/hooks/use-notifications";
-import { useRotterdamMonths } from "@/hooks/use-rotterdam-data";
+import { useVessels } from "@/hooks/useVessels";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useRotterdamMonths } from "@/hooks/useRotterdamData";
 import { Link } from "wouter";
 
 export default function Dashboard() {
@@ -21,10 +21,10 @@ export default function Dashboard() {
   const [timeRange, setTimeRange] = useState<string>("live");
   const [activeTab, setActiveTab] = useState<string>("stats");
   const [selectedMonth, setSelectedMonth] = useState<string | undefined>(undefined);
-  
+
   // Fetch available months for Rotterdam data
   const { data: availableMonths } = useRotterdamMonths(selectedPort === 'rotterdam');
-  
+
   // Layer and vessel type state - now based on dashboard type
   const getDefaultLayers = (dashboardType: string): Record<string, boolean> => {
     switch (dashboardType) {
@@ -66,26 +66,26 @@ export default function Dashboard() {
 
   const [layers, setLayers] = useState<Record<string, boolean>>(getDefaultLayers(scope));
   const [vesselTypes, setVesselTypes] = useState<Record<string, boolean>>(getDefaultVesselTypes(scope));
-  
+
   const { data: vessels, dataUpdatedAt } = useVessels();
   const { activeWatchlist, isItemInActiveWatchlist, getWatchlistItems } = useWatchlistFilter();
-  
+
   // Filter vessels based on active watchlist
   const filteredVessels = useMemo(() => {
     if (!vessels) return [];
     if (!activeWatchlist || activeWatchlist.type !== 'vessels') return vessels;
     return vessels.filter(v => isItemInActiveWatchlist(v.id, 'vessels'));
   }, [vessels, activeWatchlist, isItemInActiveWatchlist]);
-  
+
   // Track last data update for freshness indicator - undefined when no data yet
   const [lastDataUpdate, setLastDataUpdate] = useState<Date | undefined>(undefined);
-  
+
   useEffect(() => {
     if (dataUpdatedAt) {
       setLastDataUpdate(new Date(dataUpdatedAt));
     }
   }, [dataUpdatedAt]);
-  
+
   // Notifications state
   const {
     unreadCount,
@@ -117,7 +117,7 @@ export default function Dashboard() {
   // Handle scope changes and set appropriate configurations
   const handleScopeChange = (newScope: string) => {
     setScope(newScope);
-    
+
     // Set appropriate default port based on dashboard type
     switch (newScope) {
       case 'crude-oil':
@@ -142,15 +142,15 @@ export default function Dashboard() {
       default:
         setSelectedPort('fujairah');
     }
-    
+
     // Update layers and vessel types based on dashboard type
     setLayers(getDefaultLayers(newScope));
     setVesselTypes(getDefaultVesselTypes(newScope));
-    
+
     // Set appropriate default tab for new dashboard type
     setActiveTab(getDefaultTab(newScope));
   };
-  
+
   const handleLayerChange = (layer: string) => {
     setLayers(prev => ({ ...prev, [layer]: !prev[layer] }));
   };
@@ -161,7 +161,7 @@ export default function Dashboard() {
 
   const getVesselCount = (type: string) => {
     if (!filteredVessels || filteredVessels.length === 0) return 0;
-    
+
     // For dashboard-specific categories, map to vessel classes or return mock counts
     switch (scope) {
       case 'crude-oil':
@@ -197,7 +197,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar 
+      <Sidebar
         layers={layers}
         vesselTypes={vesselTypes}
         onLayerChange={handleLayerChange}
@@ -208,7 +208,7 @@ export default function Dashboard() {
         onPortClick={handlePortClick}
         dashboardType={scope}
       />
-      
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
@@ -250,11 +250,11 @@ export default function Dashboard() {
               </Select>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             {/* Watchlist Filter */}
             <WatchlistFilter filterType="all" size="sm" showClearButton={true} />
-            
+
             {/* Rotterdam Month Filter */}
             {selectedPort === 'rotterdam' && availableMonths && availableMonths.length > 0 && (
               <div className="flex items-center space-x-2">
@@ -279,14 +279,14 @@ export default function Dashboard() {
                 </Select>
               </div>
             )}
-            
+
             {/* Data Freshness Indicator */}
-            <DataFreshnessIndicator 
+            <DataFreshnessIndicator
               lastUpdate={lastDataUpdate}
               streamName="AIS Feed"
               showLabel={true}
             />
-            
+
             {/* Time Range Selector */}
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">Time:</span>
@@ -305,12 +305,12 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
-            
+
             {/* Alert Bell */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="relative" 
+            <Button
+              variant="ghost"
+              size="sm"
+              className="relative"
               onClick={toggleNotificationPanel}
               data-testid="button-alerts"
             >
@@ -321,7 +321,7 @@ export default function Dashboard() {
                 </Badge>
               )}
             </Button>
-            
+
             {/* User Profile */}
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center" data-testid="avatar-user">
@@ -330,22 +330,22 @@ export default function Dashboard() {
             </div>
           </div>
         </header>
-        
+
         {/* Dashboard Content */}
         <main className="flex-1 overflow-hidden">
           <div className="h-full flex">
-            <MapPanel 
-              selectedPort={selectedPort} 
-              timeRange={timeRange} 
+            <MapPanel
+              selectedPort={selectedPort}
+              timeRange={timeRange}
               scope={scope}
               layers={layers}
               vesselTypes={vesselTypes}
               mapCenter={mapCenter}
               onMapCenterReset={() => setMapCenter(null)}
             />
-            <RightPanel 
-              selectedPort={selectedPort} 
-              activeTab={activeTab} 
+            <RightPanel
+              selectedPort={selectedPort}
+              activeTab={activeTab}
               onTabChange={setActiveTab}
               onPortChange={setSelectedPort}
               scope={scope}
@@ -354,9 +354,9 @@ export default function Dashboard() {
           </div>
         </main>
       </div>
-      
+
       {/* Notification Panel */}
-      <NotificationPanel 
+      <NotificationPanel
         isOpen={isNotificationPanelOpen}
         onClose={closeNotificationPanel}
       />

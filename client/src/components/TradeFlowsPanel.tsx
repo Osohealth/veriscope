@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Ship, ArrowRight, TrendingUp, Globe, Clock } from "lucide-react";
-import { useMarketDelayImpact } from "@/hooks/use-port-delays";
-import { useRotterdamData } from "@/hooks/use-rotterdam-data";
+import { useMarketDelayImpact } from "@/hooks/usePortDelays";
+import { useRotterdamData } from "@/hooks/useRotterdamData";
 
 interface TradeFlowsPanelProps {
   dashboardType: string;
@@ -15,10 +15,10 @@ export default function TradeFlowsPanel({ dashboardType, selectedPort, selectedM
   // Fetch delay impact data for the selected port
   const { data: delayImpacts } = useMarketDelayImpact(selectedPort, undefined, 1);
   const delayData = delayImpacts?.[0];
-  
+
   // Fetch Rotterdam data when Rotterdam is selected (with month filtering)
   const { data: rotterdamData } = useRotterdamData(selectedMonth, selectedPort === 'rotterdam');
-  
+
   // Using mock data directly for reliable UI performance
 
   const getMockTradeFlows = () => {
@@ -51,7 +51,7 @@ export default function TradeFlowsPanel({ dashboardType, selectedPort, selectedM
 
   const getActiveVessels = () => {
     const delayed = delayData?.vesselCount || 0;
-    
+
     // Use Rotterdam data if available and Rotterdam is selected
     if (selectedPort === 'rotterdam' && rotterdamData?.stats) {
       return {
@@ -61,7 +61,7 @@ export default function TradeFlowsPanel({ dashboardType, selectedPort, selectedM
         delayed
       };
     }
-    
+
     switch (dashboardType) {
       case 'crude-oil': return { inTransit: 47, loading: 12, discharging: 8, delayed };
       case 'refined-products': return { inTransit: 89, loading: 23, discharging: 15, delayed };
@@ -138,7 +138,7 @@ export default function TradeFlowsPanel({ dashboardType, selectedPort, selectedM
               </div>
             )}
           </div>
-          
+
           {/* Delay Impact Summary */}
           {delayData && delayData.totalDelayedVolume > 0 && (
             <div className="mt-4 pt-4 border-t border-border">
@@ -172,7 +172,7 @@ export default function TradeFlowsPanel({ dashboardType, selectedPort, selectedM
         </CardHeader>
         <CardContent className="space-y-4">
           {tradeFlowData.map((flow, index) => (
-            <div 
+            <div
               key={flow.route}
               className="border border-border rounded-lg p-3 space-y-3"
               data-testid={`trade-flow-${index}`}
@@ -188,15 +188,14 @@ export default function TradeFlowsPanel({ dashboardType, selectedPort, selectedM
                   </div>
                 </div>
                 <div className="text-right space-y-1">
-                  <div className={`flex items-center gap-1 text-xs ${
-                    flow.trend > 0 ? 'text-green-500' : 'text-red-500'
-                  }`}>
+                  <div className={`flex items-center gap-1 text-xs ${flow.trend > 0 ? 'text-green-500' : 'text-red-500'
+                    }`}>
                     <TrendingUp className="w-3 h-3" />
                     {flow.trend > 0 ? '+' : ''}{flow.trend.toFixed(1)}%
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">Volume</div>
@@ -211,7 +210,7 @@ export default function TradeFlowsPanel({ dashboardType, selectedPort, selectedM
                   </div>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Route Utilization</span>

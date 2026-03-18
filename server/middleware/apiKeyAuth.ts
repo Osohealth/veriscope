@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
 import { apiKeys } from "@shared/schema";
 import { hashApiKey } from "../services/apiKeyService";
@@ -46,8 +46,7 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
     const [row] = await db
       .select()
       .from(apiKeys)
-      .where(eq(apiKeys.keyHash, keyHash))
-      .where(isNull(apiKeys.revokedAt))
+      .where(and(eq(apiKeys.keyHash, keyHash), isNull(apiKeys.revokedAt)))
       .limit(1);
 
     if (!row) {

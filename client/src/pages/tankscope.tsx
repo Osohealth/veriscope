@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DataFreshnessIndicator } from "@/components/data-freshness-indicator";
+import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Menu, Settings, PieChart } from "lucide-react";
 import { Link } from "wouter";
@@ -46,7 +46,7 @@ export default function TankScope() {
           </Button>
           <h1 className="text-2xl font-bold">TankScope Analytics</h1>
         </div>
-        <DataFreshnessIndicator 
+        <DataFreshnessIndicator
           lastUpdate={dataUpdatedAt ? new Date(dataUpdatedAt) : undefined}
           streamName="Market Data"
           showLabel={true}
@@ -97,7 +97,7 @@ export default function TankScope() {
                           <span className="text-white">{item.volume}</span>
                         </div>
                         <div className="h-3 bg-gray-700 rounded-full">
-                          <div 
+                          <div
                             className="h-full bg-blue-500 rounded-full"
                             style={{ width: `${(item.volume / 350) * 100}%` }}
                             data-testid={`commodity-bar-${index}`}

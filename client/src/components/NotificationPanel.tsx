@@ -1,4 +1,4 @@
-import { useNotifications } from "@/hooks/use-notifications";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,12 +42,12 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end p-4">
       {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/20" 
+      <div
+        className="fixed inset-0 bg-black/20"
         onClick={onClose}
         data-testid="notification-backdrop"
       />
-      
+
       {/* Panel */}
       <Card className="relative w-96 max-h-[80vh] bg-card border shadow-lg" data-testid="notification-panel">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -74,9 +74,9 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
             </Button>
           </div>
         </CardHeader>
-        
+
         <Separator />
-        
+
         <CardContent className="p-0">
           <ScrollArea className="h-[calc(80vh-8rem)]">
             {isLoading ? (
@@ -103,40 +103,39 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
                     data-testid={`notification-item-${index}`}
                   >
                     <div className="flex items-start space-x-3">
-                      <div className={`flex-shrink-0 p-1 rounded-full ${
-                        signal.severity >= 4 ? 'bg-destructive/10 text-destructive' :
-                        signal.severity === 3 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                        signal.severity === 2 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                        'bg-muted text-muted-foreground'
-                      }`}>
+                      <div className={`flex-shrink-0 p-1 rounded-full ${signal.severity >= 4 ? 'bg-destructive/10 text-destructive' :
+                          signal.severity === 3 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                            signal.severity === 2 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                              'bg-muted text-muted-foreground'
+                        }`}>
                         {getSeverityIcon(signal.severity)}
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <h4 className="text-sm font-medium truncate pr-2">
                             {signal.title}
                           </h4>
-                          <Badge 
+                          <Badge
                             variant={getSeverityBadgeVariant(signal.severity) as any}
                             className="text-xs"
                           >
                             {getSeverityLabel(signal.severity)}
                           </Badge>
                         </div>
-                        
+
                         {signal.description && (
                           <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                             {signal.description}
                           </p>
                         )}
-                        
+
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span className="capitalize">
                             {signal.signalType ? signal.signalType.replace(/_/g, ' ').toLowerCase() : 'alert'}
                           </span>
                           <span>
-                            {signal.timestamp ? 
+                            {signal.timestamp ?
                               formatDistanceToNow(new Date(signal.timestamp), { addSuffix: true }) :
                               'Just now'
                             }

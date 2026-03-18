@@ -12,8 +12,9 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const headers = getAuthHeaders(data ? { "Content-Type": "application/json" } : undefined);
-  
+  const headers: Record<string, string> = {};
+  if (data) headers["Content-Type"] = "application/json";
+
   const res = await fetch(url, {
     method,
     headers,
@@ -30,21 +31,18 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const headers = getAuthHeaders();
-    
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-      headers,
-    });
+    async ({ queryKey }) => {
+      const res = await fetch(queryKey.join("/") as string, {
+        credentials: "include",
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
 
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
+      await throwIfResNotOk(res);
+      return await res.json();
+    };
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,7 +52,6 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
-      enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token"),
     },
     mutations: {
       retry: false,
@@ -62,18 +59,13 @@ export const queryClient = new QueryClient({
   },
 });
 
+// Auth headers kept for backward-compat with any remaining direct fetch calls
+// that need an explicit Authorization header (e.g. API key flows).
+// JWT tokens are now in httpOnly cookies; browser sends them automatically.
 export function getAuthToken(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  return localStorage.getItem("access_token");
+  return null; // tokens are now httpOnly cookies, not accessible from JS
 }
 
 export function getAuthHeaders(extra?: Record<string, string>): Record<string, string> {
-  const headers: Record<string, string> = { ...(extra ?? {}) };
-  const token = getAuthToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  return headers;
+  return extra ?? {};
 }

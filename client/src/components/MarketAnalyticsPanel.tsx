@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BarChart3, TrendingUp, TrendingDown, Activity, DollarSign, AlertTriangle, Clock } from "lucide-react";
-import { useDelayAdjustedPredictions } from "@/hooks/use-delay-adjusted-predictions";
-import { useRotterdamData } from "@/hooks/use-rotterdam-data";
+import { useDelayAdjustedPredictions } from "@/hooks/useDelayAdjustedPredictions";
+import { useRotterdamData } from "@/hooks/useRotterdamData";
 import { getAuthHeaders } from "@/lib/queryClient";
 
 interface MarketAnalytics {
@@ -39,7 +39,7 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
     },
     refetchInterval: 300000, // Refetch every 5 minutes
   });
-  
+
   // Fetch Rotterdam data when Rotterdam is selected (with month filtering)
   const { data: rotterdamData } = useRotterdamData(selectedMonth, selectedPort === 'rotterdam');
 
@@ -55,17 +55,17 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
           const storageUtil = stats.avgStorageUtilization;
           const storageBbl = avgReceipts * 30; // Rough estimate for capacity
           const capacity = storageBbl / (storageUtil / 100);
-          
+
           return {
-            supplyDemand: { 
+            supplyDemand: {
               supply: avgReceipts,
-              demand: avgExports, 
+              demand: avgExports,
               balance: balance
             },
-            inventory: { 
-              current: storageBbl, 
-              capacity: capacity, 
-              utilization: storageUtil 
+            inventory: {
+              current: storageBbl,
+              capacity: capacity,
+              utilization: storageUtil
             },
             indicators: [
               { name: 'Avg Congestion', value: stats.avgCongestionIndex.toFixed(1), trend: stats.avgCongestionIndex > 25 ? 'up' : 'stable', description: 'Congestion index' },
@@ -74,7 +74,7 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
             ]
           };
         }
-        
+
         return {
           supplyDemand: { supply: 102.4, demand: 101.8, balance: 0.6 },
           inventory: { current: 68.5, capacity: 85.2, utilization: 80.4 },
@@ -208,14 +208,14 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
                   <div className="text-xs text-muted-foreground">24h Forecast</div>
                   <div className="text-2xl font-bold text-green-500" data-testid="predicted-price">
                     ${parseFloat(
-                      predictionData.adjustedPrediction?.predictedPrice || 
+                      predictionData.adjustedPrediction?.predictedPrice ||
                       predictionData.basePrediction.predictedPrice
                     ).toFixed(2)}
                   </div>
                   <div className="text-xs text-muted-foreground">$/bbl</div>
                 </div>
               </div>
-              
+
               {/* Price Change & Confidence */}
               <div className="pt-3 border-t border-border space-y-2">
                 <div className="flex justify-between items-center">
@@ -224,10 +224,10 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
                     +{(
                       parseFloat(predictionData.adjustedPrediction?.predictedPrice || predictionData.basePrediction.predictedPrice) -
                       parseFloat(predictionData.basePrediction.currentPrice)
-                    ).toFixed(2)} 
+                    ).toFixed(2)}
                     ({((
                       (parseFloat(predictionData.adjustedPrediction?.predictedPrice || predictionData.basePrediction.predictedPrice) -
-                      parseFloat(predictionData.basePrediction.currentPrice)) /
+                        parseFloat(predictionData.basePrediction.currentPrice)) /
                       parseFloat(predictionData.basePrediction.currentPrice)
                     ) * 100).toFixed(1)}%)
                   </span>
@@ -235,9 +235,9 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Confidence</span>
                   <div className="flex items-center gap-2">
-                    <Progress 
-                      value={parseFloat(predictionData.basePrediction.confidence) * 100} 
-                      className="h-2 w-20" 
+                    <Progress
+                      value={parseFloat(predictionData.basePrediction.confidence) * 100}
+                      className="h-2 w-20"
                     />
                     <span className="text-sm font-mono font-medium">
                       {(parseFloat(predictionData.basePrediction.confidence) * 100).toFixed(0)}%
@@ -245,7 +245,7 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
                   </div>
                 </div>
               </div>
-              
+
               {/* Delay Impact Details */}
               {predictionData.delayAdjusted && predictionData.delayImpact && (
                 <div className="pt-3 border-t border-border">
@@ -280,7 +280,7 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
           </CardContent>
         </Card>
       )}
-      
+
       {/* Supply & Demand Balance */}
       <Card>
         <CardHeader className="pb-3">
@@ -310,9 +310,8 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
             </div>
             <div className="text-center space-y-2">
               <div className="text-xs text-muted-foreground">Balance</div>
-              <div className={`text-lg font-bold ${
-                marketData.supplyDemand.balance > 0 ? 'text-green-500' : 'text-red-500'
-              }`} data-testid="balance-value">
+              <div className={`text-lg font-bold ${marketData.supplyDemand.balance > 0 ? 'text-green-500' : 'text-red-500'
+                }`} data-testid="balance-value">
                 {marketData.supplyDemand.balance > 0 ? '+' : ''}{marketData.supplyDemand.balance.toFixed(1)}
               </div>
               <div className="text-xs text-muted-foreground">{getUnit()}</div>
@@ -354,7 +353,7 @@ export default function MarketAnalyticsPanel({ dashboardType, region = "global",
         </CardHeader>
         <CardContent className="space-y-4">
           {marketData.indicators.map((indicator, index) => (
-            <div 
+            <div
               key={indicator.name}
               className="flex justify-between items-center py-2 border-b border-border last:border-0"
               data-testid={`market-indicator-${index}`}

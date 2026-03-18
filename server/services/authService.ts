@@ -1,10 +1,17 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { db } from "../db";
+import { logger } from "../middleware/observability";
 import { users, organizations } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
-const JWT_SECRET = process.env.JWT_SECRET || "veriscope-secret-key-change-in-production";
+const JWT_SECRET = (() => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET environment variable is required but not set. Refusing to start with an insecure default.");
+  }
+  return secret;
+})();
 const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_EXPIRY = "7d";
 
@@ -38,9 +45,6 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  if (hash.includes(':')) {
-    return false;
-  }
   return bcrypt.compare(password, hash);
 }
 
@@ -70,15 +74,15 @@ class AuthService {
   ): Promise<{ success: boolean; data?: AuthTokens; error?: string }> {
     try {
       const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
-      
+
       if (existingUser.length > 0) {
         return { success: false, error: "User with this email already exists" };
       }
 
       const passwordHash = await hashPassword(password);
-      
+
       let organizationId: string | null = null;
-      
+
       if (organizationName) {
         const [org] = await db.insert(organizations).values({
           name: organizationName,
@@ -118,7 +122,7 @@ class AuthService {
         },
       };
     } catch (error: any) {
-      console.error("Registration error:", error);
+      logger.error("Registration error", { error });
       return { success: false, error: error.message || "Registration failed" };
     }
   }
@@ -136,7 +140,7 @@ class AuthService {
       }
 
       const isValidPassword = await verifyPassword(password, user.passwordHash);
-      
+
       if (!isValidPassword) {
         return { success: false, error: "Invalid email or password" };
       }
@@ -167,7 +171,7 @@ class AuthService {
         },
       };
     } catch (error: any) {
-      console.error("Login error:", error);
+      logger.error("Login error", { error });
       return { success: false, error: error.message || "Login failed" };
     }
   }
@@ -175,7 +179,7 @@ class AuthService {
   async refreshTokens(refreshToken: string): Promise<{ success: boolean; data?: AuthTokens; error?: string }> {
     try {
       const payload = verifyToken(refreshToken);
-      
+
       if (!payload || payload.type !== "refresh") {
         return { success: false, error: "Invalid refresh token" };
       }
@@ -208,7 +212,7 @@ class AuthService {
         },
       };
     } catch (error: any) {
-      console.error("Token refresh error:", error);
+      logger.error("Token refresh error", { error });
       return { success: false, error: error.message || "Token refresh failed" };
     }
   }
@@ -216,7 +220,7 @@ class AuthService {
   async getUser(userId: string) {
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!user) return null;
-    
+
     const { passwordHash: _, ...safeUser } = user;
     return safeUser;
   }

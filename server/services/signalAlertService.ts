@@ -1,5 +1,5 @@
 import type { SignalSeverity, ConfidenceBand } from "@shared/signalTypes";
-import { formatSignalDay } from "./signalEngine";
+import { formatSignalDay } from "./signalEngineService";
 
 type DriverMetric = {
   metric: string;

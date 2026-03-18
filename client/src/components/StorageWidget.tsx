@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { MethodologyBadge, ConfidenceBadge, UncertaintyBand, parseMethodology } from "./credibility-indicator";
+import { MethodologyBadge, ConfidenceBadge, UncertaintyBand, parseMethodology } from "./CredibilityIndicator";
 import { getAuthHeaders } from "@/lib/queryClient";
 
 interface StorageWidgetProps {
@@ -57,20 +57,20 @@ export default function StorageWidget({ portId }: StorageWidgetProps) {
         const fillPercentage = site.fillData?.fillIndex ? site.fillData.fillIndex * 100 : Math.random() * 60 + 20;
         const siteName = site.name || `Site ${String.fromCharCode(65 + index)}`; // A, B, C
         const confidence = site.fillData?.confidence ?? (0.7 + Math.random() * 0.25);
-        const methodology = site.fillData?.source 
+        const methodology = site.fillData?.source
           ? parseMethodology(site.fillData.source)
           : (index === 0 ? 'satellite' : index === 1 ? 'sensor' : 'inferred');
         const uncertaintyRange = methodology === 'satellite' ? 2 : methodology === 'sensor' ? 1 : 5;
         const uncertaintyLeft = Math.max(0, fillPercentage - uncertaintyRange);
         const uncertaintyWidth = Math.min(100 - uncertaintyLeft, uncertaintyRange * 2);
-        
+
         return (
           <div key={site.id} className="bg-muted rounded-lg p-3" data-testid={`storage-site-${index}`}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-foreground" data-testid={`storage-name-${index}`}>
                 {siteName}
               </span>
-              <UncertaintyBand 
+              <UncertaintyBand
                 value={fillPercentage}
                 low={fillPercentage - uncertaintyRange}
                 high={fillPercentage + uncertaintyRange}
@@ -78,17 +78,17 @@ export default function StorageWidget({ portId }: StorageWidgetProps) {
               />
             </div>
             <div className="w-full bg-accent rounded-full h-2 relative overflow-hidden" data-testid={`storage-bar-${index}`}>
-              <div 
+              <div
                 className={cn(
                   "h-2 rounded-full transition-all absolute top-0",
                   "bg-yellow-400/30"
                 )}
-                style={{ 
+                style={{
                   left: `${uncertaintyLeft}%`,
-                  width: `${uncertaintyWidth}%` 
+                  width: `${uncertaintyWidth}%`
                 }}
               ></div>
-              <div 
+              <div
                 className={cn(
                   "h-2 rounded-full transition-all relative z-10",
                   fillPercentage > 85 ? "bg-amber-400" : "bg-emerald-400"
@@ -102,7 +102,7 @@ export default function StorageWidget({ portId }: StorageWidgetProps) {
                 <ConfidenceBadge confidence={confidence} size="sm" />
               </div>
               <span className="text-xs text-muted-foreground" data-testid={`storage-update-${index}`}>
-                {site.fillData?.timestamp 
+                {site.fillData?.timestamp
                   ? `${Math.floor((Date.now() - new Date(site.fillData.timestamp).getTime()) / 3600000)}h ago`
                   : `${Math.floor(Math.random() * 5) + 1}h ago`
                 }

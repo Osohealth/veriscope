@@ -1,8 +1,27 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { AppError } from "./utils/AppError";
+import { logger } from "./middleware/observability";
 
 const app = express();
+app.set('trust proxy', 1);
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -44,12 +63,28 @@ app.use((req, res, next) => {
     res.status(404).json({ version: "1", ok: false, error: "Unknown API route" });
   });
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+  // Global error handler — sanitises all 500 responses so stack traces
+  // and internal DB error messages are never sent to the client.
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+    const requestId = (req as any).requestId;
 
-    res.status(status).json({ message });
-    throw err;
+    if (err instanceof AppError) {
+      // Structured AppError: return the full code+message for 4xx, sanitise 5xx
+      if (err.status >= 500) {
+        logger.error(`[${requestId}] AppError 5xx`, { error: err, requestId });
+        return res.status(err.status).json({ version: "1", ok: false, error: { code: "INTERNAL", message: "Internal server error" }, requestId });
+      }
+      return res.status(err.status).json({ version: "1", ok: false, error: { code: err.code, message: err.message } });
+    }
+
+    const status = err.status || err.statusCode || 500;
+    if (status >= 500) {
+      // Log full error internally but never expose it
+      logger.error(`[${requestId}] Unhandled error`, { error: err, requestId });
+      return res.status(500).json({ version: "1", ok: false, error: "Internal server error", requestId });
+    }
+    // Client errors (4xx) can pass through their message safely
+    res.status(status).json({ version: "1", ok: false, error: err.message || "Request error" });
   });
 
   // importantly only setup vite in development and after
@@ -69,8 +104,26 @@ app.use((req, res, next) => {
   server.listen({
     port,
     host: "0.0.0.0",
-    ...(process.platform !== "win32" ? { reusePort: true } : {}),
+    ...(process.platform === "linux" ? { reusePort: true } : {}),
   }, () => {
     log(`serving on port ${port}`);
   });
+
+  // Graceful shutdown: stop accepting new connections, drain existing ones,
+  // then allow the process to exit cleanly. Kubernetes / Railway send SIGTERM.
+  const shutdown = (signal: string) => {
+    log(`Received ${signal} — shutting down gracefully`);
+    server.close(() => {
+      log("HTTP server closed");
+      process.exit(0);
+    });
+    // Force exit if draining takes too long
+    setTimeout(() => {
+      log("Shutdown timeout — forcing exit");
+      process.exit(1);
+    }, 10_000).unref();
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 })();

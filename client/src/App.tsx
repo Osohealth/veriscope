@@ -3,55 +3,55 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { WatchlistFilterProvider } from "@/hooks/use-watchlist-filter";
+import { WatchlistFilterProvider } from "@/hooks/useWatchlistFilter";
 import { useEffect } from "react";
-import Dashboard from "@/pages/dashboard";
-import DashboardHome from "@/pages/dashboard-home";
-import Home from "@/pages/home";
-import SignalsPage from "@/pages/signals";
-import Blog from "@/pages/blog";
-import BlogPost from "@/pages/blog/post";
-import CommoditiesIntelligence from "@/pages/commodities";
-import MaritimeIntelligence from "@/pages/maritime";
-import EnergyTransition from "@/pages/energy";
-import EmissionsIntelligence from "@/pages/energy/emissions";
-import PowerMarkets from "@/pages/energy/power-markets";
-import RenewableDispatch from "@/pages/energy/renewable-dispatch";
-import WeatherIntegration from "@/pages/energy/weather-integration";
-import CarbonMarkets from "@/pages/energy/carbon-markets";
-import TradesFlowsPage from "@/pages/trades-flows";
-import InventoriesStoragePage from "@/pages/inventories-storage";
-import FreightAnalyticsPage from "@/pages/freight-analytics";
-import AisVesselTracking from "@/pages/maritime/ais-tracking";
-import PortEventEngine from "@/pages/maritime/port-events";
-import ContainerIntelligence from "@/pages/maritime/containers";
-import BunkeringFuelEvents from "@/pages/maritime/bunkering";
-import MaritimeInbox from "@/pages/maritime/inbox";
-import CrudeProductsPage from "@/pages/commodities/crude-products";
-import LngLpgPage from "@/pages/commodities/lng-lpg";
-import DryBulkPage from "@/pages/commodities/dry-bulk";
-import PetrochemPage from "@/pages/commodities/petrochem";
-import AgriBiofuelPage from "@/pages/commodities/agri-biofuel";
-import RefineryIntelligencePage from "@/pages/commodities/refinery-intelligence";
-import SupplyDemandPage from "@/pages/commodities/supply-demand";
-import ResearchInsightsPage from "@/pages/commodities/research-insights";
-import { createModulePage } from "@/pages/module-page";
-import NotFound from "@/pages/not-found";
-import Register from "@/pages/auth/register";
-import Login from "@/pages/auth/login";
-import About from "@/pages/about";
-import Contact from "@/pages/contact";
-import Careers from "@/pages/careers";
-import Documentation from "@/pages/documentation";
-import TankScope from "@/pages/tankscope";
-import WatchlistsPage from "@/pages/watchlists";
-import AlertRulesPage from "@/pages/alert-rules";
-import AlertsPage from "@/pages/alerts";
-import AlertsHealthPage from "@/pages/alerts-health";
-import AlertSubscriptionsPage from "@/pages/alert-subscriptions";
-import DataExportsPage from "@/pages/data-exports";
-import RefinerySatellite from "@/pages/refinery-satellite";
-import PortDetailPage from "@/pages/port-detail";
+import Dashboard from "@/pages/Dashboard";
+import DashboardHome from "@/pages/DashboardHome";
+import Home from "@/pages/Home";
+import SignalsPage from "@/pages/Signals";
+import Blog from "@/pages/Blog";
+import BlogPost from "@/pages/blog/Post";
+import CommoditiesIntelligence from "@/pages/Commodities";
+import MaritimeIntelligence from "@/pages/Maritime";
+import EnergyTransition from "@/pages/Energy";
+import EmissionsIntelligence from "@/pages/energy/Emissions";
+import PowerMarkets from "@/pages/energy/PowerMarkets";
+import RenewableDispatch from "@/pages/energy/RenewableDispatch";
+import WeatherIntegration from "@/pages/energy/WeatherIntegration";
+import CarbonMarkets from "@/pages/energy/CarbonMarkets";
+import TradesFlowsPage from "@/pages/TradesFlows";
+import InventoriesStoragePage from "@/pages/InventoriesStorage";
+import FreightAnalyticsPage from "@/pages/FreightAnalytics";
+import AisVesselTracking from "@/pages/maritime/AisTracking";
+import PortEventEngine from "@/pages/maritime/PortEvents";
+import ContainerIntelligence from "@/pages/maritime/Containers";
+import BunkeringFuelEvents from "@/pages/maritime/Bunkering";
+import MaritimeInbox from "@/pages/maritime/Inbox";
+import CrudeProductsPage from "@/pages/commodities/CrudeProducts";
+import LngLpgPage from "@/pages/commodities/LngLpg";
+import DryBulkPage from "@/pages/commodities/DryBulk";
+import PetrochemPage from "@/pages/commodities/Petrochem";
+import AgriBiofuelPage from "@/pages/commodities/AgriBiofuel";
+import RefineryIntelligencePage from "@/pages/commodities/RefineryIntelligence";
+import SupplyDemandPage from "@/pages/commodities/SupplyDemand";
+import ResearchInsightsPage from "@/pages/commodities/ResearchInsights";
+import { createModulePage } from "@/pages/ModulePage";
+import NotFound from "@/pages/NotFound";
+import Register from "@/pages/auth/Register";
+import Login from "@/pages/auth/Login";
+import About from "@/pages/About";
+import Contact from "@/pages/Contact";
+import Careers from "@/pages/Careers";
+import Documentation from "@/pages/Documentation";
+import TankScope from "@/pages/Tankscope";
+import WatchlistsPage from "@/pages/Watchlists";
+import AlertRulesPage from "@/pages/AlertRules";
+import AlertsPage from "@/pages/Alerts";
+import AlertsHealthPage from "@/pages/AlertsHealth";
+import AlertSubscriptionsPage from "@/pages/AlertSubscriptions";
+import DataExportsPage from "@/pages/DataExports";
+import RefinerySatellite from "@/pages/RefinerySatellite";
+import PortDetailPage from "@/pages/PortDetail";
 
 // Maritime subsections (AIS, Port Events, Containers, Bunkering, and Inbox have full pages, Predictive Schedules is a placeholder)
 const PredictiveSchedulesPage = createModulePage("Predictive Schedules", "Event forecasts up to 6 weeks ahead", "/maritime", "Back to Maritime");
@@ -74,11 +74,11 @@ function Router() {
       <Route path="/documentation" component={Documentation} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
-      
+
       {/* Auth routes */}
       <Route path="/auth/register" component={Register} />
       <Route path="/auth/login" component={Login} />
-      
+
       {/* Commodities routes */}
       <Route path="/commodities" component={CommoditiesIntelligence} />
       <Route path="/commodities/trades" component={TradesFlowsPage} />
@@ -92,7 +92,7 @@ function Router() {
       <Route path="/commodities/dry-bulk" component={DryBulkPage} />
       <Route path="/commodities/petrochem" component={PetrochemPage} />
       <Route path="/commodities/agri-biofuel" component={AgriBiofuelPage} />
-      
+
       {/* Maritime routes */}
       <Route path="/maritime" component={MaritimeIntelligence} />
       <Route path="/maritime/ais-tracking" component={AisVesselTracking} />
@@ -103,13 +103,13 @@ function Router() {
       <Route path="/maritime/inbox" component={MaritimeInbox} />
       <Route path="/maritime/vessels" component={Dashboard} />
       <Route path="/ports/:portId" component={PortDetailPage} />
-      
+
       {/* TankScope classic dashboard */}
       <Route path="/tankscope" component={TankScope} />
-      
+
       {/* Refinery Satellite Monitoring */}
       <Route path="/refinery-satellite" component={RefinerySatellite} />
-      
+
       {/* Energy routes */}
       <Route path="/energy" component={EnergyTransition} />
       <Route path="/energy/emissions" component={EmissionsIntelligence} />
@@ -117,12 +117,12 @@ function Router() {
       <Route path="/energy/renewable" component={RenewableDispatch} />
       <Route path="/energy/weather" component={WeatherIntegration} />
       <Route path="/energy/carbon" component={CarbonMarkets} />
-      
+
       {/* User features */}
       <Route path="/watchlists" component={WatchlistsPage} />
       <Route path="/alert-rules" component={AlertRulesPage} />
       <Route path="/exports" component={DataExportsPage} />
-      
+
       <Route component={NotFound} />
     </Switch>
   );

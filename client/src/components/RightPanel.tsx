@@ -6,11 +6,11 @@ import StorageWidget from "./StorageWidget";
 import CommodityPriceChart from "./CommodityPriceChart";
 import TradeFlowsPanel from "./TradeFlowsPanel";
 import MarketAnalyticsPanel from "./MarketAnalyticsPanel";
-import { usePortStats } from "@/hooks/use-port-stats";
-import { useSignals } from "@/hooks/use-signals";
-import { usePredictions } from "@/hooks/use-predictions";
-import { useVessels } from "@/hooks/use-vessels";
-import { useMarketDelayImpact } from "@/hooks/use-port-delays";
+import { usePortStats } from "@/hooks/usePortStats";
+import { useSignals } from "@/hooks/useSignals";
+import { usePredictions } from "@/hooks/usePredictions";
+import { useVessels } from "@/hooks/useVessels";
+import { useMarketDelayImpact } from "@/hooks/usePortDelays";
 import { AlertTriangle, Clock, Ship, TrendingUp } from "lucide-react";
 
 interface RightPanelProps {
@@ -27,7 +27,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
   const { data: signals } = useSignals();
   const { data: predictions } = usePredictions();
   const { data: vessels } = useVessels();
-  
+
   // Fetch Rotterdam delay impact data
   const { data: delayImpacts } = useMarketDelayImpact(
     selectedPort === 'rotterdam' ? selectedPort : undefined,
@@ -131,7 +131,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
           ))}
         </nav>
       </div>
-      
+
       {/* Panel Content */}
       <div className="flex-1 overflow-auto scrollbar-thin">
         {/* Rotterdam Port Delay Alert Banner */}
@@ -148,7 +148,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                 </div>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-4 gap-3">
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 mb-1">
@@ -159,7 +159,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                   {parseFloat(rotterdamDelay.averageDelayHours).toFixed(1)}h
                 </span>
               </div>
-              
+
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Ship className="w-3.5 h-3.5 text-amber-500" />
@@ -169,7 +169,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                   {rotterdamDelay.vesselCount}
                 </span>
               </div>
-              
+
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 mb-1">
                   <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
@@ -180,7 +180,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                 </span>
                 <span className="text-xs text-muted-foreground">tons</span>
               </div>
-              
+
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 mb-1">
                   <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
@@ -194,7 +194,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
             </div>
           </div>
         )}
-        
+
         {/* Specialized content for commodity and maritime dashboards */}
         {(activeTab === "stats" && ['crude-oil', 'refined-products', 'lng', 'market-analytics'].includes(scope)) && (
           <div className="p-4 space-y-4">
@@ -242,7 +242,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {/* Key Metrics Cards */}
               <div className="grid grid-cols-2 gap-3">
                 {scope === 'flightscope' ? (
@@ -310,7 +310,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                 )}
               </div>
             </div>
-            
+
             {/* Recent Arrivals */}
             <div className="p-4 border-b border-border">
               <h4 className="text-sm font-semibold text-foreground mb-3" data-testid="text-recent-arrivals">
@@ -325,11 +325,11 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                     { flight: 'BA107', aircraft: 'A350', time: '15:15 UTC', status: 'Boarding' }
                   ].map((arrival, index) => (
                     <div key={index} className="flex items-center space-x-3 p-2 bg-muted rounded-lg"
-                         data-testid={`arrival-${index}`}>
+                      data-testid={`arrival-${index}`}>
                       <div className={cn(
                         "w-2 h-2 rounded-full",
-                        arrival.status === 'On Time' ? "bg-emerald-400" : 
-                        arrival.status === 'Delayed' ? "bg-destructive" : "bg-blue-400"
+                        arrival.status === 'On Time' ? "bg-emerald-400" :
+                          arrival.status === 'Delayed' ? "bg-destructive" : "bg-blue-400"
                       )}></div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-foreground truncate">
@@ -345,7 +345,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                 ) : (
                   recentArrivals.map((arrival, index) => (
                     <div key={index} className="flex items-center space-x-3 p-2 bg-muted rounded-lg"
-                         data-testid={`arrival-${index}`}>
+                      data-testid={`arrival-${index}`}>
                       <div className={cn(
                         "w-2 h-2 rounded-full",
                         arrival.status === 'Laden' ? "bg-emerald-400" : "bg-blue-400"
@@ -369,7 +369,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                 )}
               </div>
             </div>
-            
+
             {/* Queue Status */}
             <div className="p-4 border-b border-border">
               <h4 className="text-sm font-semibold text-foreground mb-3" data-testid="text-anchorage-queue">
@@ -382,12 +382,12 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                     {scope === 'flightscope' ? 'Departure Delays (24h)' : 'Queue Length Trend (24h)'}
                   </span>
                 </div>
-                
+
                 {/* Current Queue */}
                 <div className="space-y-2">
                   {queueVessels.map((vessel, index) => (
                     <div key={index} className="flex items-center justify-between p-2 bg-muted rounded"
-                         data-testid={`queue-vessel-${index}`}>
+                      data-testid={`queue-vessel-${index}`}>
                       <div>
                         <div className="text-sm font-medium text-foreground">{vessel.name}</div>
                         <div className="text-xs text-muted-foreground">
@@ -405,7 +405,7 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                 </div>
               </div>
             </div>
-            
+
             {/* Storage Tank Overview */}
             <div className="p-4">
               <h4 className="text-sm font-semibold text-foreground mb-3" data-testid="text-storage-proxy">
@@ -447,13 +447,13 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
                   { id: '3', title: 'High Traffic Volume', description: 'Departure delays expected due to increased traffic', severity: 2, timestamp: new Date() }
                 ].map((signal, index) => (
                   <div key={signal.id} className="p-3 bg-muted rounded-lg border-l-4 border-destructive"
-                       data-testid={`signal-${index}`}>
+                    data-testid={`signal-${index}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-foreground">{signal.title}</span>
                       <span className={cn(
                         "text-xs px-2 py-1 rounded",
                         signal.severity >= 4 ? "bg-destructive text-destructive-foreground" :
-                        signal.severity >= 3 ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground"
+                          signal.severity >= 3 ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground"
                       )}>
                         {signal.severity >= 4 ? 'Critical' : signal.severity >= 3 ? 'High' : 'Medium'}
                       </span>
@@ -467,13 +467,13 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
               ) : (
                 signals?.slice(0, 10).map((signal, index) => (
                   <div key={signal.id} className="p-3 bg-muted rounded-lg border-l-4 border-destructive"
-                       data-testid={`signal-${index}`}>
+                    data-testid={`signal-${index}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-foreground">{signal.title}</span>
                       <span className={cn(
                         "text-xs px-2 py-1 rounded",
                         signal.severity >= 4 ? "bg-destructive text-destructive-foreground" :
-                        signal.severity >= 3 ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground"
+                          signal.severity >= 3 ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground"
                       )}>
                         High
                       </span>
@@ -502,30 +502,30 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
               {scope === 'flightscope' ? (
                 // Mock aviation predictions
                 [
-                  { id: '1', target: 'Jet Fuel', horizon: '1D', predictionClass: 'UP', probability: 0.74, modelVersion: 'Aviation-ML-v2.1' },
-                  { id: '2', target: 'Passenger Traffic', horizon: '1W', predictionClass: 'UP', probability: 0.82, modelVersion: 'Aviation-ML-v2.1' },
-                  { id: '3', target: 'Flight Delays', horizon: '1D', predictionClass: 'DOWN', probability: 0.65, modelVersion: 'Aviation-ML-v2.1' },
-                  { id: '4', target: 'Cargo Volume', horizon: '1W', predictionClass: 'UP', probability: 0.71, modelVersion: 'Aviation-ML-v2.1' }
+                  { id: '1', target: 'Jet Fuel', horizon: '1D', direction: 'UP', probability: 0.74, modelVersion: 'Aviation-ML-v2.1' },
+                  { id: '2', target: 'Passenger Traffic', horizon: '1W', direction: 'UP', probability: 0.82, modelVersion: 'Aviation-ML-v2.1' },
+                  { id: '3', target: 'Flight Delays', horizon: '1D', direction: 'DOWN', probability: 0.65, modelVersion: 'Aviation-ML-v2.1' },
+                  { id: '4', target: 'Cargo Volume', horizon: '1W', direction: 'UP', probability: 0.71, modelVersion: 'Aviation-ML-v2.1' }
                 ].map((prediction, index) => (
                   <div key={prediction.id} className="p-3 bg-muted rounded-lg"
-                       data-testid={`prediction-${index}`}>
+                    data-testid={`prediction-${index}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-foreground">
                         {prediction.target} {prediction.horizon}
                       </span>
                       <span className={cn(
                         "text-xs px-2 py-1 rounded font-medium",
-                        prediction.predictionClass === 'UP' ? "bg-emerald-500 text-white" :
-                        prediction.predictionClass === 'DOWN' ? "bg-destructive text-destructive-foreground" :
-                        "bg-muted-foreground text-white"
+                        prediction.direction === 'UP' ? "bg-emerald-500 text-white" :
+                          prediction.direction === 'DOWN' ? "bg-destructive text-destructive-foreground" :
+                            "bg-muted-foreground text-white"
                       )}>
-                        {prediction.predictionClass}
+                        {prediction.direction}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2 mb-2">
                       <div className="flex-1 bg-accent rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full transition-all" 
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
                           style={{ width: `${prediction.probability * 100}%` }}
                         ></div>
                       </div>
@@ -541,33 +541,33 @@ export default function RightPanel({ selectedPort, activeTab, onTabChange, onPor
               ) : (
                 predictions?.slice(0, 6).map((prediction, index) => (
                   <div key={prediction.id} className="p-3 bg-muted rounded-lg"
-                       data-testid={`prediction-${index}`}>
+                    data-testid={`prediction-${index}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-foreground">
-                        {prediction.target} {prediction.horizon}
+                        {prediction.commodityId} {prediction.timeframe}
                       </span>
                       <span className={cn(
                         "text-xs px-2 py-1 rounded font-medium",
-                        prediction.predictionClass === 'UP' ? "bg-emerald-500 text-white" :
-                        prediction.predictionClass === 'DOWN' ? "bg-destructive text-destructive-foreground" :
-                        "bg-muted-foreground text-white"
+                        prediction.direction === 'UP' ? "bg-emerald-500 text-white" :
+                          prediction.direction === 'DOWN' ? "bg-destructive text-destructive-foreground" :
+                            "bg-muted-foreground text-white"
                       )}>
-                        {prediction.predictionClass}
+                        {prediction.direction}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2 mb-2">
                       <div className="flex-1 bg-accent rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full transition-all" 
-                          style={{ width: `${(prediction.probability || 0) * 100}%` }}
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${(parseFloat(prediction.confidence ?? '0') || 0) * 100}%` }}
                         ></div>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {((prediction.probability || 0) * 100).toFixed(1)}%
+                        {((parseFloat(prediction.confidence ?? '0') || 0) * 100).toFixed(1)}%
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Model: {prediction.modelVersion}
+                      Model: v1.0
                     </div>
                   </div>
                 )) || (

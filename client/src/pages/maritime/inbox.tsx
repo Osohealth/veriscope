@@ -10,7 +10,7 @@ import { useLocation } from "wouter";
 import type { Communication } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 
 export default function MaritimeInbox() {
   const [, setLocation] = useLocation();
@@ -24,13 +24,13 @@ export default function MaritimeInbox() {
   });
 
   // Filter by message type
-  const typeFilteredCommunications = selectedMessageType === "all" 
-    ? communications 
+  const typeFilteredCommunications = selectedMessageType === "all"
+    ? communications
     : communications.filter(c => c.messageType === selectedMessageType);
 
   // Filter by priority
-  const filteredCommunications = selectedPriority === "all" 
-    ? typeFilteredCommunications 
+  const filteredCommunications = selectedPriority === "all"
+    ? typeFilteredCommunications
     : typeFilteredCommunications.filter(c => c.priority === selectedPriority);
 
   // Calculate statistics from all communications (not filtered)
@@ -107,9 +107,9 @@ export default function MaritimeInbox() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setLocation("/maritime")}
               data-testid="button-back"
             >
@@ -237,8 +237,8 @@ export default function MaritimeInbox() {
             ) : (
               <div className="space-y-4">
                 {filteredCommunications.map(comm => (
-                  <Card 
-                    key={comm.id} 
+                  <Card
+                    key={comm.id}
                     data-testid={`card-message-${comm.id}`}
                     className={comm.isRead ? "opacity-60" : ""}
                   >
@@ -323,8 +323,8 @@ export default function MaritimeInbox() {
                         <span className="text-sm capitalize">{type.replace('_', ' ')}</span>
                         <div className="flex items-center gap-2">
                           <div className="w-32 h-2 bg-secondary rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-primary" 
+                            <div
+                              className="h-full bg-primary"
                               style={{ width: stats.totalMessages > 0 ? `${(count / stats.totalMessages) * 100}%` : '0%' }}
                             />
                           </div>
@@ -347,8 +347,8 @@ export default function MaritimeInbox() {
                         <span className="text-sm capitalize">{priority}</span>
                         <div className="flex items-center gap-2">
                           <div className="w-32 h-2 bg-secondary rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-primary" 
+                            <div
+                              className="h-full bg-primary"
                               style={{ width: stats.totalMessages > 0 ? `${(count / stats.totalMessages) * 100}%` : '0%' }}
                             />
                           </div>
@@ -369,7 +369,7 @@ export default function MaritimeInbox() {
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Read Rate</p>
                       <p className="text-2xl font-bold">
-                        {stats.totalMessages > 0 
+                        {stats.totalMessages > 0
                           ? Math.round(((stats.totalMessages - stats.unreadMessages) / stats.totalMessages) * 100)
                           : 0}%
                       </p>
@@ -377,7 +377,7 @@ export default function MaritimeInbox() {
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Archive Rate</p>
                       <p className="text-2xl font-bold">
-                        {stats.totalMessages > 0 
+                        {stats.totalMessages > 0
                           ? Math.round((stats.archivedMessages / stats.totalMessages) * 100)
                           : 0}%
                       </p>
@@ -385,7 +385,7 @@ export default function MaritimeInbox() {
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Alert Rate</p>
                       <p className="text-2xl font-bold">
-                        {stats.totalMessages > 0 
+                        {stats.totalMessages > 0
                           ? Math.round((stats.alertMessages / stats.totalMessages) * 100)
                           : 0}%
                       </p>
@@ -393,7 +393,7 @@ export default function MaritimeInbox() {
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Critical Rate</p>
                       <p className="text-2xl font-bold">
-                        {stats.totalMessages > 0 
+                        {stats.totalMessages > 0
                           ? Math.round((stats.criticalMessages / stats.totalMessages) * 100)
                           : 0}%
                       </p>

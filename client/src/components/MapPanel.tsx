@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { useVessels } from "@/hooks/use-vessels";
+import { useVessels } from "@/hooks/useVessels";
 import { getAuthHeaders } from "@/lib/queryClient";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -57,7 +57,7 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
   const [mapLoaded, setMapLoaded] = useState(false);
   const [fallbackToken, setFallbackToken] = useState(0);
   const [, navigate] = useLocation();
-  
+
   // Use external layers/vesselTypes if provided, otherwise use local state
   const layers = externalLayers || (scope === 'flightscope' ? {
     flights: true,
@@ -70,7 +70,7 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
     storageFarms: false,
     shippingLanes: false,
   });
-  
+
   const vesselTypes = externalVesselTypes || (scope === 'flightscope' ? {
     passenger: true,
     cargo: true,
@@ -82,7 +82,7 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
   });
 
   const { data: vessels, isLoading } = useVessels();
-  
+
   // Fetch ports from API
   const { data: portsData } = useQuery<{ items: ApiPort[] }>({
     queryKey: ['/v1/ports'],
@@ -92,7 +92,7 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
       return res.json();
     }
   });
-  
+
   const apiPorts = portsData?.items || [];
 
   // Fallback port coordinates (consistent with Sidebar)
@@ -179,7 +179,7 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
-            
+
             {/* Port Markers from API */}
             {apiPorts.map((port) => (
               <Marker
@@ -206,29 +206,29 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
                 </Tooltip>
               </Marker>
             ))}
-            
+
             {/* Vessel Markers */}
             {vessels && layers.vessels && vessels.map((vessel) => {
               if (!vessel.position?.latitude || !vessel.position?.longitude) return null;
-              
+
               const lat = typeof vessel.position.latitude === 'string' ? parseFloat(vessel.position.latitude) : vessel.position.latitude;
               const lng = typeof vessel.position.longitude === 'string' ? parseFloat(vessel.position.longitude) : vessel.position.longitude;
               const isSelected = selectedVesselMmsi && vessel.mmsi === selectedVesselMmsi;
-              
+
               return (
                 <Marker
                   key={vessel.mmsi}
                   position={[lat, lng]}
-                  icon={createVesselIcon(vessel.position.navigationStatus, isSelected)}
+                  icon={createVesselIcon(vessel.position.navigationStatus as string | undefined, isSelected ? true : undefined)}
                 >
                   <Popup>
                     <div className="text-sm">
                       <div className="font-semibold">{vessel.name}</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        MMSI: {vessel.mmsi}<br/>
-                        Class: {vessel.vesselClass || 'Unknown'}<br/>
-                        Status: {vessel.position.navigationStatus || 'Unknown'}<br/>
-                        Speed: {vessel.position.speedOverGround?.toFixed(1) || 0} knots<br/>
+                        MMSI: {vessel.mmsi}<br />
+                        Class: {vessel.vesselClass || 'Unknown'}<br />
+                        Status: {vessel.position.navigationStatus || 'Unknown'}<br />
+                        Speed: {vessel.position.speedOverGround?.toFixed(1) || 0} knots<br />
                         Course: {vessel.position.navigationStatus || 'Unknown'}
                       </div>
                     </div>
@@ -253,7 +253,7 @@ export default function MapPanel({ selectedPort, timeRange, scope, layers: exter
           </div>
         )}
       </div>
-      
+
       {/* Loading Overlay */}
       {isLoading && scope !== 'flightscope' && (
         <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-[1000]">

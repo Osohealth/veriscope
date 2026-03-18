@@ -2,7 +2,7 @@ import { db } from "../db";
 import { desc, eq, sql } from "drizzle-orm";
 import { portDailyBaselines } from "@shared/schema";
 import { logger } from "../middleware/observability";
-import { runDailySignalEngine } from "./signalEngine";
+import { runDailySignalEngine } from "./signalEngineService";
 
 export interface BackfillOptions {
   days?: number;

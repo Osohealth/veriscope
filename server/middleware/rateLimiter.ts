@@ -18,7 +18,7 @@ interface RateLimitConfig {
 class RateLimiter {
   private store: Map<string, RateLimitEntry> = new Map();
   private blockedIPs: Map<string, number> = new Map();
-  
+
   private cleanupInterval: NodeJS.Timeout;
 
   constructor() {
@@ -47,7 +47,7 @@ class RateLimiter {
   check(req: Request, config: RateLimitConfig, keyPrefix: string = 'default'): { allowed: boolean; remaining: number; resetIn: number } {
     const key = this.getKey(req, keyPrefix);
     const now = Date.now();
-    
+
     const blockUntil = this.blockedIPs.get(req.ip || 'unknown');
     if (blockUntil && blockUntil > now) {
       return {
@@ -56,9 +56,9 @@ class RateLimiter {
         resetIn: Math.ceil((blockUntil - now) / 1000)
       };
     }
-    
+
     let entry = this.store.get(key);
-    
+
     if (!entry || entry.resetTime < now) {
       entry = {
         count: 0,
@@ -67,12 +67,12 @@ class RateLimiter {
       };
       this.store.set(key, entry);
     }
-    
+
     entry.count++;
-    
+
     const remaining = Math.max(0, config.maxRequests - entry.count);
     const resetIn = Math.ceil((entry.resetTime - now) / 1000);
-    
+
     if (entry.count > config.maxRequests) {
       if (config.blockDurationMs && config.maxBlockedAttempts) {
         if (entry.count > config.maxRequests + config.maxBlockedAttempts) {
@@ -84,10 +84,10 @@ class RateLimiter {
           });
         }
       }
-      
+
       return { allowed: false, remaining: 0, resetIn };
     }
-    
+
     return { allowed: true, remaining, resetIn };
   }
 }
@@ -113,10 +113,10 @@ const criticalLimitConfig: RateLimitConfig = {
 
 export function authRateLimiter(req: Request, res: Response, next: NextFunction) {
   const result = rateLimiter.check(req, authLimitConfig, 'auth');
-  
+
   res.setHeader('X-RateLimit-Remaining', result.remaining);
   res.setHeader('X-RateLimit-Reset', result.resetIn);
-  
+
   if (!result.allowed) {
     logger.warn('Auth rate limit exceeded', { ip: req.ip, path: req.path });
     return res.status(429).json({
@@ -124,43 +124,64 @@ export function authRateLimiter(req: Request, res: Response, next: NextFunction)
       retryAfter: result.resetIn
     });
   }
-  
+
   next();
 }
 
 export function apiRateLimiter(req: Request, res: Response, next: NextFunction) {
   const result = rateLimiter.check(req, apiLimitConfig, 'api');
-  
+
   res.setHeader('X-RateLimit-Remaining', result.remaining);
   res.setHeader('X-RateLimit-Reset', result.resetIn);
-  
+
   if (!result.allowed) {
     return res.status(429).json({
       error: 'Rate limit exceeded. Please slow down.',
       retryAfter: result.resetIn
     });
   }
-  
+
   next();
 }
 
 export function criticalRateLimiter(req: Request, res: Response, next: NextFunction) {
   const result = rateLimiter.check(req, criticalLimitConfig, 'critical');
-  
+
   res.setHeader('X-RateLimit-Remaining', result.remaining);
   res.setHeader('X-RateLimit-Reset', result.resetIn);
-  
+
   if (!result.allowed) {
     return res.status(429).json({
       error: 'Rate limit exceeded for this endpoint.',
       retryAfter: result.resetIn
     });
   }
-  
+
   next();
 }
 
 export function resetAuthRateLimit(req: Request) {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const key = `auth:${ip}`;
+}
+
+const publicDataLimitConfig: RateLimitConfig = {
+  windowMs: 60 * 1000,
+  maxRequests: 100
+};
+
+export function publicDataRateLimiter(req: Request, res: Response, next: NextFunction) {
+  const result = rateLimiter.check(req, publicDataLimitConfig, 'public');
+
+  res.setHeader('X-RateLimit-Remaining', result.remaining);
+  res.setHeader('X-RateLimit-Reset', result.resetIn);
+
+  if (!result.allowed) {
+    return res.status(429).json({
+      error: 'Rate limit exceeded. Please slow down.',
+      retryAfter: result.resetIn
+    });
+  }
+
+  next();
 }

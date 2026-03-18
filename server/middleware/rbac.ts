@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { sessionService } from '../services/sessionService';
 import { verifyToken as verifyAuthToken } from '../services/authService';
 import { logger } from './observability';
 
@@ -95,15 +94,18 @@ export function getRolePermissions(role: Role): Permission[] {
 }
 
 export function authenticate(req: Request, res: Response, next: NextFunction) {
+  // 1. Prefer httpOnly cookie (browser sessions after Phase 2)
+  const cookieToken = (req as any).cookies?.access_token as string | undefined;
+  // 2. Fall back to Authorization: Bearer header (API key / machine clients)
   const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+
+  const token = cookieToken ?? headerToken;
+
+  if (!token) {
     return res.status(401).json({ error: 'Authentication required' });
   }
-  
-  const token = authHeader.substring(7);
-  
-  // Try authService first (for JWT tokens from /v1/auth/login)
+
   const authPayload = verifyAuthToken(token);
   if (authPayload) {
     if (authPayload.type !== 'access') {
@@ -116,31 +118,18 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
     };
     return next();
   }
-  
-  // Fallback to sessionService (for legacy tokens)
-  const sessionPayload = sessionService.verifyToken(token);
-  if (sessionPayload) {
-    if (sessionPayload.type !== 'access') {
-      return res.status(401).json({ error: 'Invalid token type' });
-    }
-    req.user = {
-      userId: sessionPayload.userId,
-      email: sessionPayload.email,
-      role: sessionPayload.role as Role
-    };
-    return next();
-  }
-  
+
   return res.status(401).json({ error: 'Invalid or expired token' });
 }
 
 export function optionalAuth(req: Request, res: Response, next: NextFunction) {
+  // Try cookie first, then Authorization header
+  const cookieToken = (req as any).cookies?.access_token as string | undefined;
   const authHeader = req.headers.authorization;
-  
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    
-    // Try authService first (for JWT tokens from /v1/auth/login)
+  const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+  const token = cookieToken ?? headerToken;
+
+  if (token) {
     const authPayload = verifyAuthToken(token);
     if (authPayload && authPayload.type === 'access') {
       req.user = {
@@ -148,19 +137,9 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
         email: authPayload.email,
         role: authPayload.role as Role
       };
-    } else {
-      // Fallback to sessionService (for legacy tokens)
-      const sessionPayload = sessionService.verifyToken(token);
-      if (sessionPayload && sessionPayload.type === 'access') {
-        req.user = {
-          userId: sessionPayload.userId,
-          email: sessionPayload.email,
-          role: sessionPayload.role as Role
-        };
-      }
     }
   }
-  
+
   next();
 }
 
@@ -169,12 +148,12 @@ export function requirePermission(...permissions: Permission[]) {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-    
+
     const userRole = req.user.role;
-    const hasRequiredPermission = permissions.some(permission => 
+    const hasRequiredPermission = permissions.some(permission =>
       hasPermission(userRole, permission)
     );
-    
+
     if (!hasRequiredPermission) {
       logger.warn('Permission denied', {
         userId: req.user.userId,
@@ -183,13 +162,13 @@ export function requirePermission(...permissions: Permission[]) {
         path: req.path,
         method: req.method
       });
-      
-      return res.status(403).json({ 
+
+      return res.status(403).json({
         error: 'Insufficient permissions',
         required: permissions
       });
     }
-    
+
     next();
   };
 }
@@ -199,7 +178,7 @@ export function requireRole(...roles: Role[]) {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-    
+
     if (!roles.includes(req.user.role)) {
       logger.warn('Role denied', {
         userId: req.user.userId,
@@ -208,13 +187,13 @@ export function requireRole(...roles: Role[]) {
         path: req.path,
         method: req.method
       });
-      
-      return res.status(403).json({ 
+
+      return res.status(403).json({
         error: 'Insufficient role privileges',
         required: roles
       });
     }
-    
+
     next();
   };
 }
@@ -228,11 +207,11 @@ export function requireSelfOrAdmin(userIdParam: string = 'userId') {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-    
+
     const targetUserId = req.params[userIdParam] || req.body[userIdParam];
     const isOwnResource = req.user.userId === targetUserId;
     const isAdmin = req.user.role === 'admin';
-    
+
     if (!isOwnResource && !isAdmin) {
       logger.warn('Self or admin access denied', {
         userId: req.user.userId,
@@ -240,12 +219,12 @@ export function requireSelfOrAdmin(userIdParam: string = 'userId') {
         path: req.path,
         method: req.method
       });
-      
-      return res.status(403).json({ 
+
+      return res.status(403).json({
         error: 'Access denied. You can only access your own resources.'
       });
     }
-    
+
     next();
   };
 }

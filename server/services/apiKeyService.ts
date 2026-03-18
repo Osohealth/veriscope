@@ -3,10 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 const resolvePepper = () => {
   const pepper = process.env.API_KEY_PEPPER;
   if (!pepper) {
-    if (process.env.NODE_ENV === "development") {
-      return "dev-pepper";
-    }
-    throw new Error("API_KEY_PEPPER is required");
+    throw new Error("API_KEY_PEPPER environment variable is required but not set. Refusing to start with an insecure default.");
   }
   return pepper;
 };

@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { auditLogs } from '@shared/schema';
 import { Request } from 'express';
+import { logger } from '../middleware/observability';
 
 export interface AuditEntry {
   userId?: string;
@@ -27,7 +28,7 @@ class AuditService {
         metadata: entry.metadata
       });
     } catch (error) {
-      console.error('Failed to write audit log:', error);
+      logger.error('Failed to write audit log', { error });
     }
   }
 

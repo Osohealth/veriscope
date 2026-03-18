@@ -1,12 +1,13 @@
 import { db } from "../db";
+import { logger } from "../middleware/observability";
 import { refineryAois, satelliteObservations, refineryActivityIndices } from "@shared/schema";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
-import { 
-  searchSentinel2Scenes, 
-  selectBestWeeklyScene, 
-  generateWeeks, 
-  computeActivityIndex, 
-  determineTrend 
+import {
+  searchSentinel2Scenes,
+  selectBestWeeklyScene,
+  generateWeeks,
+  computeActivityIndex,
+  determineTrend
 } from "./planetaryComputerService";
 
 const ROTTERDAM_AOIS = [
@@ -50,7 +51,7 @@ const ROTTERDAM_AOIS = [
   {
     name: "Europoort",
     code: "europoort",
-    region: "rotterdam_cluster", 
+    region: "rotterdam_cluster",
     description: "BP Rotterdam refinery and surrounding terminals",
     boundingBox: { minLat: 51.93, maxLat: 51.97, minLon: 4.05, maxLon: 4.18 },
     polygon: [
@@ -74,19 +75,19 @@ const ROTTERDAM_AOIS = [
 function generateWeeklyData(weeksBack: number): { weekStart: Date; weekEnd: Date }[] {
   const weeks: { weekStart: Date; weekEnd: Date }[] = [];
   const now = new Date();
-  
+
   for (let i = weeksBack; i >= 0; i--) {
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - (i * 7) - now.getDay() + 1);
     weekStart.setHours(0, 0, 0, 0);
-    
+
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
     weekEnd.setHours(23, 59, 59, 999);
-    
+
     weeks.push({ weekStart, weekEnd });
   }
-  
+
   return weeks;
 }
 
@@ -105,7 +106,7 @@ export async function initializeRefineryAois(): Promise<void> {
   try {
     const existing = await db.select().from(refineryAois).limit(1);
     if (existing.length > 0) {
-      console.log("[RefinerySatellite] AOIs already initialized");
+      logger.info("[RefinerySatellite] AOIs already initialized");
       return;
     }
 
@@ -121,10 +122,10 @@ export async function initializeRefineryAois(): Promise<void> {
         isActive: true
       });
     }
-    
-    console.log("[RefinerySatellite] Initialized", ROTTERDAM_AOIS.length, "AOIs");
+
+    logger.info("[RefinerySatellite] Initialized AOIs", { count: ROTTERDAM_AOIS.length });
   } catch (error) {
-    console.error("[RefinerySatellite] Error initializing AOIs:", error);
+    logger.error("[RefinerySatellite] Error initializing AOIs", { error });
     throw error;
   }
 }
@@ -139,21 +140,21 @@ export async function generateMockSatelliteData(): Promise<void> {
 
     const existingIndices = await db.select().from(refineryActivityIndices).limit(1);
     if (existingIndices.length > 0) {
-      console.log("[RefinerySatellite] Activity indices already exist");
+      logger.info("[RefinerySatellite] Activity indices already exist");
       return;
     }
 
     const weeks = generateWeeklyData(12);
     const mainAoi = aois.find(a => a.code === "rotterdam_full") || aois[0];
-    
+
     let runningBaseline = 65;
-    
+
     for (const week of weeks) {
       const cloudFree = 30 + Math.random() * 60;
       const isUsable = cloudFree > 40;
-      
+
       const sceneId = `S2A_MSIL2A_${week.weekStart.toISOString().split('T')[0].replace(/-/g, '')}T103021_N0500_R108_T31UFT_${Date.now()}`;
-      
+
       await db.insert(satelliteObservations).values({
         aoiId: mainAoi.id,
         sceneId,
@@ -168,15 +169,15 @@ export async function generateMockSatelliteData(): Promise<void> {
         sunElevation: (25 + Math.random() * 40).toFixed(2),
         metadata: { source: "mock_stac" }
       });
-      
+
       const activityIndex = generateMockActivityIndex(runningBaseline, 15);
       const swirAnomaly = generateMockActivityIndex(activityIndex * 0.9, 10);
       const plumeIndex = generateMockActivityIndex(activityIndex * 0.7, 12);
       const surfaceChange = generateMockActivityIndex(20, 15);
-      
+
       const confidence = generateMockConfidence(cloudFree);
       const trend = determineTrend(activityIndex, runningBaseline);
-      
+
       await db.insert(refineryActivityIndices).values({
         aoiId: mainAoi.id,
         weekStart: week.weekStart.toISOString().split('T')[0],
@@ -195,13 +196,13 @@ export async function generateMockSatelliteData(): Promise<void> {
         methodology: "optical",
         metadata: { generated: true, mockData: true }
       });
-      
+
       runningBaseline = runningBaseline * 0.8 + activityIndex * 0.2;
     }
-    
-    console.log("[RefinerySatellite] Generated", weeks.length, "weeks of activity data");
+
+    logger.info("[RefinerySatellite] Generated weeks of activity data", { count: weeks.length });
   } catch (error) {
-    console.error("[RefinerySatellite] Error generating mock data:", error);
+    logger.error("[RefinerySatellite] Error generating mock data", { error });
     throw error;
   }
 }
@@ -218,23 +219,23 @@ export async function getAoiByCode(code: string): Promise<any> {
 export async function getLatestActivityIndex(aoiCode: string = "rotterdam_full"): Promise<any> {
   const aoi = await getAoiByCode(aoiCode);
   if (!aoi) return null;
-  
+
   const result = await db.select()
     .from(refineryActivityIndices)
     .where(eq(refineryActivityIndices.aoiId, aoi.id))
     .orderBy(desc(refineryActivityIndices.weekStart))
     .limit(1);
-  
+
   return result[0] ? { ...result[0], aoi } : null;
 }
 
 export async function getActivityTimeline(aoiCode: string = "rotterdam_full", weeks: number = 12): Promise<any[]> {
   const aoi = await getAoiByCode(aoiCode);
   if (!aoi) return [];
-  
+
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - weeks * 7);
-  
+
   return db.select()
     .from(refineryActivityIndices)
     .where(and(
@@ -247,7 +248,7 @@ export async function getActivityTimeline(aoiCode: string = "rotterdam_full", we
 export async function getRecentObservations(aoiCode: string = "rotterdam_full", limit: number = 10): Promise<any[]> {
   const aoi = await getAoiByCode(aoiCode);
   if (!aoi) return [];
-  
+
   return db.select()
     .from(satelliteObservations)
     .where(eq(satelliteObservations.aoiId, aoi.id))
@@ -258,7 +259,7 @@ export async function getRecentObservations(aoiCode: string = "rotterdam_full", 
 export async function getSummaryStats(): Promise<any> {
   const latest = await getLatestActivityIndex("rotterdam_full");
   const timeline = await getActivityTimeline("rotterdam_full", 4);
-  
+
   if (!latest) {
     return {
       activityIndex: 0,
@@ -269,15 +270,15 @@ export async function getSummaryStats(): Promise<any> {
       fourWeekAverage: 0
     };
   }
-  
+
   const fourWeekAvg = timeline.length > 0
     ? timeline.reduce((sum, w) => sum + parseFloat(w.activityIndex), 0) / timeline.length
     : parseFloat(latest.activityIndex);
-  
+
   const weeklyChange = timeline.length > 1
     ? parseFloat(timeline[0].activityIndex) - parseFloat(timeline[1].activityIndex)
     : 0;
-  
+
   return {
     activityIndex: parseFloat(latest.activityIndex),
     confidence: parseFloat(latest.confidence),
@@ -303,36 +304,36 @@ export async function fetchRealSatelliteData(): Promise<{ success: boolean; mess
 
     const mainAoi = aois.find(a => a.code === "rotterdam_full") || aois[0];
     const bbox = mainAoi.boundingBox as { minLat: number; maxLat: number; minLon: number; maxLon: number };
-    
+
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 90);
-    
-    console.log("[RefinerySatellite] Fetching Sentinel-2 scenes from Planetary Computer...");
-    console.log(`[RefinerySatellite] Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
-    console.log(`[RefinerySatellite] Bounding box: ${JSON.stringify(bbox)}`);
-    
+
+    logger.info("[RefinerySatellite] Fetching Sentinel-2 scenes from Planetary Computer...");
+    logger.info(`[RefinerySatellite] Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    logger.info(`[RefinerySatellite] Bounding box: ${JSON.stringify(bbox)}`);
+
     const scenes = await searchSentinel2Scenes(bbox, startDate, endDate, 70, 200);
-    console.log(`[RefinerySatellite] Found ${scenes.length} Sentinel-2 scenes`);
-    
+    logger.info(`[RefinerySatellite] Found ${scenes.length} Sentinel-2 scenes`);
+
     if (scenes.length === 0) {
       return { success: false, message: "No Sentinel-2 scenes found for Rotterdam AOI", weeksProcessed: 0 };
     }
 
     await db.delete(refineryActivityIndices).where(eq(refineryActivityIndices.aoiId, mainAoi.id));
     await db.delete(satelliteObservations).where(eq(satelliteObservations.aoiId, mainAoi.id));
-    
+
     const weeks = generateWeeks(12);
     let runningBaseline = 65;
     let weeksProcessed = 0;
-    
+
     for (const week of weeks) {
       const bestScene = await selectBestWeeklyScene(scenes, week.weekStart, week.weekEnd);
-      
+
       if (bestScene) {
         const cloudFreePercent = 100 - bestScene.cloudCoverPercent;
         const isUsable = cloudFreePercent >= 30;
-        
+
         await db.insert(satelliteObservations).values({
           aoiId: mainAoi.id,
           sceneId: bestScene.sceneId,
@@ -345,15 +346,15 @@ export async function fetchRealSatelliteData(): Promise<{ success: boolean; mess
           tileId: bestScene.tileId,
           sunAzimuth: bestScene.sunAzimuth?.toFixed(2) || null,
           sunElevation: bestScene.sunElevation?.toFixed(2) || null,
-          metadata: { 
+          metadata: {
             source: "planetary_computer",
             assets: bestScene.assets
           }
         });
-        
+
         const indices = computeActivityIndex(bestScene.cloudCoverPercent, isUsable, bestScene.sceneId);
         const trend = determineTrend(indices.activityIndex, runningBaseline);
-        
+
         await db.insert(refineryActivityIndices).values({
           aoiId: mainAoi.id,
           weekStart: week.weekStart.toISOString().split('T')[0],
@@ -370,13 +371,13 @@ export async function fetchRealSatelliteData(): Promise<{ success: boolean; mess
           activityTrend: trend,
           dataSource: "sentinel-2",
           methodology: "optical",
-          metadata: { 
-            generated: false, 
+          metadata: {
+            generated: false,
             source: "planetary_computer",
             sceneId: bestScene.sceneId
           }
         });
-        
+
         if (isUsable) {
           runningBaseline = runningBaseline * 0.8 + indices.activityIndex * 0.2;
         }
@@ -398,8 +399,8 @@ export async function fetchRealSatelliteData(): Promise<{ success: boolean; mess
           activityTrend: "unknown",
           dataSource: "sentinel-2",
           methodology: "optical",
-          metadata: { 
-            generated: false, 
+          metadata: {
+            generated: false,
             source: "planetary_computer",
             noDataReason: "no_scene_available"
           }
@@ -407,15 +408,15 @@ export async function fetchRealSatelliteData(): Promise<{ success: boolean; mess
         weeksProcessed++;
       }
     }
-    
-    console.log(`[RefinerySatellite] Processed ${weeksProcessed} weeks of real satellite data`);
-    return { 
-      success: true, 
-      message: `Successfully fetched and processed ${scenes.length} Sentinel-2 scenes across ${weeksProcessed} weeks`, 
-      weeksProcessed 
+
+    logger.info(`[RefinerySatellite] Processed ${weeksProcessed} weeks of real satellite data`);
+    return {
+      success: true,
+      message: `Successfully fetched and processed ${scenes.length} Sentinel-2 scenes across ${weeksProcessed} weeks`,
+      weeksProcessed
     };
   } catch (error) {
-    console.error("[RefinerySatellite] Error fetching real satellite data:", error);
+    logger.error("[RefinerySatellite] Error fetching real satellite data", { error });
     throw error;
   }
 }
@@ -425,7 +426,7 @@ export async function refreshSatelliteData(): Promise<{ success: boolean; messag
     const result = await fetchRealSatelliteData();
     return { success: result.success, message: result.message };
   } catch (error) {
-    console.error("[RefinerySatellite] Falling back to mock data:", error);
+    logger.error("[RefinerySatellite] Falling back to mock data", { error });
     await generateMockSatelliteData();
     return { success: true, message: "Used mock data due to API error" };
   }

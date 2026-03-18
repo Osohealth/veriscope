@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
 import { storage } from '../storage';
+import { logger } from '../middleware/observability';
 import type { AlertRule } from '@shared/schema';
 
 class SignalsService {
@@ -8,18 +9,18 @@ class SignalsService {
 
   startMonitoring(wss: WebSocketServer) {
     this.wss = wss;
-    
+
     // Check for signals every 2 minutes
     this.intervalId = setInterval(async () => {
       try {
         await this.analyzeForSignals();
         await this.evaluateAlertRules();
       } catch (error) {
-        console.error('Signals monitoring error:', error);
+        logger.error('Signals monitoring error', { error });
       }
     }, 120000);
-    
-    console.log('Signals monitoring service started');
+
+    logger.info('Signals monitoring service started');
   }
 
   stopMonitoring() {
@@ -27,12 +28,12 @@ class SignalsService {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    console.log('Signals monitoring service stopped');
+    logger.info('Signals monitoring service stopped');
   }
 
   private async analyzeForSignals() {
     const ports = await storage.getPorts();
-    
+
     for (const port of ports) {
       await this.checkPortCongestion(port);
       await this.checkStorageAnomalies(port);
@@ -41,7 +42,7 @@ class SignalsService {
 
   private async checkPortCongestion(port: any) {
     const stats = await storage.getLatestPortStats(port.id);
-    
+
     if (!stats) return;
 
     // Convert decimal strings to numbers
@@ -100,10 +101,10 @@ class SignalsService {
   private async checkStorageAnomalies(port: any) {
     const sites = await storage.getStorageSites();
     const portSites = sites.filter(s => s.portId === port.id);
-    
+
     for (const site of portSites) {
       const fillData = await storage.getLatestStorageFillData(site.id);
-      
+
       if (!fillData || !fillData.fillIndex) continue;
 
       // Convert decimal string to number
@@ -138,12 +139,12 @@ class SignalsService {
 
   private broadcastSignal(signal: any) {
     if (!this.wss) return;
-    
-    const message = JSON.stringify({ 
-      type: 'new_signal', 
-      data: signal 
+
+    const message = JSON.stringify({
+      type: 'new_signal',
+      data: signal
     });
-    
+
     this.wss.clients.forEach((client) => {
       if (client.readyState === client.OPEN) {
         client.send(message);
@@ -158,12 +159,12 @@ class SignalsService {
 
       for (const rule of activeRules) {
         if (processedRuleIds.has(rule.id)) continue;
-        
+
         const evalTime = new Date();
         if (!this.shouldEvaluateRule(rule, evalTime)) continue;
 
         const triggered = await this.checkRuleConditions(rule);
-        
+
         if (triggered) {
           const triggeredAt = await this.triggerAlert(rule, triggered);
           processedRuleIds.add(rule.id);
@@ -172,22 +173,22 @@ class SignalsService {
         }
       }
     } catch (error) {
-      console.error('Alert rules evaluation error:', error);
+      logger.error('Alert rules evaluation error', { error });
     }
   }
 
   private shouldEvaluateRule(rule: AlertRule, now: Date): boolean {
     if (rule.isMuted) return false;
-    
+
     if (rule.snoozedUntil && new Date(rule.snoozedUntil) > now) return false;
-    
+
     const effectiveCooldown = rule.cooldownMinutes ?? 60;
     if (rule.lastTriggered && effectiveCooldown > 0) {
       const cooldownEnd = new Date(rule.lastTriggered);
       cooldownEnd.setMinutes(cooldownEnd.getMinutes() + effectiveCooldown);
       if (cooldownEnd > now) return false;
     }
-    
+
     return true;
   }
 
@@ -222,7 +223,7 @@ class SignalsService {
 
     const currentPrice = parseFloat(latestPrice.price as string);
     const threshold = parseFloat(value);
-    
+
     const triggered = this.evaluateOperator(currentPrice, operator, threshold);
     if (triggered) {
       return {
@@ -246,7 +247,7 @@ class SignalsService {
 
     const queueLength = stats.queueLength;
     const threshold = parseInt(value);
-    
+
     const triggered = this.evaluateOperator(queueLength, operator, threshold);
     if (triggered) {
       return {
@@ -271,7 +272,7 @@ class SignalsService {
 
     const fillLevel = parseFloat(fillData.fillIndex as string) * 100;
     const threshold = parseFloat(value);
-    
+
     const triggered = this.evaluateOperator(fillLevel, operator, threshold);
     if (triggered) {
       return {
@@ -300,17 +301,17 @@ class SignalsService {
     const upcomingArrivals: any[] = [];
     for (const pc of portCalls) {
       if (pc.callType !== 'arrival' || pc.status !== 'scheduled') continue;
-      
+
       if (!pc.arrivalTime) continue;
-      
+
       const arrivalDate = new Date(pc.arrivalTime);
       if (isNaN(arrivalDate.getTime()) || arrivalDate < now || arrivalDate > cutoffTime) continue;
-      
+
       if (vesselType) {
         const vessel = vesselMap.get(pc.vesselId);
         if (!vessel || vessel.vesselType !== vesselType) continue;
       }
-      
+
       upcomingArrivals.push(pc);
     }
 
@@ -375,21 +376,21 @@ class SignalsService {
         });
       }
 
-      console.log(`Alert triggered: ${rule.name} - ${result.message}`);
+      logger.info(`Alert triggered: ${rule.name} - ${result.message}`);
     } catch (error) {
-      console.error(`Error triggering alert ${rule.name}:`, error);
+      logger.error(`Error triggering alert ${rule.name}`, { error });
     }
     return triggeredAt;
   }
 
   private broadcastAlert(alert: any) {
     if (!this.wss) return;
-    
-    const message = JSON.stringify({ 
-      type: 'alert_triggered', 
-      data: alert 
+
+    const message = JSON.stringify({
+      type: 'alert_triggered',
+      data: alert
     });
-    
+
     this.wss.clients.forEach((client) => {
       if (client.readyState === client.OPEN) {
         client.send(message);
