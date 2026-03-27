@@ -16,7 +16,12 @@ authRouter.post("/api/auth/register", authRateLimiter, async (req, res) => {
         const schema = z
             .object({
                 email: z.string().email("Invalid email address"),
-                password: z.string().min(8, "Password must be at least 8 characters"),
+                password: z
+                    .string()
+                    .min(8, "Password must be at least 8 characters")
+                    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+                    .regex(/[0-9]/, "Password must contain at least one number")
+                    .regex(/[!@#$%^&*()\-_=+[\]{};:'",.<>?]/, "Password must contain at least one special character"),
                 name: z.string().optional(),
                 full_name: z.string().optional(),
                 organization_name: z.string().optional(),
@@ -67,7 +72,7 @@ authRouter.post("/api/auth/login", authRateLimiter, async (req, res) => {
         }
         const { email, password } = parsed.data;
 
-        const result = await authService.login(email, password);
+        const result = await authService.login(email, password, req.ip);
         if (!result.success || !result.data) {
             await auditService.logLogin("", false, req, result.error);
             return res.status(401).json({ error: result.error });
@@ -78,8 +83,6 @@ authRouter.post("/api/auth/login", authRateLimiter, async (req, res) => {
         res.cookie("access_token", result.data.accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 15 * 60 * 1000,
         });
         res.cookie("refresh_token", result.data.refreshToken, {
             httpOnly: true,
@@ -95,7 +98,7 @@ authRouter.post("/api/auth/login", authRateLimiter, async (req, res) => {
     }
 });
 
-authRouter.post("/api/auth/refresh", async (req, res) => {
+authRouter.post("/api/auth/refresh", authRateLimiter, async (req, res) => {
     try {
         const token =
             req.cookies?.refresh_token || req.body?.refreshToken || req.body?.refresh_token;
@@ -106,7 +109,7 @@ authRouter.post("/api/auth/refresh", async (req, res) => {
         const result = await authService.refreshTokens(token);
         if (!result.success || !result.data) {
             res.clearCookie("access_token");
-            res.clearCookie("refresh_token");
+            res.clearCookie("refresh_token", { path: "/api/auth/refresh" });
             return res
                 .status(401)
                 .json({ error: result.error || "Invalid or expired refresh token" });
@@ -146,7 +149,7 @@ authRouter.post("/api/auth/logout", async (req, res) => {
             sessionService.revokeRefreshToken(token);
         }
         res.clearCookie("access_token");
-        res.clearCookie("refresh_token");
+        res.clearCookie("refresh_token", { path: "/api/auth/refresh" });
         res.json({ message: "Logged out successfully" });
     } catch (error: any) {
         logger.error("Logout error", { error });
@@ -160,7 +163,12 @@ authRouter.post("/v1/auth/register", authRateLimiter, async (req, res) => {
     try {
         const schema = z.object({
             email: z.string().email("Invalid email address"),
-            password: z.string().min(8, "Password must be at least 8 characters"),
+            password: z
+                .string()
+                .min(8, "Password must be at least 8 characters")
+                .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+                .regex(/[0-9]/, "Password must contain at least one number")
+                .regex(/[!@#$%^&*()\-_=+[\]{};:'",.<>?]/, "Password must contain at least one special character"),
             full_name: z.string().min(1, "full_name is required"),
             organization_name: z.string().optional(),
         });
@@ -216,7 +224,7 @@ authRouter.post("/v1/auth/login", authRateLimiter, async (req, res) => {
         }
         const { email, password } = parsed.data;
 
-        const result = await authService.login(email, password);
+        const result = await authService.login(email, password, req.ip);
         if (!result.success || !result.data) {
             await auditService.logLogin("", false, req, result.error);
             return res.status(401).json({ error: result.error });
@@ -253,7 +261,7 @@ authRouter.post("/v1/auth/login", authRateLimiter, async (req, res) => {
     }
 });
 
-authRouter.post("/v1/auth/refresh", async (req, res) => {
+authRouter.post("/v1/auth/refresh", authRateLimiter, async (req, res) => {
     try {
         const token = req.cookies?.refresh_token || req.body?.refresh_token;
         if (!token) {
@@ -262,14 +270,28 @@ authRouter.post("/v1/auth/refresh", async (req, res) => {
 
         const result = await authService.refreshTokens(token);
         if (!result.success || !result.data) {
+            res.clearCookie("access_token");
+            res.clearCookie("refresh_token", { path: "/v1/auth/refresh" });
             return res
                 .status(401)
                 .json({ error: result.error || "Invalid or expired refresh token" });
         }
 
+        res.cookie("access_token", result.data.accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 15 * 60 * 1000,
+        });
+        res.cookie("refresh_token", result.data.refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: "/v1/auth/refresh",
+        });
         res.json({
             access_token: result.data.accessToken,
-            refresh_token: result.data.refreshToken,
             token_type: result.data.tokenType,
             user: {
                 id: result.data.user.id,

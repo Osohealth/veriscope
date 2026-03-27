@@ -37,14 +37,14 @@ type PreviewRoute = {
 export type RoutingPreviewResult = {
   ok: boolean;
   reason?:
-    | "NO_RECIPIENTS"
-    | "NO_USER_CONTACT_METHOD"
-    | "DESTINATION_NOT_ALLOWED"
-    | "DESTINATION_DISABLED"
-    | "DESTINATION_PAUSED"
-    | "DESTINATION_AUTO_PAUSED"
-    | "ENDPOINT_DOWN"
-    | "UNKNOWN";
+  | "NO_RECIPIENTS"
+  | "NO_USER_CONTACT_METHOD"
+  | "DESTINATION_NOT_ALLOWED"
+  | "DESTINATION_DISABLED"
+  | "DESTINATION_PAUSED"
+  | "DESTINATION_AUTO_PAUSED"
+  | "ENDPOINT_DOWN"
+  | "UNKNOWN";
   resolved: {
     recipients: PreviewRecipient[];
     routes: PreviewRoute[];
@@ -186,6 +186,9 @@ export async function previewRouting(args: {
           if (url.protocol !== "https:") {
             allowlistOk = false;
             allowlistRule = "webhook must be https in production";
+          } else if (/xn--/i.test(url.hostname.toLowerCase())) {
+            allowlistOk = false;
+            allowlistRule = "webhook host not allowed";
           } else if (
             allowlist.allowed_webhook_hosts.length === 0 ||
             !allowlistHostMatches(url.hostname.toLowerCase(), allowlist.allowed_webhook_hosts)

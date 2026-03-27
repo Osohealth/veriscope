@@ -111,6 +111,9 @@ export async function validateEscalationPolicyTarget(args: {
         }
         const { allowed_webhook_hosts } = await getTenantAllowlist(args.tenantId);
         const host = url.hostname.toLowerCase();
+        if (/xn--/i.test(host)) {
+          throw new Error("webhook host not allowed");
+        }
         if (allowed_webhook_hosts.length === 0 || !allowlistHostMatches(host, allowed_webhook_hosts)) {
           throw new Error("webhook host not allowed");
         }

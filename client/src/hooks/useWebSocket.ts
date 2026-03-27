@@ -36,7 +36,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const [clientId, setClientId] = useState<string | null>(null);
-  
+
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -76,17 +76,17 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}${url}`;
-      
+
       wsRef.current = new WebSocket(wsUrl);
 
       wsRef.current.onopen = () => {
         if (!mountedRef.current) return;
-        
-        console.log('WebSocket connected');
+
+
         setIsConnected(true);
         setConnectionError(null);
         setReconnectAttempt(0);
-        
+
         pingIntervalRef.current = setInterval(() => {
           sendMessage('ping');
         }, 30000);
@@ -94,14 +94,14 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
 
       wsRef.current.onmessage = (event) => {
         if (!mountedRef.current) return;
-        
+
         try {
           const message: WsMessage = JSON.parse(event.data);
-          
+
           if (message.type === 'connected') {
             setClientId(message.payload.clientId);
             onConnect?.(message.payload.clientId);
-            
+
             if (topicsRef.current.length > 0) {
               sendMessage('subscribe', { topics: topicsRef.current });
             }
@@ -120,8 +120,8 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
 
       wsRef.current.onclose = () => {
         if (!mountedRef.current) return;
-        
-        console.log('WebSocket disconnected');
+
+
         setIsConnected(false);
         setClientId(null);
         onDisconnect?.();
@@ -134,14 +134,14 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
         }
-        
+
         setReconnectAttempt(prev => {
           const newAttempt = prev + 1;
-          
+
           if (newAttempt <= maxReconnectAttempts) {
             const delay = getReconnectDelay(newAttempt);
-            console.log(`Reconnecting in ${Math.round(delay)}ms (attempt ${newAttempt}/${maxReconnectAttempts})`);
-            
+
+
             reconnectTimeoutRef.current = setTimeout(() => {
               if (mountedRef.current) {
                 connect();
@@ -150,7 +150,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
           } else {
             setConnectionError('Max reconnection attempts reached');
           }
-          
+
           return newAttempt;
         });
       };
@@ -171,17 +171,17 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-    
+
     if (pingIntervalRef.current) {
       clearInterval(pingIntervalRef.current);
       pingIntervalRef.current = null;
     }
-    
+
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
-    
+
     setIsConnected(false);
     setClientId(null);
   }, []);

@@ -46,8 +46,8 @@ signalsRouter.get("/v1/signals", publicDataRateLimiter, optionalAuth, async (req
             return res.status(400).json({ error: "day/day_from/day_to must be YYYY-MM-DD" });
         }
 
-        const limitNum = Math.min(parseInt(String(limit)) || 50, 500);
-        const offsetNum = Math.max(parseInt(String(offset)) || 0, 0);
+        const limitNum = parseSafeLimit(limit, 50, 500);
+        const offsetNum = parseSafeLimit(offset, 0, 100000);
         const severityMin = severity_min ? String(severity_min).toUpperCase() : undefined;
         const clusteredParam = clustered ? String(clustered).toLowerCase() : undefined;
         const clusteredFlag =

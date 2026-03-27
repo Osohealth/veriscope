@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAuthHeaders, getAuthToken } from "@/lib/queryClient";
+import { getAuthHeaders } from "@/lib/queryClient";
+import { useCurrentUser } from "./useCurrentUser";
 
 export interface DelayAdjustedPrediction {
   delayAdjusted: boolean;
@@ -28,8 +29,8 @@ export interface DelayAdjustedPrediction {
 }
 
 export function useDelayAdjustedPredictions(portId?: string, commodityCode?: string) {
-  const token = getAuthToken();
-  const isAuthed = !!token;
+  const { data: user } = useCurrentUser();
+  const isAuthed = !!user;
 
   return useQuery<DelayAdjustedPrediction>({
     queryKey: ['/api/predictions/delay-adjusted', portId ?? null, commodityCode ?? null],

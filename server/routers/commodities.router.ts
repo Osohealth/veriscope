@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { storage } from "../storage";
+import { insertCrudeGradeSchema, insertLngCargoSchema } from "@shared/schema";
 import { optionalAuth, authenticate, requirePermission, requireRole } from "../middleware/rbac";
 import { parseSafeLimit, parsePaginationParams, paginateArray } from "../utils/pagination";
 import { cacheService, CACHE_KEYS, CACHE_TTL } from "../services/cacheService";
@@ -8,6 +9,18 @@ import { logger } from "../middleware/observability";
 export const commoditiesRouter = Router();
 
 // ── Helpers (kept local — only used in export routes) ────────────────────────
+
+/** Validates an ISO 8601 date string (YYYY-MM-DD). Returns the value if valid, null otherwise. */
+function validateIsoDate(value: unknown): string | null {
+    if (typeof value !== "string") return null;
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
+function requireIsoDate(value: unknown, name: string): { ok: true; value: string } | { ok: false; error: string } {
+    const v = validateIsoDate(value);
+    if (!v) return { ok: false, error: `${name} must be a valid ISO 8601 date (YYYY-MM-DD)` };
+    return { ok: true, value: v };
+}
 
 function sanitizeCsvCell(raw: string): string {
     // Prevent CSV formula injection (OWASP: Excel/Sheets DDE attacks)
@@ -99,7 +112,11 @@ commoditiesRouter.post(
     requirePermission("write:storage"),
     async (req, res) => {
         try {
-            const grade = await storage.createCrudeGrade(req.body);
+            const parsed = insertCrudeGradeSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ error: parsed.error.errors[0].message });
+            }
+            const grade = await storage.createCrudeGrade(parsed.data);
             res.status(201).json(grade);
         } catch (error) {
             res.status(500).json({ error: "Failed to create crude grade" });
@@ -151,7 +168,11 @@ commoditiesRouter.post(
     requirePermission("write:storage"),
     async (req, res) => {
         try {
-            const cargo = await storage.createLngCargo(req.body);
+            const parsed = insertLngCargoSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ error: parsed.error.errors[0].message });
+            }
+            const cargo = await storage.createLngCargo(parsed.data);
             res.status(201).json(cargo);
         } catch (error) {
             res.status(500).json({ error: "Failed to create LNG cargo" });
@@ -478,9 +499,13 @@ commoditiesRouter.get(
     async (req, res) => {
         try {
             const { startDate, endDate, plant } = req.query;
+            const sd = requireIsoDate(startDate, "startDate");
+            const ed = requireIsoDate(endDate, "endDate");
+            if (!sd.ok) return res.status(400).json({ error: sd.error });
+            if (!ed.ok) return res.status(400).json({ error: ed.error });
             const utilization = await storage.getRefineryUtilization(
-                startDate as string,
-                endDate as string,
+                sd.value,
+                ed.value,
                 plant as string
             );
             res.json(utilization);
@@ -497,9 +522,13 @@ commoditiesRouter.get(
     async (req, res) => {
         try {
             const { startDate, endDate } = req.query;
+            const sd = requireIsoDate(startDate, "startDate");
+            const ed = requireIsoDate(endDate, "endDate");
+            if (!sd.ok) return res.status(400).json({ error: sd.error });
+            if (!ed.ok) return res.status(400).json({ error: ed.error });
             const spreads = await storage.getRefineryCrackSpreads(
-                startDate as string,
-                endDate as string
+                sd.value,
+                ed.value
             );
             res.json(spreads);
         } catch (error) {
@@ -515,9 +544,13 @@ commoditiesRouter.get(
     async (req, res) => {
         try {
             const { startDate, endDate, region } = req.query;
+            const sd = requireIsoDate(startDate, "startDate");
+            const ed = requireIsoDate(endDate, "endDate");
+            if (!sd.ok) return res.status(400).json({ error: sd.error });
+            if (!ed.ok) return res.status(400).json({ error: ed.error });
             const models = await storage.getSdModelsDaily(
-                startDate as string,
-                endDate as string,
+                sd.value,
+                ed.value,
                 region as string
             );
             res.json(models);
@@ -534,9 +567,13 @@ commoditiesRouter.get(
     async (req, res) => {
         try {
             const { startDate, endDate, region } = req.query;
+            const sd = requireIsoDate(startDate, "startDate");
+            const ed = requireIsoDate(endDate, "endDate");
+            if (!sd.ok) return res.status(400).json({ error: sd.error });
+            if (!ed.ok) return res.status(400).json({ error: ed.error });
             const forecasts = await storage.getSdForecastsWeekly(
-                startDate as string,
-                endDate as string,
+                sd.value,
+                ed.value,
                 region as string
             );
             res.json(forecasts);
@@ -553,9 +590,13 @@ commoditiesRouter.get(
     async (req, res) => {
         try {
             const { startDate, endDate, limit } = req.query;
+            const sd = requireIsoDate(startDate, "startDate");
+            const ed = requireIsoDate(endDate, "endDate");
+            if (!sd.ok) return res.status(400).json({ error: sd.error });
+            if (!ed.ok) return res.status(400).json({ error: ed.error });
             const insights = await storage.getResearchInsightsDaily(
-                startDate as string,
-                endDate as string,
+                sd.value,
+                ed.value,
                 parseSafeLimit(limit, 100, 1000)
             );
             res.json(insights);
@@ -1036,7 +1077,7 @@ commoditiesRouter.get(
                 "../services/refinerySatelliteService"
             );
             const aoiCode = (req.query.aoi as string) || "rotterdam_full";
-            const weeks = parseInt(req.query.weeks as string) || 12;
+            const weeks = parseSafeLimit(req.query.weeks, 12, 52);
             const timeline = await getActivityTimeline(aoiCode, weeks);
             res.json(timeline);
         } catch (error) {
@@ -1055,7 +1096,7 @@ commoditiesRouter.get(
                 "../services/refinerySatelliteService"
             );
             const aoiCode = (req.query.aoi as string) || "rotterdam_full";
-            const limit = parseInt(req.query.limit as string) || 10;
+            const limit = parseSafeLimit(req.query.limit, 10, 100);
             const observations = await getRecentObservations(aoiCode, limit);
             res.json(observations);
         } catch (error) {
@@ -1084,7 +1125,7 @@ commoditiesRouter.get(
 
 commoditiesRouter.post(
     "/api/refinery/refresh",
-    optionalAuth,
+    authenticate,
     async (req, res) => {
         try {
             const { refreshSatelliteData } = await import(

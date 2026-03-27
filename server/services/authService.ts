@@ -1,9 +1,10 @@
+import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { db } from "../db";
 import { logger } from "../middleware/observability";
-import { users, organizations } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, organizations, failedLoginAttempts, revokedRefreshTokens } from "@shared/schema";
+import { and, eq, gte, lt } from "drizzle-orm";
 
 const JWT_SECRET = (() => {
   const secret = process.env.JWT_SECRET;
@@ -20,6 +21,7 @@ interface TokenPayload {
   email: string;
   role: string;
   type: "access" | "refresh";
+  jti?: string;
   iat?: number;
   exp?: number;
 }
@@ -53,7 +55,8 @@ function generateAccessToken(payload: Omit<TokenPayload, "type" | "iat" | "exp">
 }
 
 function generateRefreshToken(payload: Omit<TokenPayload, "type" | "iat" | "exp">): string {
-  return jwt.sign({ ...payload, type: "refresh" }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+  const jti = randomUUID();
+  return jwt.sign({ ...payload, type: "refresh", jti }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
 }
 
 export function verifyToken(token: string): TokenPayload | null {
@@ -76,7 +79,8 @@ class AuthService {
       const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
       if (existingUser.length > 0) {
-        return { success: false, error: "User with this email already exists" };
+        logger.warn("Registration: duplicate email attempt", { email });
+        return { success: false, error: "Invalid email or password" };
       }
 
       const passwordHash = await hashPassword(password);
@@ -127,7 +131,7 @@ class AuthService {
     }
   }
 
-  async login(email: string, password: string): Promise<{ success: boolean; data?: AuthTokens; error?: string }> {
+  async login(email: string, password: string, ipAddress?: string): Promise<{ success: boolean; data?: AuthTokens; error?: string }> {
     try {
       const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
@@ -139,11 +143,31 @@ class AuthService {
         return { success: false, error: "Account is deactivated" };
       }
 
+      // Per-account brute-force lockout: max 5 failures within 15 minutes
+      const windowStart = new Date(Date.now() - 15 * 60 * 1000);
+      const recentFailures = await db
+        .select({ id: failedLoginAttempts.id })
+        .from(failedLoginAttempts)
+        .where(and(eq(failedLoginAttempts.userId, user.id), gte(failedLoginAttempts.attemptedAt, windowStart)))
+        .limit(6);
+
+      if (recentFailures.length >= 5) {
+        return { success: false, error: "Account temporarily locked due to too many failed attempts. Try again in 15 minutes." };
+      }
+
       const isValidPassword = await verifyPassword(password, user.passwordHash);
 
       if (!isValidPassword) {
+        await db.insert(failedLoginAttempts).values({
+          userId: user.id,
+          emailAttempted: email,
+          ipAddress: ipAddress ?? null,
+        });
         return { success: false, error: "Invalid email or password" };
       }
+
+      // Clear failed attempts on successful login
+      await db.delete(failedLoginAttempts).where(eq(failedLoginAttempts.userId, user.id));
 
       await db.update(users)
         .set({ lastLogin: new Date() })
@@ -182,6 +206,27 @@ class AuthService {
 
       if (!payload || payload.type !== "refresh") {
         return { success: false, error: "Invalid refresh token" };
+      }
+
+      // JTI-based replay detection: reject if this token has already been used
+      if (payload.jti) {
+        const [revoked] = await db
+          .select({ id: revokedRefreshTokens.id })
+          .from(revokedRefreshTokens)
+          .where(eq(revokedRefreshTokens.jti, payload.jti))
+          .limit(1);
+
+        if (revoked) {
+          logger.warn("Refresh token replay attack detected", { userId: payload.userId, jti: payload.jti });
+          return { success: false, error: "Invalid refresh token" };
+        }
+
+        // Mark this JTI as used before issuing new tokens
+        await db.insert(revokedRefreshTokens).values({
+          jti: payload.jti,
+          userId: payload.userId,
+          expiresAt: new Date((payload.exp ?? 0) * 1000),
+        });
       }
 
       const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);

@@ -1,11 +1,12 @@
 import { db } from '../db';
-import { 
-  modelRegistry, 
+import {
+  modelRegistry,
   modelPredictions,
   ModelRegistryEntry,
   ModelPrediction
 } from '@shared/schema';
 import { eq, desc, and, isNotNull, gte, lte } from 'drizzle-orm';
+import { logger } from '../middleware/observability';
 
 interface DriftMetrics {
   modelId: string;
@@ -62,7 +63,7 @@ export class ModelRegistryService {
         .from(modelRegistry)
         .orderBy(desc(modelRegistry.createdAt));
     } catch (error) {
-      console.error('Error listing models:', error);
+      logger.error('Error listing models', { error });
       return [];
     }
   }
@@ -74,7 +75,7 @@ export class ModelRegistryService {
         .where(eq(modelRegistry.id, modelId));
       return model || null;
     } catch (error) {
-      console.error('Error getting model:', error);
+      logger.error('Error getting model', { error });
       return null;
     }
   }
@@ -92,7 +93,7 @@ export class ModelRegistryService {
         .limit(1);
       return model || null;
     } catch (error) {
-      console.error('Error getting active model:', error);
+      logger.error('Error getting active model', { error });
       return null;
     }
   }
@@ -124,7 +125,7 @@ export class ModelRegistryService {
         .returning();
       return model;
     } catch (error) {
-      console.error('Error creating model:', error);
+      logger.error('Error creating model', { error });
       return null;
     }
   }
@@ -142,7 +143,7 @@ export class ModelRegistryService {
         ));
 
       const [updated] = await db.update(modelRegistry)
-        .set({ 
+        .set({
           status: 'active',
           isActive: true
         })
@@ -151,7 +152,7 @@ export class ModelRegistryService {
 
       return updated;
     } catch (error) {
-      console.error('Error activating model:', error);
+      logger.error('Error activating model', { error });
       return null;
     }
   }
@@ -164,7 +165,7 @@ export class ModelRegistryService {
         .returning();
       return updated || null;
     } catch (error) {
-      console.error('Error deprecating model:', error);
+      logger.error('Error deprecating model', { error });
       return null;
     }
   }
@@ -196,7 +197,7 @@ export class ModelRegistryService {
         .returning();
       return prediction;
     } catch (error) {
-      console.error('Error creating prediction:', error);
+      logger.error('Error creating prediction', { error });
       return null;
     }
   }
@@ -209,7 +210,7 @@ export class ModelRegistryService {
         .orderBy(desc(modelPredictions.predictionDate))
         .limit(limit);
     } catch (error) {
-      console.error('Error getting predictions:', error);
+      logger.error('Error getting predictions', { error });
       return [];
     }
   }
@@ -222,7 +223,7 @@ export class ModelRegistryService {
         .returning();
       return updated || null;
     } catch (error) {
-      console.error('Error recording actual value:', error);
+      logger.error('Error recording actual value', { error });
       return null;
     }
   }
@@ -246,7 +247,7 @@ export class ModelRegistryService {
         .orderBy(desc(modelPredictions.predictionDate));
 
       const backtested = predictions.filter(p => p.actualValue !== null);
-      
+
       const errors = backtested.map(p => {
         const actual = parseFloat(p.actualValue || '0');
         const predicted = parseFloat(p.predictedValue);
@@ -255,24 +256,24 @@ export class ModelRegistryService {
 
       const absoluteErrors = errors.map(e => Math.abs(e));
 
-      const meanError = errors.length > 0 
-        ? errors.reduce((a, b) => a + b, 0) / errors.length 
+      const meanError = errors.length > 0
+        ? errors.reduce((a, b) => a + b, 0) / errors.length
         : 0;
-      
-      const meanAbsoluteError = absoluteErrors.length > 0 
-        ? absoluteErrors.reduce((a, b) => a + b, 0) / absoluteErrors.length 
+
+      const meanAbsoluteError = absoluteErrors.length > 0
+        ? absoluteErrors.reduce((a, b) => a + b, 0) / absoluteErrors.length
         : 0;
 
       const squaredErrors = errors.map(e => e * e);
-      const rootMeanSquareError = squaredErrors.length > 0 
-        ? Math.sqrt(squaredErrors.reduce((a, b) => a + b, 0) / squaredErrors.length) 
+      const rootMeanSquareError = squaredErrors.length > 0
+        ? Math.sqrt(squaredErrors.reduce((a, b) => a + b, 0) / squaredErrors.length)
         : 0;
 
       // Only include predictions with valid confidence intervals for CI accuracy calculation
-      const predictionsWithCI = backtested.filter(p => 
+      const predictionsWithCI = backtested.filter(p =>
         p.confidenceLower !== null && p.confidenceUpper !== null
       );
-      
+
       const withinBounds = predictionsWithCI.filter(p => {
         const lower = parseFloat(p.confidenceLower!);
         const upper = parseFloat(p.confidenceUpper!);
@@ -280,8 +281,8 @@ export class ModelRegistryService {
         return actual >= lower && actual <= upper;
       });
 
-      const accuracyWithinBounds = predictionsWithCI.length > 0 
-        ? (withinBounds.length / predictionsWithCI.length) * 100 
+      const accuracyWithinBounds = predictionsWithCI.length > 0
+        ? (withinBounds.length / predictionsWithCI.length) * 100
         : 0;
 
       return {
@@ -294,7 +295,7 @@ export class ModelRegistryService {
           const lower = p.confidenceLower ? parseFloat(p.confidenceLower) : null;
           const upper = p.confidenceUpper ? parseFloat(p.confidenceUpper) : null;
           const level = parseFloat(p.confidenceLevel || '0.95');
-          
+
           return {
             id: p.id,
             target: p.target,
@@ -305,8 +306,8 @@ export class ModelRegistryService {
             confidenceLower: lower,
             confidenceUpper: upper,
             confidenceLevel: level,
-            withinBounds: actual !== null && lower !== null && upper !== null 
-              ? (actual >= lower && actual <= upper) 
+            withinBounds: actual !== null && lower !== null && upper !== null
+              ? (actual >= lower && actual <= upper)
               : false
           };
         }),
@@ -322,7 +323,7 @@ export class ModelRegistryService {
         }
       };
     } catch (error) {
-      console.error('Error getting backtest results:', error);
+      logger.error('Error getting backtest results', { error });
       return null;
     }
   }
@@ -333,7 +334,7 @@ export class ModelRegistryService {
       if (!backtest) return null;
 
       const { summary } = backtest;
-      
+
       let isDrifting = false;
       let driftSeverity: 'none' | 'low' | 'medium' | 'high' = 'none';
       let recommendation = 'Model performing within acceptable bounds.';
@@ -386,7 +387,7 @@ export class ModelRegistryService {
         recommendation
       };
     } catch (error) {
-      console.error('Error calculating drift metrics:', error);
+      logger.error('Error calculating drift metrics', { error });
       return null;
     }
   }
@@ -422,7 +423,7 @@ export class ModelRegistryService {
         featuresUsed
       });
     } catch (error) {
-      console.error('Error generating prediction with confidence:', error);
+      logger.error('Error generating prediction with confidence', { error });
       return null;
     }
   }

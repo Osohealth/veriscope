@@ -31,7 +31,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const computeIdempotencyKey = (subscriptionId: string, clusterId: string, day: string) => {
   const raw = `${subscriptionId}|${clusterId}|${day}`;
-  return createHash("sha1").update(raw).digest("hex");
+  return createHash("sha256").update(raw).digest("hex");
 };
 
 export const buildWebhookPayload = (signalDto: any, options: WebhookPayloadOptions = {}) => {

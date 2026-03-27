@@ -1,6 +1,7 @@
-import { createHash, createHmac, randomBytes } from 'crypto';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 import { storage } from '../storage';
 import { type User } from '@shared/schema';
+import { logger } from '../middleware/observability';
 
 interface TokenPayload {
   userId: string;
@@ -19,11 +20,17 @@ interface SessionResult {
 }
 
 class SessionService {
-  private readonly SECRET = process.env.JWT_SECRET || randomBytes(32).toString('hex');
+  private readonly SECRET: string;
   private readonly ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes
   private readonly REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days
-  
+
   private refreshTokens: Map<string, { userId: string; expiresAt: number }> = new Map();
+
+  constructor() {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error("JWT_SECRET environment variable is required");
+    this.SECRET = secret;
+  }
 
   private base64UrlEncode(str: string): string {
     return Buffer.from(str).toString('base64')
@@ -48,7 +55,7 @@ class SessionService {
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=/g, '');
-    
+
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   }
 
@@ -58,7 +65,7 @@ class SessionService {
       if (parts.length !== 3) return null;
 
       const [encodedHeader, encodedPayload, signature] = parts;
-      
+
       const expectedSignature = createHmac('sha256', this.SECRET)
         .update(`${encodedHeader}.${encodedPayload}`)
         .digest('base64')
@@ -66,10 +73,13 @@ class SessionService {
         .replace(/\//g, '_')
         .replace(/=/g, '');
 
-      if (signature !== expectedSignature) return null;
+      // Timing-safe comparison to prevent signature oracle attacks
+      const expectedBuf = Buffer.from(expectedSignature);
+      const signatureBuf = Buffer.from(signature);
+      if (expectedBuf.length !== signatureBuf.length || !timingSafeEqual(expectedBuf, signatureBuf)) return null;
 
       const payload = JSON.parse(this.base64UrlDecode(encodedPayload)) as TokenPayload;
-      
+
       if (payload.exp < Math.floor(Date.now() / 1000)) {
         return null;
       }
@@ -82,7 +92,7 @@ class SessionService {
 
   async createSession(user: User): Promise<SessionResult> {
     const now = Math.floor(Date.now() / 1000);
-    
+
     const accessPayload: TokenPayload = {
       userId: user.id,
       email: user.email,
@@ -103,7 +113,7 @@ class SessionService {
 
     const accessToken = this.createToken(accessPayload);
     const refreshToken = this.createToken(refreshPayload);
-    
+
     const refreshTokenHash = createHash('sha256').update(refreshToken).digest('hex');
     this.refreshTokens.set(refreshTokenHash, {
       userId: user.id,
@@ -128,7 +138,7 @@ class SessionService {
 
     const refreshTokenHash = createHash('sha256').update(refreshToken).digest('hex');
     const storedToken = this.refreshTokens.get(refreshTokenHash);
-    
+
     if (!storedToken || storedToken.expiresAt < Date.now()) {
       return null;
     }
@@ -139,7 +149,7 @@ class SessionService {
     }
 
     this.refreshTokens.delete(refreshTokenHash);
-    
+
     return this.createSession(user);
   }
 
@@ -177,7 +187,7 @@ export const sessionService = new SessionService();
 const cleanupInterval = setInterval(() => {
   const cleaned = sessionService.cleanupExpiredTokens();
   if (cleaned > 0) {
-    console.log(`Cleaned up ${cleaned} expired refresh tokens`);
+    logger.info(`Cleaned up ${cleaned} expired refresh tokens`);
   }
 }, 60 * 60 * 1000);
 cleanupInterval.unref?.();

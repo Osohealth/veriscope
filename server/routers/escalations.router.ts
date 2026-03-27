@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { z } from "zod";
 import { authenticateApiKey } from "../middleware/apiKeyAuth";
 import { requireRole } from "../auth/requireRole";
 import { writeAuditEvent } from "../services/auditLog";
@@ -13,6 +14,17 @@ import { getRoutingHealthForPolicy } from "../services/alertRoutingHealthService
 import { logger } from "../middleware/observability";
 
 export const escalationsRouter = Router();
+
+const patchPolicySchema = z.object({
+    incident_type: z.string().min(1),
+    severity_min: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+    level: z.number().int().min(1),
+    after_minutes: z.number().int().min(0),
+    target_type: z.string().min(1),
+    target_ref: z.string().min(1),
+    target_name: z.string().nullable().optional(),
+    enabled: z.boolean().optional(),
+});
 
 function isValidUuid(v: unknown): v is string {
     return typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
@@ -86,20 +98,26 @@ escalationsRouter.patch("/v1/incident-escalation-policies", authenticateApiKey, 
         const tenantId = req.auth?.tenantId;
         if (!tenantId) return res.status(401).json({ error: "API key required" });
 
+        const parsed = patchPolicySchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ error: "INVALID_BODY", errors: parsed.error.flatten().fieldErrors });
+        }
+        const body = parsed.data;
+
         const now = new Date();
         const validation = await validateRoutingPolicyDraft({
             tenantId,
             now,
             draft: {
-                incident_type: req.body?.incident_type,
-                severity_min: req.body?.severity_min,
-                level: req.body?.level,
-                after_minutes: req.body?.after_minutes,
+                incident_type: body.incident_type,
+                severity_min: body.severity_min,
+                level: body.level,
+                after_minutes: body.after_minutes,
                 include_blocked: true,
                 targets: [{
-                    target_type: req.body?.target_type,
-                    target_ref: req.body?.target_ref,
-                    target_name: req.body?.target_name ?? null,
+                    target_type: body.target_type,
+                    target_ref: body.target_ref,
+                    target_name: body.target_name ?? null,
                 }],
             },
         });
@@ -122,7 +140,7 @@ escalationsRouter.patch("/v1/incident-escalation-policies", authenticateApiKey, 
             });
         }
 
-        const enabled = req.body?.enabled !== undefined ? Boolean(req.body.enabled) : true;
+        const enabled = body.enabled !== undefined ? Boolean(body.enabled) : true;
         const health = await getRoutingHealthForPolicy({
             tenantId,
             policy: { targetType: normalizedTarget.target_type, targetRef: normalizedTarget.target_ref },

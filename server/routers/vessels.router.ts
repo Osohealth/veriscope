@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { storage } from "../storage";
+import { insertBunkeringEventSchema } from "@shared/schema";
 import { optionalAuth, authenticate, requirePermission } from "../middleware/rbac";
 import { publicDataRateLimiter } from "../middleware/rateLimiter";
 import {
@@ -113,8 +114,8 @@ vesselsRouter.get(
             const [minLon, minLat, maxLon, maxLat] = String(bbox)
                 .split(",")
                 .map(parseFloat);
-            const sinceMinutes = parseInt(String(since_minutes)) || 60;
-            const limitNum = Math.min(parseInt(String(limit)) || 2000, 5000);
+            const sinceMinutes = parseSafeLimit(since_minutes, 60, 1440);
+            const limitNum = parseSafeLimit(limit, 2000, 5000);
             const sinceTime = new Date(Date.now() - sinceMinutes * 60 * 1000);
 
             const vessels = await storage.getVessels();
@@ -310,7 +311,11 @@ vesselsRouter.post(
     requirePermission("write:vessels"),
     async (req, res) => {
         try {
-            const event = await storage.createBunkeringEvent(req.body);
+            const parsed = insertBunkeringEventSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ error: parsed.error.errors[0].message });
+            }
+            const event = await storage.createBunkeringEvent(parsed.data);
             res.status(201).json(event);
         } catch (error) {
             res.status(500).json({ error: "Failed to create bunkering event" });
@@ -406,7 +411,7 @@ vesselsRouter.get(
                 metricType: metricType as string,
                 region: region as string,
                 storageType: storageType as string,
-                weeks: weeks ? parseInt(weeks as string) : 52,
+                weeks: parseSafeLimit(weeks, 52, 260),
             });
             res.json(data);
         } catch (error) {

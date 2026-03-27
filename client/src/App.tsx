@@ -162,7 +162,7 @@ function App() {
   useEffect(() => {
     // Initialize services on app load
     fetch('/api/init', { method: 'POST' })
-      .then(() => console.log('Veriscope services initialized'))
+      .then(() => { /* services initialized */ })
       .catch(console.error);
   }, []);
 

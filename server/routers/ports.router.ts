@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { storage } from "../storage";
+import { insertPortCallSchema, insertContainerOperationSchema } from "@shared/schema";
 import { rotterdamDataService } from "../services/rotterdamDataService";
 import { optionalAuth, authenticate, requirePermission } from "../middleware/rbac";
 import { publicDataRateLimiter } from "../middleware/rateLimiter";
@@ -41,7 +42,7 @@ portsRouter.get("/v1/ports", publicDataRateLimiter, optionalAuth, async (req, re
             );
         }
 
-        const limitNum = Math.min(parseInt(String(limit)) || 50, 500);
+        const limitNum = parseSafeLimit(limit, 50, 500);
         filtered = filtered.slice(0, limitNum);
 
         res.json({
@@ -117,7 +118,7 @@ portsRouter.get("/v1/ports/:port_id/calls", optionalAuth, async (req, res) => {
             startDate,
             endDate
         );
-        const limitNum = Math.min(parseInt(String(limit)) || 100, 500);
+        const limitNum = parseSafeLimit(limit, 100, 500);
 
         const items = await Promise.all(
             portCalls.slice(0, limitNum).map(async (call) => {
@@ -178,7 +179,7 @@ portsRouter.get("/v1/ports/stats/top_busy", optionalAuth, async (req, res) => {
         const { limit = "20" } = req.query;
         const { getTopBusyPorts } = await import("../services/portStatisticsService");
         const topPorts = await getTopBusyPorts(
-            Math.min(parseInt(String(limit)) || 20, 100)
+            parseSafeLimit(limit, 20, 100)
         );
         res.json({ items: topPorts });
     } catch (error) {
@@ -423,7 +424,11 @@ portsRouter.post(
     requirePermission("write:ports"),
     async (req, res) => {
         try {
-            const portCall = await storage.createPortCall(req.body);
+            const parsed = insertPortCallSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ error: parsed.error.errors[0].message });
+            }
+            const portCall = await storage.createPortCall(parsed.data);
             res.status(201).json(portCall);
         } catch (error) {
             res.status(500).json({ error: "Failed to create port call" });
@@ -480,7 +485,11 @@ portsRouter.post(
     requirePermission("write:ports"),
     async (req, res) => {
         try {
-            const operation = await storage.createContainerOperation(req.body);
+            const parsed = insertContainerOperationSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ error: parsed.error.errors[0].message });
+            }
+            const operation = await storage.createContainerOperation(parsed.data);
             res.status(201).json(operation);
         } catch (error) {
             res.status(500).json({ error: "Failed to create container operation" });

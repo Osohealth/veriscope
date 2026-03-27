@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAuthHeaders, getAuthToken } from "@/lib/queryClient";
+import { getAuthHeaders } from "@/lib/queryClient";
+import { useCurrentUser } from "./useCurrentUser";
 
 export interface PortDelayEvent {
   id: string;
@@ -36,8 +37,8 @@ export interface MarketDelayImpact {
 }
 
 export function usePortDelays(portId: string, limit: number = 50) {
-  const token = getAuthToken();
-  const isAuthed = !!token;
+  const { data: user } = useCurrentUser();
+  const isAuthed = !!user;
 
   return useQuery<PortDelayEvent[]>({
     queryKey: ['/api/ports', portId, 'delays', limit],
@@ -57,8 +58,8 @@ export function usePortDelays(portId: string, limit: number = 50) {
 }
 
 export function useMarketDelayImpact(portId?: string, commodityId?: string, limit: number = 1) {
-  const token = getAuthToken();
-  const isAuthed = !!token;
+  const { data: user } = useCurrentUser();
+  const isAuthed = !!user;
 
   return useQuery<MarketDelayImpact[]>({
     queryKey: ['/api/market/delays/impact', portId ?? null, commodityId ?? null, limit],

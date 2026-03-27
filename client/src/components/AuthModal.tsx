@@ -80,9 +80,7 @@ export default function AuthModal({
         setLoading(false);
         return;
       }
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // Tokens are in httpOnly cookies set by the server — no localStorage needed
       markAuthenticated();
       onAuthenticated();
       onOpenChange(false);
@@ -153,9 +151,7 @@ export default function AuthModal({
         setLoading(false);
         return;
       }
-      localStorage.setItem("access_token", loginData.access_token);
-      localStorage.setItem("refresh_token", loginData.refresh_token);
-      localStorage.setItem("user", JSON.stringify(loginData.user));
+      // Tokens are in httpOnly cookies set by the server — no localStorage needed
       markAuthenticated();
       onAuthenticated();
       onOpenChange(false);

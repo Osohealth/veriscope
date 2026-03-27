@@ -3,9 +3,10 @@ import { sql, eq } from "drizzle-orm";
 import { db } from "../db";
 import { alertRuns } from "@shared/schema";
 import { TENANT_DEMO_ID } from "../config/tenancy";
-import { metricsCollector, getHealthStatus, setDbHealth } from "../middleware/observability";
+import { metricsCollector, getHealthStatus, setDbHealth, logger } from "../middleware/observability";
 import { storage } from "../storage";
 import { WEBHOOK_TIMEOUT_MS } from "../config/alerting";
+import { authenticateApiKey } from "../middleware/apiKeyAuth";
 
 export const healthRouter = Router();
 
@@ -40,9 +41,10 @@ healthRouter.get("/health/alerts", async (req, res) => {
 
         res.json({ status: "ok" });
     } catch (error: any) {
+        logger.error("Alert health check failed", { error });
         res
             .status(500)
-            .json({ status: "error", error: error.message || "Alert health check failed" });
+            .json({ status: "error", error: "Alert health check failed" });
     }
 });
 
@@ -53,9 +55,10 @@ healthRouter.get("/health/webhooks", (req, res) => {
         }
         res.json({ status: "ok", timeout_ms: WEBHOOK_TIMEOUT_MS });
     } catch (error: any) {
+        logger.error("Webhook health check failed", { error });
         res
             .status(500)
-            .json({ status: "error", error: error.message || "Webhook health check failed" });
+            .json({ status: "error", error: "Webhook health check failed" });
     }
 });
 
@@ -84,11 +87,12 @@ healthRouter.get("/api/status/data", async (req, res) => {
             environment: process.env.NODE_ENV || "development",
         });
     } catch (error: any) {
-        res.status(500).json({ status: "error", error: error.message, timestamp: new Date().toISOString() });
+        logger.error("Data status check failed", { error });
+        res.status(500).json({ status: "error", error: "Internal server error", timestamp: new Date().toISOString() });
     }
 });
 
-healthRouter.get("/metrics", (req, res) => {
+healthRouter.get("/metrics", authenticateApiKey, (req, res) => {
     res.json(metricsCollector.getMetrics());
 });
 

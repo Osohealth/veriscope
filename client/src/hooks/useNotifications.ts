@@ -48,7 +48,7 @@ export function useNotifications() {
       const signalMessage = message as SignalMessage;
       const newSignal = signalMessage.data;
 
-      console.log('Received new signal:', newSignal);
+
 
       // Update the signals query cache
       queryClient.setQueryData(['/api/signals'], (oldSignals: Signal[] = []) => {
@@ -74,7 +74,7 @@ export function useNotifications() {
       const delayAlert = message as DelayAlertMessage;
       const { vessel, port, delayHours, cargoVolume, severity } = delayAlert.data;
 
-      console.log('Received delay alert:', delayAlert.data);
+
 
       // Show toast notification for delay alert
       toast({
@@ -97,10 +97,10 @@ export function useNotifications() {
   useWebSocket('/ws', {
     onMessage: handleWebSocketMessage,
     onConnect: () => {
-      console.log('Notifications WebSocket connected');
+
     },
     onDisconnect: () => {
-      console.log('Notifications WebSocket disconnected');
+
     }
   });
 

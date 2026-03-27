@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Anchor, Ship, Clock, MapPin, Activity, Users } from "lucide-react";
-import { getAuthHeaders, getAuthToken } from "@/lib/queryClient";
+import { getAuthHeaders } from "@/lib/queryClient";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface PortDetail {
   id: string;
@@ -36,9 +37,9 @@ interface PortCall {
 
 export default function PortDetailPage() {
   const { portId } = useParams<{ portId: string }>();
-  const token = getAuthToken();
-  const isAuthed = !!token;
-  
+  const { data: user } = useCurrentUser();
+  const isAuthed = !!user;
+
   const { data: port, isLoading: portLoading } = useQuery<PortDetail>({
     queryKey: ['/v1/ports', portId],
     queryFn: async () => {
@@ -85,12 +86,12 @@ export default function PortDetailPage() {
 
     const medianDwell = dwellValues.length
       ? (() => {
-          const sorted = [...dwellValues].sort((a, b) => a - b);
-          const mid = Math.floor(sorted.length / 2);
-          return sorted.length % 2 === 0
-            ? Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 10) / 10
-            : sorted[mid];
-        })()
+        const sorted = [...dwellValues].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 === 0
+          ? Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 10) / 10
+          : sorted[mid];
+      })()
       : undefined;
 
     return {
@@ -163,7 +164,7 @@ export default function PortDetailPage() {
               <div className="text-3xl font-bold">{metrics?.arrivals ?? 0}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -175,7 +176,7 @@ export default function PortDetailPage() {
               <div className="text-3xl font-bold">{metrics?.departures ?? 0}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -187,7 +188,7 @@ export default function PortDetailPage() {
               <div className="text-3xl font-bold">{metrics?.unique_vessels ?? 0}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -199,7 +200,7 @@ export default function PortDetailPage() {
               <div className="text-3xl font-bold">{metrics?.avg_dwell_hours ?? 0}h</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -211,7 +212,7 @@ export default function PortDetailPage() {
               <div className="text-3xl font-bold">{metrics?.median_dwell_hours ?? '-'}h</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">

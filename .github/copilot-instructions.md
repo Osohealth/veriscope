@@ -196,3 +196,27 @@ Default dev credentials: `admin@example.com` / `admin123`
 | 22 | `alertRoutingHealthService.ts` + `incidentEscalationService.ts` | `[...map]` spread → `Array.from(map.entries())` |
 | 23 | `server/services/emailService.ts` | `renderAlertBundleEmail` missing → added |
 | 24 | `client/src/pages/` + subdirs | lowercase filenames (`alerts.tsx`, `login.tsx`, etc.) caused TS1261 → renamed to PascalCase |
+| 25 | `server/services/modelRegistryService.ts` | 12 `console.error` → `logger.error` with `{ error }` metadata |
+| 26 | `server/routers/admin.router.ts` | raw `parseInt(days)` → `parseSafeLimit`; GitHub routes had no auth → added `authenticate, requireAdmin` |
+| 27 | `server/routers/commodities.router.ts` | raw `parseInt(weeks)` and `parseInt(limit)` → `parseSafeLimit` |
+| 28 | `server/routers/health.router.ts` | `/metrics` had no auth → added `authenticateApiKey` middleware |
+| 29 | `server/routers/escalations.router.ts` | PATCH body unvalidated → added `patchPolicySchema` Zod guard before `validateRoutingPolicyDraft` |
+| 30 | `server/routers/alerts.router.ts` | Added `authenticate`/`requirePermission` to watchlist & alert-rule mutations but forgot to add them to the import from `../middleware/rbac` → always update imports when adding middleware |
+| 31 | `server/routers/alerts.router.ts` | `GET /api/watchlists` and `GET /api/alert-rules` used `optionalAuth` with `(req as any).user?.id \|\| "demo-user"` fallback → changed to `authenticate` + `req.user!.userId`; also added ownership checks to all mutation endpoints (PATCH, DELETE, snooze, unsnooze, mute) |
+| 32 | `shared/schema.ts` | `alertDeliveries.userId` was nullable → made `.notNull()`; `watchlists` and `alertRules` had no `tenantId` → added with safe default; migration 0052 created |
+| 33 | `server/routers/*.router.ts` (flows, team, audit, alert-ops) | raw `parseInt()` — no parseSafeLimit import at all → added import + converted all 14 remaining occurrences to `parseSafeLimit()` |
+| 34 | `server/routers/*.router.ts`, `client/src/**` | `error.message` leaked in 500 responses (25 occurrences) → replaced with static messages + `logger.error(message, { error })` |
+| 35 | `client/src/hooks/*.ts`, `client/src/pages/*.tsx` | `getAuthToken()` always null (dead code) → replaced with `useCurrentUser()` in 5 files |
+| 36 | `shared/schema.ts` | 113 plain `timestamp()` columns without `{ withTimezone: true }` → converted all to `timestamp(col, { withTimezone: true })`; migration 0053 created |
+| 37 | 6 write endpoints (vessels, ports, commodities, comms) | No Zod validation on POST bodies (mass assignment) → added `createInsertSchema` parse + 400 on failure |
+| 38 | `server/routers/alerts.router.ts` | IDOR on `PATCH /communications/:id/read` — no ownership check; `userId` forceable from body → forced `userId = req.user!.userId`, added ownership fetch+403 |
+| 39 | `server/routers/commodities.router.ts` | `POST /refinery/refresh` used `optionalAuth` (unauthenticated access) → changed to `authenticate` |
+| 40 | `server/routers/auth.router.ts` | `/v1/auth/refresh` returned `refresh_token` in JSON body → removed; now only sets httpOnly cookie; both register endpoints lacked password complexity → added uppercase+digit+special regex rules |
+| 41 | `shared/schema.ts` + `flows.router.ts` | `tradeFlows` table had no `tenantId` → added column + index + filter in all 3 flows endpoints; migration 0054 created |
+| 42 | `shared/schema.ts` | `alertSubscriptions.secret` was nullable → made `.notNull()`; all insert sites fixed to always generate a secret; migration 0055 created |
+| 43 | `server/services/authService.ts` | No per-account login lockout; refresh tokens reusable (no JTI rotation) → added `failedLoginAttempts` + `revokedRefreshTokens` tables; `login()` checks 5 failures/15min window; `refreshTokens()` records and rotates JTI; migrations 0056+0057 created |
+| 44 | `server/services/alert*Service.ts` + `alerts.router.ts` | IDN homograph SSRF bypass — `xn--` hostnames bypassed ASCII allowlist regex → added explicit `/xn--/i` rejection in all 5 webhook validation paths |
+| 45 | `server/index.ts` | `app.set('trust proxy', 1)` accepted any proxy (IP spoofing) → scoped to `TRUSTED_PROXIES` env var or `false` |
+| 46 | `client/src/pages/Team.tsx` | Invite tokens stored in `localStorage` (XSS-accessible) → replaced with React `useState` (`cachedInviteTokens`); removed `inviteStoragePrefix` useMemo |
+| 47 | Multiple `client/src/` files | Stray `console.log` in hooks, pages, App.tsx (info leakage) → removed all |
+| 48 | `server/routers/alerts.router.ts` + `alert-ops.router.ts` + `dev.router.ts` + `demoServerSeed.ts` | EMAIL channel subscriptions passed `secret: null` after `.notNull()` change → fixed to always call `generateSecret()` / `randomBytes(24)` |

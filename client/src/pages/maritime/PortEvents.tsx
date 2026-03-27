@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
 import { ArrowLeft, Anchor, Ship, Clock, TrendingUp, Calendar, MapPin } from "lucide-react";
 import type { PortCall, Port, Vessel } from "@shared/schema";
-import { getAuthToken } from "@/lib/queryClient";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface EnrichedPortCall extends PortCall {
   port?: Port;
@@ -19,7 +19,8 @@ interface EnrichedPortCall extends PortCall {
 export default function PortEventEngine() {
   const [selectedPort, setSelectedPort] = useState<string>("all");
   const [selectedVessel, setSelectedVessel] = useState<string | null>(null);
-  const isAuthed = !!getAuthToken();
+  const { data: user } = useCurrentUser();
+  const isAuthed = !!user;
 
   // Fetch ports
   const { data: ports = [] } = useQuery<Port[]>({
@@ -34,10 +35,10 @@ export default function PortEventEngine() {
   });
 
   // Fetch port calls with proper port filtering
-  const portCallsUrl = selectedPort !== "all" 
-    ? `/api/port-calls?portId=${selectedPort}` 
+  const portCallsUrl = selectedPort !== "all"
+    ? `/api/port-calls?portId=${selectedPort}`
     : '/api/port-calls';
-  
+
   const { data: portCalls = [], isLoading } = useQuery<PortCall[]>({
     queryKey: [portCallsUrl],
     enabled: isAuthed
@@ -191,7 +192,7 @@ export default function PortEventEngine() {
             ) : (
               <div className="space-y-3">
                 {enrichedPortCalls.map((call) => (
-                  <Card 
+                  <Card
                     key={call.id}
                     className="hover:border-primary transition-colors cursor-pointer"
                     onClick={() => setSelectedVessel(call.vesselId)}
@@ -231,7 +232,7 @@ export default function PortEventEngine() {
                               <div className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
                                 <span className="text-sm" data-testid={`text-departure-${call.id}`}>
-                                  {call.departureTime 
+                                  {call.departureTime
                                     ? new Date(call.departureTime).toLocaleDateString()
                                     : 'In port'}
                                 </span>
@@ -295,7 +296,7 @@ export default function PortEventEngine() {
                     <p className="text-sm text-muted-foreground mb-2">Congestion Level</p>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-secondary h-2 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full bg-yellow-500"
                           style={{ width: `${(stats.atAnchor / Math.max(stats.totalCalls, 1)) * 100}%` }}
                         />
@@ -310,7 +311,7 @@ export default function PortEventEngine() {
                     <p className="text-sm text-muted-foreground mb-2">Berth Utilization</p>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-secondary h-2 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full bg-blue-500"
                           style={{ width: `${(stats.activeBerths / Math.max(stats.totalCalls, 1)) * 100}%` }}
                         />

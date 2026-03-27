@@ -18,17 +18,27 @@ if (process.env.DEMO_SERVER === "1") {
 if (process.env.NODE_ENV === "production" && process.env.TEST_SCHEMA_PROFILE) {
   throw new Error("TEST_SCHEMA_PROFILE must not be set in production");
 }
-if (process.env.NODE_ENV === "production" && process.env.DEV_ROUTES_ENABLED === "true") {
-  logger.warn("WARNING: DEV_ROUTES_ENABLED is true in production. This should be disabled.");
+if (process.env.NODE_ENV === "production" && process.env.DEV_ROUTES_ENABLED === "true" && process.env.DEMO_SERVER !== "1") {
+  throw new Error("DEV_ROUTES_ENABLED must not be 'true' in production — this is a security risk. Unset it or use DEMO_SERVER=1 for intentional demo deployments.");
+}
+
+// Startup guard: validate ALERTS_ROLE early so misconfiguration is caught before serving traffic
+const _alertsRole = process.env.ALERTS_ROLE;
+if (_alertsRole && !["OWNER", "OPERATOR", "VIEWER"].includes(_alertsRole.toUpperCase())) {
+  throw new Error(`ALERTS_ROLE must be one of: OWNER, OPERATOR, VIEWER. Got: "${_alertsRole}"`);
 }
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', process.env.TRUSTED_PROXIES
+  ? process.env.TRUSTED_PROXIES.split(',').map((s: string) => s.trim())
+  : false);
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrc: process.env.NODE_ENV === "production"
+        ? ["'self'"]
+        : ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       connectSrc: ["'self'", "ws:", "wss:"],

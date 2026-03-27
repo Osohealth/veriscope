@@ -23,7 +23,6 @@ export default function Contact() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, this would send to a backend
-    console.log("Contact form submitted:", formData);
     setSubmitted(true);
     setTimeout(() => {
       setFormData({ name: "", email: "", company: "", subject: "", message: "" });

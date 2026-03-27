@@ -16,6 +16,7 @@ import {
 import { generateApiKey, hashApiKey } from "../services/apiKeyService";
 import { generateInviteToken, hashInviteToken } from "../services/inviteService";
 import { logger } from "../middleware/observability";
+import { parseSafeLimit } from "../utils/pagination";
 
 export const teamRouter = Router();
 
@@ -56,7 +57,7 @@ async function guardRole(
       severity: "SECURITY",
       message: "Role is not permitted for this operation.",
       metadata: { path: req.path, method: req.method, role: req.auth?.role, required: minRole },
-    }).catch(() => {});
+    }).catch(() => { });
     const status = err?.status ?? 403;
     const code = status === 401 ? "UNAUTHORIZED" : "FORBIDDEN";
     res.status(status).json({ error: code, detail: err?.message ?? "Forbidden" });
@@ -300,7 +301,7 @@ teamRouter.get("/v1/team/users", authenticateApiKey, async (req, res, next) => {
     if (!tenantId) return res.status(401).json({ error: "API key required" });
 
     const query = req.query?.query ? String(req.query.query) : undefined;
-    const limit = Math.min(parseInt(String(req.query?.limit ?? "20")) || 20, 50);
+    const limit = parseSafeLimit(req.query?.limit, 20, 50);
     let cursorCreatedAt: string | null = null;
     let cursorId: string | null = null;
 

@@ -23,6 +23,7 @@ import {
 } from "../services/alertSubscriptions";
 import { GLOBAL_SCOPE_ENTITY_ID, normalizeScope } from "../services/alertScopeService";
 import { logger } from "../middleware/observability";
+import { parseSafeLimit } from "../utils/pagination";
 
 export const alertOpsRouter = Router();
 
@@ -297,7 +298,7 @@ alertOpsRouter.get("/v1/alert-subscriptions", authenticateApiKey, async (req, re
     if (!userId || !tenantId) return res.status(401).json({ error: "API key required" });
 
     const includeEntity = String(req.query?.include_entity ?? "false") === "true";
-    const limitNum = Math.min(parseInt(String(req.query?.limit ?? "50")) || 50, 200);
+    const limitNum = parseSafeLimit(req.query?.limit, 50, 200);
     const cursor = req.query?.cursor;
     let cursorCreatedAt: string | null = null;
     let cursorId: string | null = null;
@@ -423,7 +424,7 @@ alertOpsRouter.post("/v1/alert-subscriptions", authenticateApiKey, async (req, r
       if (!isValidEmail(email)) return res.status(400).json({ error: "invalid email" });
     }
 
-    const secret = destinationType === "WEBHOOK" ? (providedSecret ?? generateSecret()) : null;
+    const secret = destinationType === "WEBHOOK" ? (providedSecret ?? generateSecret()) : generateSecret();
 
     if (scope === "GLOBAL") {
       entityId = GLOBAL_SCOPE_ENTITY_ID;

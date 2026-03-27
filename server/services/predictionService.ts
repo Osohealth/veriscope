@@ -3,14 +3,18 @@ import { storage } from '../storage';
 import { logger } from '../middleware/observability';
 import { type InsertPrediction } from '@shared/schema';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'demo-key'
-});
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 class PredictionService {
   private intervalId: NodeJS.Timeout | null = null;
 
   startPredictionService() {
+    if (!openai) {
+      logger.info('Prediction service disabled — OPENAI_API_KEY not set');
+      return;
+    }
     // Generate predictions every 6 hours
     this.intervalId = setInterval(async () => {
       try {
@@ -133,6 +137,9 @@ class PredictionService {
   }
 
   private async aiPredict(commodityId: string, marketId: string, timeframe: string, features: any): Promise<InsertPrediction> {
+    if (!openai) {
+      throw new Error('OpenAI client not initialised');
+    }
     const prompt = `
     As a maritime analytics AI, predict the ${timeframe} oil price movement based on these maritime indicators:
     

@@ -168,7 +168,8 @@ devRouter.post("/api/dev/seed-anomaly", authenticate, requireAdmin, async (req, 
         cacheService.invalidate(CACHE_KEYS.PORT_STATS(port.id));
         cacheService.invalidate(CACHE_KEYS.ACTIVE_SIGNALS);
     } catch (error: any) {
-        res.status(500).json({ error: error.message || "Failed to seed anomaly" });
+        logger.error("Failed to seed anomaly", { error });
+        res.status(500).json({ error: "Failed to seed anomaly" });
     }
 });
 
@@ -234,6 +235,7 @@ devRouter.post(
                     severityMin: "HIGH",
                     channel: "WEBHOOK",
                     endpoint: `${baseUrl}/api/dev/webhook-sink`,
+                    secret: randomBytes(24).toString("base64url"),
                     isEnabled: true,
                     updatedAt: new Date(),
                 },
@@ -246,6 +248,7 @@ devRouter.post(
                     severityMin: "HIGH",
                     channel: "WEBHOOK",
                     endpoint: "http://localhost:9999/webhook",
+                    secret: randomBytes(24).toString("base64url"),
                     isEnabled: true,
                     updatedAt: new Date(),
                 },
@@ -258,6 +261,7 @@ devRouter.post(
                     severityMin: "HIGH",
                     channel: "EMAIL",
                     endpoint: "alerts@veriscope.dev",
+                    secret: randomBytes(24).toString("base64url"),
                     isEnabled: true,
                     updatedAt: new Date(),
                 },
@@ -271,9 +275,10 @@ devRouter.post(
 
             res.json({ ok: true, subscriptions_created: created.length });
         } catch (error: any) {
+            logger.error("Failed to seed alert subscriptions", { error });
             res
                 .status(500)
-                .json({ error: error.message || "Failed to seed alert subscriptions" });
+                .json({ error: "Failed to seed alert subscriptions" });
         }
     }
 );
@@ -397,9 +402,10 @@ devRouter.post(
                 startDate: startUtc.toISOString().slice(0, 10),
             });
         } catch (error: any) {
+            logger.error("Failed to seed Rotterdam week data", { error });
             res
                 .status(500)
-                .json({ error: error.message || "Failed to seed Rotterdam week data" });
+                .json({ error: "Failed to seed Rotterdam week data" });
         }
     }
 );
@@ -428,7 +434,8 @@ devRouter.post(
                 .returning();
             res.json(created);
         } catch (error: any) {
-            res.status(500).json({ error: error.message || "Failed to create subscription" });
+            logger.error("Failed to create subscription", { error });
+            res.status(500).json({ error: "Failed to create subscription" });
         }
     }
 );
@@ -461,7 +468,8 @@ devRouter.get(
                 );
             res.json({ items: rows });
         } catch (error: any) {
-            res.status(500).json({ error: error.message || "Failed to list subscriptions" });
+            logger.error("Failed to list subscriptions", { error });
+            res.status(500).json({ error: "Failed to list subscriptions" });
         }
     }
 );
@@ -488,7 +496,8 @@ devRouter.post("/api/alerts/run", authenticateApiKey, async (req, res) => {
             summary: result.summary,
         });
     } catch (error: any) {
-        res.status(500).json({ error: error.message || "Failed to run alerts" });
+        logger.error("Failed to run alerts", { error });
+        res.status(500).json({ error: "Failed to run alerts" });
     }
 });
 
@@ -507,7 +516,8 @@ devRouter.post("/api/alerts/retry-dlq", authenticateApiKey, async (req, res) => 
         });
         res.json(result);
     } catch (error: any) {
-        res.status(500).json({ error: error.message || "Failed to retry dlq" });
+        logger.error("Failed to retry dlq", { error });
+        res.status(500).json({ error: "Failed to retry dlq" });
     }
 });
 

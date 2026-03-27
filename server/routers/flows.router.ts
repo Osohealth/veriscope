@@ -2,17 +2,20 @@ import { Router } from "express";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { commodities, ports, tradeFlows } from "@shared/schema";
-import { optionalAuth } from "../middleware/rbac";
+import { authenticate, optionalAuth } from "../middleware/rbac";
 import { logger } from "../middleware/observability";
+import { parseSafeLimit } from "../utils/pagination";
+import { resolveTenantId } from "../config/tenancy";
 
 export const flowsRouter = Router();
 
 // ===== TRADE FLOWS =====
 
-flowsRouter.get("/v1/flows/summary", optionalAuth, async (req, res, next) => {
+flowsRouter.get("/v1/flows/summary", authenticate, async (req, res, next) => {
   try {
+    const tenantId = req.auth?.tenantId ?? resolveTenantId();
     const { commodity, origin, destination, hub, region, time } = req.query;
-    const flowRows = await db.select().from(tradeFlows).orderBy(desc(tradeFlows.createdAt)).limit(500);
+    const flowRows = await db.select().from(tradeFlows).where(eq(tradeFlows.tenantId, tenantId)).orderBy(desc(tradeFlows.createdAt)).limit(500);
 
     const commodityIds = Array.from(new Set(flowRows.map((row) => row.commodityId).filter((id): id is string => Boolean(id))));
     const portIds = Array.from(new Set(flowRows.flatMap((row) => [row.originPortId, row.destinationPortId]).filter((id): id is string => Boolean(id))));
@@ -70,10 +73,10 @@ flowsRouter.get("/v1/flows/summary", optionalAuth, async (req, res, next) => {
     const regionValue = region ? normalize(String(region)) : null;
     const importVolume = regionValue
       ? filtered.reduce((sum, row) => {
-          const destPort = row.destinationPortId ? portMap.get(row.destinationPortId) : null;
-          if (destPort?.region?.toLowerCase().includes(regionValue)) return sum + Number(row.cargoVolume || 0);
-          return sum;
-        }, 0)
+        const destPort = row.destinationPortId ? portMap.get(row.destinationPortId) : null;
+        if (destPort?.region?.toLowerCase().includes(regionValue)) return sum + Number(row.cargoVolume || 0);
+        return sum;
+      }, 0)
       : Math.round(totalVolume * 0.48);
     const exportVolume = totalVolume - importVolume;
     const netFlow = exportVolume - importVolume;
@@ -88,10 +91,11 @@ flowsRouter.get("/v1/flows/summary", optionalAuth, async (req, res, next) => {
   }
 });
 
-flowsRouter.get("/v1/flows/lanes", optionalAuth, async (req, res, next) => {
+flowsRouter.get("/v1/flows/lanes", authenticate, async (req, res, next) => {
   try {
+    const tenantId = req.auth?.tenantId ?? resolveTenantId();
     const { commodity, origin, destination, hub, region, time, limit = "50" } = req.query;
-    const flowRows = await db.select().from(tradeFlows).orderBy(desc(tradeFlows.createdAt)).limit(500);
+    const flowRows = await db.select().from(tradeFlows).where(eq(tradeFlows.tenantId, tenantId)).orderBy(desc(tradeFlows.createdAt)).limit(500);
 
     const commodityIds = Array.from(new Set(flowRows.map((row) => row.commodityId).filter((id): id is string => Boolean(id))));
     const portIds = Array.from(new Set(flowRows.flatMap((row) => [row.originPortId, row.destinationPortId]).filter((id): id is string => Boolean(id))));
@@ -174,7 +178,7 @@ flowsRouter.get("/v1/flows/lanes", optionalAuth, async (req, res, next) => {
           zScore: Number(zScore.toFixed(2)),
         };
       })
-      .slice(0, Math.min(parseInt(String(limit)) || 50, 200));
+      .slice(0, parseSafeLimit(limit, 50, 200));
 
     res.json({ items });
   } catch (err) {
@@ -182,8 +186,9 @@ flowsRouter.get("/v1/flows/lanes", optionalAuth, async (req, res, next) => {
   }
 });
 
-flowsRouter.get("/v1/flows/timeseries", optionalAuth, async (req, res, next) => {
+flowsRouter.get("/v1/flows/timeseries", authenticate, async (req, res, next) => {
   try {
+    const tenantId = req.auth?.tenantId ?? resolveTenantId();
     const { time = "7d" } = req.query;
     const days = time === "24h" ? 1 : time === "30d" ? 30 : 7;
     const now = new Date();
@@ -193,7 +198,7 @@ flowsRouter.get("/v1/flows/timeseries", optionalAuth, async (req, res, next) => 
     const flowRows = await db
       .select()
       .from(tradeFlows)
-      .where(and(eq(tradeFlows.status, "in_transit")))
+      .where(and(eq(tradeFlows.tenantId, tenantId), eq(tradeFlows.status, "in_transit")))
       .orderBy(desc(tradeFlows.createdAt))
       .limit(500);
 
@@ -286,7 +291,7 @@ flowsRouter.get("/v1/congestion/summary", optionalAuth, async (req, res, next) =
     const items = filtered
       .map(buildCongestionRow)
       .sort((a, b) => b.riskScore - a.riskScore)
-      .slice(0, Math.min(parseInt(String(limit)) || 120, 200));
+      .slice(0, parseSafeLimit(limit, 120, 200));
 
     const portsMonitored = items.length;
     const congestedPorts = items.filter((item) => item.riskScore >= 60).length;
@@ -318,7 +323,7 @@ flowsRouter.get("/v1/congestion/ports", optionalAuth, async (req, res, next) => 
       })
       .map(buildCongestionRow)
       .sort((a, b) => b.riskScore - a.riskScore)
-      .slice(0, Math.min(parseInt(String(limit)) || 50, 200));
+      .slice(0, parseSafeLimit(limit, 50, 200));
 
     res.json({ items });
   } catch (err) {

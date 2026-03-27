@@ -66,7 +66,10 @@ const evaluateRoute = async (args: {
         } else {
           const { allowed_webhook_hosts } = await getTenantAllowlist(args.tenantId);
           const host = url.hostname.toLowerCase();
-          if (allowed_webhook_hosts.length === 0 || !allowlistHostMatches(host, allowed_webhook_hosts)) {
+          if (/xn--/i.test(host)) {
+            allowlistOk = false;
+            allowlistReason = "DESTINATION_NOT_ALLOWED";
+          } else if (allowed_webhook_hosts.length === 0 || !allowlistHostMatches(host, allowed_webhook_hosts)) {
             allowlistOk = false;
             allowlistReason = "DESTINATION_NOT_ALLOWED";
           }

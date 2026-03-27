@@ -16,6 +16,7 @@ import {
 } from "../services/auditExport";
 import { getTenantSettings, upsertTenantSettings } from "../services/tenantSettings";
 import { logger } from "../middleware/observability";
+import { parseSafeLimit } from "../utils/pagination";
 
 export const auditRouter = Router();
 
@@ -34,7 +35,7 @@ async function guardRole(req: any, res: any, minRole: "OWNER" | "OPERATOR" | "VI
       severity: "SECURITY",
       message: "Role is not permitted for this operation.",
       metadata: { path: req.path, method: req.method, role: req.auth?.role, required: minRole },
-    }).catch(() => {});
+    }).catch(() => { });
     const status = err?.status ?? 403;
     res.status(status).json({ error: status === 401 ? "UNAUTHORIZED" : "FORBIDDEN", detail: err?.message ?? "Forbidden" });
     return false;
@@ -99,7 +100,7 @@ auditRouter.get("/v1/audit-events", authenticateApiKey, async (req, res, next) =
 
     const daysRaw = Number(req.query?.days ?? 7);
     const days = Number.isFinite(daysRaw) ? Math.min(Math.max(daysRaw, 1), 365) : 7;
-    const limitNum = Math.min(parseInt(String(req.query?.limit ?? "50")) || 50, 200);
+    const limitNum = parseSafeLimit(req.query?.limit, 50, 200);
 
     const action = req.query?.action ? String(req.query.action).toUpperCase() : undefined;
     let resourceType = req.query?.resource_type ? String(req.query.resource_type).toUpperCase() : undefined;

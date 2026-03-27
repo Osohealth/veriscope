@@ -152,7 +152,7 @@ const ensureContactMethod = async () => {
 
 const ensureSubscription = async (channel: "EMAIL" | "WEBHOOK", endpoint: string) => {
   const now = new Date();
-  const secret = channel === "WEBHOOK" ? randomBytes(24).toString("base64url") : null;
+  const secret = randomBytes(24).toString("base64url");
 
   await db
     .insert(alertSubscriptions)

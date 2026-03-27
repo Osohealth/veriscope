@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { lookup as dnsLookup } from "node:dns/promises";
 import { Router } from "express";
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "../db";
@@ -8,11 +9,13 @@ import {
     alertDlq,
     alertRuns,
     alertSubscriptions,
+    communications,
+    insertCommunicationSchema,
     ports,
     signals,
 } from "@shared/schema";
 import { authenticateApiKey } from "../middleware/apiKeyAuth";
-import { optionalAuth } from "../middleware/rbac";
+import { optionalAuth, authenticate, requirePermission } from "../middleware/rbac";
 import { makeDestinationKey } from "../services/destinationKey";
 import { listAlertDeliveries } from "../services/alertDeliveriesService";
 import {
@@ -48,28 +51,38 @@ const BLOCKED_IP_RANGES = [
     /^127\./,
     /^169\.254\./,
     /^::1$/,
-    /^fc00:/,
+    /^f[cd][0-9a-f]{2}:/,
     /^fe80:/,
     /^0\./,
     /^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\./,
 ];
 
-const isBlockedHost = (h: string) =>
-    BLOCKED_IP_RANGES.some((re) => re.test(h));
+const isBlockedHost = (h: string) => {
+    const normalized = h.startsWith("::ffff:") ? h.slice(7) : h;
+    return BLOCKED_IP_RANGES.some((re) => re.test(normalized));
+};
 
-function isValidWebhookUrl(value: string, allowHttp: boolean): boolean {
+async function assertWebhookUrlSafe(value: string, allowHttp: boolean): Promise<{ ok: true } | { ok: false; reason: string }> {
     let url: URL;
     try {
         url = new URL(value);
     } catch {
-        return false;
+        return { ok: false, reason: "Invalid URL" };
     }
-    if (!["http:", "https:"].includes(url.protocol)) return false;
-    if (!allowHttp && url.protocol === "http:") return false;
+    if (!["http:", "https:"].includes(url.protocol)) return { ok: false, reason: "Protocol must be http or https" };
+    if (!allowHttp && url.protocol === "http:") return { ok: false, reason: "Only HTTPS allowed" };
     const host = url.hostname;
-    if (isBlockedHost(host)) return false;
-    if (!/^[a-zA-Z0-9.\-]+$/.test(host)) return false;
-    return true;
+    if (isBlockedHost(host)) return { ok: false, reason: "Host is blocked" };
+    if (!/^[a-zA-Z0-9.\-]+$/.test(host)) return { ok: false, reason: "Invalid hostname" };
+    if (/xn--/i.test(host)) return { ok: false, reason: "Internationalized domain names not allowed" };
+    // Resolve DNS and validate the resolved IP to prevent DNS rebinding / SSRF
+    try {
+        const resolved = await dnsLookup(host);
+        if (isBlockedHost(resolved.address)) return { ok: false, reason: "Resolved IP is blocked" };
+    } catch {
+        return { ok: false, reason: "Host does not resolve" };
+    }
+    return { ok: true };
 }
 
 const generateSecret = () => randomBytes(24).toString("base64url");
@@ -147,9 +160,9 @@ alertsRouter.get("/v1/alert-deliveries", authenticateApiKey, async (req, res) =>
             }
         }
 
-        const limitNum = Math.min(parseInt(String(limit)) || 50, 200);
+        const limitNum = parseSafeLimit(limit, 50, 200);
         const daysNum = days
-            ? Math.min(Math.max(parseInt(String(days)) || 30, 1), 365)
+            ? parseSafeLimit(days, 30, 365)
             : undefined;
         const includeEntity =
             String(include_entity ?? "false").toLowerCase() === "true";
@@ -601,7 +614,8 @@ alertsRouter.get(
 
             res.json({ version: "1", item: response });
         } catch (error: any) {
-            res.status(500).json({ error: error.message || "Failed to load delivery" });
+            logger.error("Failed to load delivery", { error });
+            res.status(500).json({ error: "Failed to load delivery" });
         }
     }
 );
@@ -618,10 +632,7 @@ alertsRouter.get(
                 return res.status(401).json({ error: "API key required" });
             const includeEntity =
                 String(req.query?.include_entity ?? "false") === "true";
-            const limitNum = Math.min(
-                parseInt(String(req.query?.limit ?? "50")) || 50,
-                200
-            );
+            const limitNum = parseSafeLimit(req.query?.limit, 50, 200);
             const cursor = req.query?.cursor;
             let cursorCreatedAt: string | null = null;
             let cursorId: string | null = null;
@@ -755,9 +766,10 @@ alertsRouter.get(
 
             res.json({ version: "1", items, next_cursor: nextCursor });
         } catch (error: any) {
+            logger.error("Failed to list subscriptions", { error });
             res
                 .status(500)
-                .json({ error: error.message || "Failed to list subscriptions" });
+                .json({ error: "Failed to list subscriptions" });
         }
     }
 );
@@ -800,8 +812,9 @@ alertsRouter.post(
                 return res.status(400).json({ error: "invalid severity_min" });
 
             if (destinationType === "WEBHOOK") {
-                if (!isValidWebhookUrl(destination, allowHttp))
-                    return res.status(400).json({ error: "invalid webhook url" });
+                const urlCheck = await assertWebhookUrlSafe(destination, allowHttp);
+                if (!urlCheck.ok)
+                    return res.status(400).json({ error: urlCheck.reason });
             } else {
                 const email = normalizeEmail(destination);
                 if (!isValidEmail(email))
@@ -811,7 +824,7 @@ alertsRouter.post(
             const secret =
                 destinationType === "WEBHOOK"
                     ? (providedSecret ?? generateSecret())
-                    : null;
+                    : generateSecret();
 
             if (scope === "GLOBAL") {
                 entityId = GLOBAL_SCOPE_ENTITY_ID;
@@ -859,9 +872,10 @@ alertsRouter.post(
                 updated_at: created.updatedAt?.toISOString?.(),
             });
         } catch (error: any) {
+            logger.error("Failed to create subscription", { error });
             res
                 .status(500)
-                .json({ error: error.message || "Failed to create subscription" });
+                .json({ error: "Failed to create subscription" });
         }
     }
 );
@@ -920,8 +934,9 @@ alertsRouter.patch(
             if (req.body?.destination) {
                 const destination = String(req.body.destination).trim();
                 if (existing.channel === "WEBHOOK") {
-                    if (!isValidWebhookUrl(destination, allowHttp))
-                        return res.status(400).json({ error: "invalid webhook url" });
+                    const urlCheck = await assertWebhookUrlSafe(destination, allowHttp);
+                    if (!urlCheck.ok)
+                        return res.status(400).json({ error: urlCheck.reason });
                     updates.endpoint = destination;
                 } else {
                     const email = normalizeEmail(destination);
@@ -963,9 +978,10 @@ alertsRouter.patch(
                 last_test_error: updated.lastTestError ?? null,
             });
         } catch (error: any) {
+            logger.error("Failed to update subscription", { error });
             res
                 .status(500)
-                .json({ error: error.message || "Failed to update subscription" });
+                .json({ error: "Failed to update subscription" });
         }
     }
 );
@@ -997,9 +1013,10 @@ alertsRouter.post(
                 return res.status(404).json({ error: "subscription not found" });
             res.json({ version: "1", rotated: true, secret: newSecret });
         } catch (error: any) {
+            logger.error("Failed to rotate secret", { error });
             res
                 .status(500)
-                .json({ error: error.message || "Failed to rotate secret" });
+                .json({ error: "Failed to rotate secret" });
         }
     }
 );
@@ -1170,7 +1187,8 @@ alertsRouter.post(
                 delivery_id: delivery?.id,
             });
         } catch (error: any) {
-            res.status(500).json({ error: error.message || "Failed to send test" });
+            logger.error("Failed to send test", { error });
+            res.status(500).json({ error: "Failed to send test" });
         }
     }
 );
@@ -1220,9 +1238,10 @@ alertsRouter.post(
                 status: result.status,
             });
         } catch (error: any) {
+            logger.error("Failed to retry delivery", { error });
             res
                 .status(500)
-                .json({ error: error.message || "Failed to retry delivery" });
+                .json({ error: "Failed to retry delivery" });
         }
     }
 );
@@ -1252,9 +1271,10 @@ alertsRouter.get(
                 endpoint_health: endpointHealth,
             });
         } catch (error: any) {
+            logger.error("Failed to fetch alert metrics", { error });
             res
                 .status(500)
-                .json({ error: error.message || "Failed to fetch alert metrics" });
+                .json({ error: "Failed to fetch alert metrics" });
         }
     }
 );
@@ -1279,9 +1299,10 @@ alertsRouter.get(
             ]);
             res.json({ version: "1", health, overdue });
         } catch (error: any) {
+            logger.error("Failed to fetch dlq health", { error });
             res
                 .status(500)
-                .json({ error: error.message || "Failed to fetch dlq health" });
+                .json({ error: "Failed to fetch dlq health" });
         }
     }
 );
@@ -1290,15 +1311,14 @@ alertsRouter.get(
 
 alertsRouter.get(
     "/api/communications",
-    optionalAuth,
+    authenticate,
     async (req, res) => {
         try {
-            const { userId } = req.query;
             const usePagination = req.query.paginate === "true";
             const pagination = parsePaginationParams(req, { limit: 100 });
 
             const communications = await storage.getCommunications(
-                userId as string | undefined,
+                req.auth!.userId,
                 500
             );
 
@@ -1315,26 +1335,31 @@ alertsRouter.get(
 
 alertsRouter.get(
     "/api/communications/unread",
-    optionalAuth,
+    authenticate,
     async (req, res) => {
         try {
-            const { userId } = req.query;
             const unread = await storage.getUnreadCommunications(
-                (userId as string) || "default"
+                req.auth!.userId
             );
             res.json(unread);
         } catch (error) {
-            res.status(500).json({ error: "Failed to fetch unread communications" });
+            res.status(500).json({ error: "Failed to fetch communications" });
         }
     }
 );
 
 alertsRouter.post(
     "/api/communications",
-    optionalAuth,
+    authenticate,
     async (req, res) => {
         try {
-            const communication = await storage.createCommunication(req.body);
+            const parsed = insertCommunicationSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ error: parsed.error.errors[0].message });
+            }
+            // Force userId from JWT — never trust client-supplied userId
+            const body = { ...parsed.data, userId: req.user!.userId };
+            const communication = await storage.createCommunication(body);
             res.status(201).json(communication);
         } catch (error) {
             res.status(500).json({ error: "Failed to create communication" });
@@ -1344,10 +1369,21 @@ alertsRouter.post(
 
 alertsRouter.patch(
     "/api/communications/:id/read",
-    optionalAuth,
+    authenticate,
     async (req, res) => {
         try {
             const { id } = req.params;
+            const [existing] = await db
+                .select({ userId: communications.userId })
+                .from(communications)
+                .where(eq(communications.id, id))
+                .limit(1);
+            if (!existing) {
+                return res.status(404).json({ error: "Communication not found" });
+            }
+            if (existing.userId !== req.user!.userId) {
+                return res.status(403).json({ error: "Forbidden" });
+            }
             const communication = await storage.markCommunicationAsRead(id);
             res.json(communication);
         } catch (error) {
@@ -1358,9 +1394,9 @@ alertsRouter.patch(
 
 // ── Watchlists ───────────────────────────────────────────────────────────────
 
-alertsRouter.get("/api/watchlists", optionalAuth, async (req, res) => {
+alertsRouter.get("/api/watchlists", authenticate, async (req, res) => {
     try {
-        const userId = (req as any).user?.id || "demo-user";
+        const userId = req.user!.userId;
         const watchlists = await storage.getWatchlists(userId);
         res.json(watchlists);
     } catch (error) {
@@ -1368,9 +1404,9 @@ alertsRouter.get("/api/watchlists", optionalAuth, async (req, res) => {
     }
 });
 
-alertsRouter.post("/api/watchlists", optionalAuth, async (req, res) => {
+alertsRouter.post("/api/watchlists", authenticate, requirePermission("write:signals"), async (req, res) => {
     try {
-        const userId = (req as any).user?.id || "demo-user";
+        const userId = req.user!.userId;
         const { name, type, items, alertSettings, isDefault } = req.body;
 
         if (!name || !type || !items) {
@@ -1393,10 +1429,10 @@ alertsRouter.post("/api/watchlists", optionalAuth, async (req, res) => {
     }
 });
 
-alertsRouter.get("/api/watchlists/:id", optionalAuth, async (req, res) => {
+alertsRouter.get("/api/watchlists/:id", authenticate, async (req, res) => {
     try {
         const watchlist = await storage.getWatchlistById(req.params.id);
-        if (!watchlist)
+        if (!watchlist || watchlist.userId !== req.user!.userId)
             return res.status(404).json({ error: "Watchlist not found" });
         res.json(watchlist);
     } catch (error) {
@@ -1404,8 +1440,11 @@ alertsRouter.get("/api/watchlists/:id", optionalAuth, async (req, res) => {
     }
 });
 
-alertsRouter.patch("/api/watchlists/:id", optionalAuth, async (req, res) => {
+alertsRouter.patch("/api/watchlists/:id", authenticate, requirePermission("write:signals"), async (req, res) => {
     try {
+        const existing = await storage.getWatchlistById(req.params.id);
+        if (!existing || existing.userId !== req.user!.userId)
+            return res.status(404).json({ error: "Watchlist not found" });
         const { name, items, alertSettings, isDefault } = req.body;
         const watchlist = await storage.updateWatchlist(req.params.id, {
             name,
@@ -1419,8 +1458,11 @@ alertsRouter.patch("/api/watchlists/:id", optionalAuth, async (req, res) => {
     }
 });
 
-alertsRouter.delete("/api/watchlists/:id", optionalAuth, async (req, res) => {
+alertsRouter.delete("/api/watchlists/:id", authenticate, requirePermission("write:signals"), async (req, res) => {
     try {
+        const existing = await storage.getWatchlistById(req.params.id);
+        if (!existing || existing.userId !== req.user!.userId)
+            return res.status(404).json({ error: "Watchlist not found" });
         await storage.deleteWatchlist(req.params.id);
         res.json({ success: true });
     } catch (error) {
@@ -1430,9 +1472,9 @@ alertsRouter.delete("/api/watchlists/:id", optionalAuth, async (req, res) => {
 
 // ── Alert Rules ──────────────────────────────────────────────────────────────
 
-alertsRouter.get("/api/alert-rules", optionalAuth, async (req, res) => {
+alertsRouter.get("/api/alert-rules", authenticate, async (req, res) => {
     try {
-        const userId = (req as any).user?.id || "demo-user";
+        const userId = req.user!.userId;
         const rules = await storage.getAlertRules(userId);
         res.json(rules);
     } catch (error) {
@@ -1441,9 +1483,9 @@ alertsRouter.get("/api/alert-rules", optionalAuth, async (req, res) => {
     }
 });
 
-alertsRouter.post("/api/alert-rules", optionalAuth, async (req, res) => {
+alertsRouter.post("/api/alert-rules", authenticate, requirePermission("write:signals"), async (req, res) => {
     try {
-        const userId = (req as any).user?.id || "demo-user";
+        const userId = req.user!.userId;
         const {
             name,
             type,
@@ -1481,18 +1523,22 @@ alertsRouter.post("/api/alert-rules", optionalAuth, async (req, res) => {
     }
 });
 
-alertsRouter.get("/api/alert-rules/:id", optionalAuth, async (req, res) => {
+alertsRouter.get("/api/alert-rules/:id", authenticate, async (req, res) => {
     try {
         const rule = await storage.getAlertRuleById(req.params.id);
-        if (!rule) return res.status(404).json({ error: "Alert rule not found" });
+        if (!rule || rule.userId !== req.user!.userId)
+            return res.status(404).json({ error: "Alert rule not found" });
         res.json(rule);
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch alert rule" });
     }
 });
 
-alertsRouter.patch("/api/alert-rules/:id", optionalAuth, async (req, res) => {
+alertsRouter.patch("/api/alert-rules/:id", authenticate, requirePermission("write:signals"), async (req, res) => {
     try {
+        const existing = await storage.getAlertRuleById(req.params.id);
+        if (!existing || existing.userId !== req.user!.userId)
+            return res.status(404).json({ error: "Alert rule not found" });
         const {
             name,
             conditions,
@@ -1523,9 +1569,12 @@ alertsRouter.patch("/api/alert-rules/:id", optionalAuth, async (req, res) => {
 
 alertsRouter.post(
     "/api/alert-rules/:id/snooze",
-    optionalAuth,
+    authenticate, requirePermission("write:signals"),
     async (req, res) => {
         try {
+            const existing = await storage.getAlertRuleById(req.params.id);
+            if (!existing || existing.userId !== req.user!.userId)
+                return res.status(404).json({ error: "Alert rule not found" });
             const { hours } = req.body;
             if (!hours || hours < 1 || hours > 168) {
                 return res
@@ -1545,9 +1594,12 @@ alertsRouter.post(
 
 alertsRouter.post(
     "/api/alert-rules/:id/unsnooze",
-    optionalAuth,
+    authenticate, requirePermission("write:signals"),
     async (req, res) => {
         try {
+            const existing = await storage.getAlertRuleById(req.params.id);
+            if (!existing || existing.userId !== req.user!.userId)
+                return res.status(404).json({ error: "Alert rule not found" });
             const rule = await storage.updateAlertRule(req.params.id, {
                 snoozedUntil: null as any,
             });
@@ -1560,9 +1612,12 @@ alertsRouter.post(
 
 alertsRouter.post(
     "/api/alert-rules/:id/mute",
-    optionalAuth,
+    authenticate, requirePermission("write:signals"),
     async (req, res) => {
         try {
+            const existing = await storage.getAlertRuleById(req.params.id);
+            if (!existing || existing.userId !== req.user!.userId)
+                return res.status(404).json({ error: "Alert rule not found" });
             const { muted } = req.body;
             const rule = await storage.updateAlertRule(req.params.id, {
                 isMuted: muted !== false,
@@ -1574,8 +1629,11 @@ alertsRouter.post(
     }
 );
 
-alertsRouter.delete("/api/alert-rules/:id", optionalAuth, async (req, res) => {
+alertsRouter.delete("/api/alert-rules/:id", authenticate, requirePermission("write:signals"), async (req, res) => {
     try {
+        const existing = await storage.getAlertRuleById(req.params.id);
+        if (!existing || existing.userId !== req.user!.userId)
+            return res.status(404).json({ error: "Alert rule not found" });
         await storage.deleteAlertRule(req.params.id);
         res.json({ success: true });
     } catch (error) {

@@ -21,6 +21,7 @@ import { getAuthenticatedUser, createRepository, listRepositories } from "../ser
 import { authenticate, optionalAuth, requireRole, requireAdmin } from "../middleware/rbac";
 import { cacheService } from "../services/cacheService";
 import { wsManager } from "../services/wsManagerService";
+import { parseSafeLimit } from "../utils/pagination";
 
 type InitResult = { portCount: number; startedAt: string; completedAt: string };
 
@@ -30,21 +31,21 @@ let initCompleted: InitResult | null = null;
 export function createAdminRouter(wss: WebSocketServer): Router {
     const router = Router();
 
-    // Port daily baselines (internal debugging, optional auth)
-    router.get("/api/baselines/ports/:portId", optionalAuth, async (req, res) => {
+    // Port daily baselines (internal debugging, admin only)
+    router.get("/api/baselines/ports/:portId", authenticate, requireAdmin, async (req, res) => {
         try {
             const { portId } = req.params;
-            const daysParam = parseInt(req.query.days as string);
-            const days = Number.isFinite(daysParam) ? daysParam : 30;
+            const days = parseSafeLimit(req.query.days, 30, 365);
             const items = await getPortDailyBaselines(portId, days);
             res.json({ items });
         } catch (error: any) {
-            res.status(500).json({ error: error.message || "Failed to fetch baselines" });
+            logger.error("Failed to fetch baselines", { error });
+            res.status(500).json({ error: "Failed to fetch baselines" });
         }
     });
 
-    // Signal engine manual run (internal)
-    router.post("/api/signals/run", optionalAuth, async (req, res) => {
+    // Signal engine manual run (admin only)
+    router.post("/api/signals/run", authenticate, requireAdmin, async (req, res) => {
         try {
             const dayParam = req.query.day as string | undefined;
             const parsedDay = dayParam ? parseSignalDay(dayParam) : null;
@@ -55,12 +56,13 @@ export function createAdminRouter(wss: WebSocketServer): Router {
             const result = await evaluatePortSignalsForDay(targetDay);
             res.json({ day: formatSignalDay(targetDay), count: result.upserted });
         } catch (error: any) {
-            res.status(500).json({ error: error.message || "Failed to run signal engine" });
+            logger.error("Failed to run signal engine", { error });
+            res.status(500).json({ error: "Failed to run signal engine" });
         }
     });
 
     // GitHub integration
-    router.get("/api/github/user", async (req, res) => {
+    router.get("/api/github/user", authenticate, requireAdmin, async (req, res) => {
         try {
             const user = await getAuthenticatedUser();
             res.json({
@@ -70,11 +72,12 @@ export function createAdminRouter(wss: WebSocketServer): Router {
                 html_url: user.html_url,
             });
         } catch (error: any) {
-            res.status(500).json({ error: error.message });
+            logger.error("GitHub user fetch failed", { error });
+            res.status(500).json({ error: "GitHub API error" });
         }
     });
 
-    router.get("/api/github/repos", async (req, res) => {
+    router.get("/api/github/repos", authenticate, requireAdmin, async (req, res) => {
         try {
             const repos = await listRepositories();
             res.json(
@@ -87,11 +90,12 @@ export function createAdminRouter(wss: WebSocketServer): Router {
                 }))
             );
         } catch (error: any) {
-            res.status(500).json({ error: error.message });
+            logger.error("GitHub repos list failed", { error });
+            res.status(500).json({ error: "GitHub API error" });
         }
     });
 
-    router.post("/api/github/repos", async (req, res) => {
+    router.post("/api/github/repos", authenticate, requireAdmin, async (req, res) => {
         try {
             const { name, description, isPrivate } = req.body;
             if (!name) {
@@ -106,7 +110,8 @@ export function createAdminRouter(wss: WebSocketServer): Router {
                 ssh_url: repo.ssh_url,
             });
         } catch (error: any) {
-            res.status(500).json({ error: error.message });
+            logger.error("GitHub repo creation failed", { error });
+            res.status(500).json({ error: "GitHub API error" });
         }
     });
 
@@ -141,7 +146,7 @@ export function createAdminRouter(wss: WebSocketServer): Router {
                 res.json({ message: "CSV data imported successfully" });
             } catch (error: any) {
                 logger.error("CSV import error", { error });
-                res.status(500).json({ error: "Failed to import CSV data", details: error.message });
+                res.status(500).json({ error: "Failed to import CSV data" });
             }
         }
     );

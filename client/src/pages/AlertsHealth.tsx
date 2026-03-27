@@ -7,8 +7,8 @@ import { apiFetchJson, getApiKey } from "@/lib/apiFetch";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 
-type HealthResponse = { status: string; [key: string]: any };
-type MetricsResponse = { version: string; [key: string]: any };
+type HealthResponse = { status: string;[key: string]: any };
+type MetricsResponse = { version: string;[key: string]: any };
 
 export default function AlertsHealthPage() {
   const [alertsHealth, setAlertsHealth] = useState<HealthResponse | null>(null);
@@ -79,9 +79,7 @@ export default function AlertsHealthPage() {
                 />
                 <Button
                   onClick={() => {
-                    if (typeof window !== "undefined") {
-                      window.localStorage.setItem("api_key", apiKey);
-                    }
+                    // Key is kept in React state only (in-memory). Not persisted to localStorage.
                   }}
                 >
                   Save key
@@ -89,10 +87,7 @@ export default function AlertsHealthPage() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    if (typeof window !== "undefined") {
-                      window.localStorage.removeItem("api_key");
-                      setApiKey("");
-                    }
+                    setApiKey("");
                   }}
                 >
                   Clear

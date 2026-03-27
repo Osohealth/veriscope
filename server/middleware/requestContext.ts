@@ -27,9 +27,12 @@ declare global {
     }
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const requestIdMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const incoming = req.header("X-Request-Id");
-    req.requestId = incoming && incoming.trim().length > 0 ? incoming.trim() : crypto.randomUUID();
+    const isValidUuid = incoming ? UUID_RE.test(incoming.trim()) : false;
+    req.requestId = isValidUuid ? incoming!.trim() : crypto.randomUUID();
     res.setHeader("X-Request-Id", req.requestId);
     next();
 };

@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { timingSafeEqual } from "crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db";
 import { apiKeys, tenantUsers } from "@shared/schema";
@@ -47,8 +48,8 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
     }
 
     if (process.env.NODE_ENV === "development") {
-      const devKey = process.env.DEMO_API_KEY ?? "vs_demo_key";
-      if (key === devKey) {
+      const devKey = process.env.DEMO_API_KEY;
+      if (devKey && key === devKey) {
         const tenantId = TENANT_DEMO_ID;
         const userId = "00000000-0000-0000-0000-000000000001";
         const [member] = await db
@@ -90,7 +91,7 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
       if (!envUserId) {
         return res.status(500).json({ error: "ALERTS_USER_ID is required when ALERTS_API_KEY is set" });
       }
-      if (key !== envKey) {
+      if (!timingSafeEqual(Buffer.from(hashApiKey(key)), Buffer.from(hashApiKey(envKey)))) {
         await writeAuditEvent(req.auditContext, {
           action: "AUTH.API_KEY_DENIED",
           resourceType: "API_KEY",
@@ -168,6 +169,18 @@ export async function authenticateApiKey(req: Request, res: Response, next: Next
         tenantId: UNKNOWN_TENANT_ID,
       });
       return res.status(401).json({ error: "UNAUTHORIZED", detail: "Invalid API key" });
+    }
+    if (row.expiresAt && new Date(row.expiresAt) < new Date()) {
+      await writeAuditEvent(req.auditContext, {
+        action: "AUTH.API_KEY_DENIED",
+        resourceType: "API_KEY",
+        status: "DENIED",
+        severity: "SECURITY",
+        message: "API key expired.",
+        metadata: { path: req.path, method: req.method, apiKeyId: row.id },
+        tenantId: row.tenantId ?? UNKNOWN_TENANT_ID,
+      });
+      return res.status(401).json({ error: "UNAUTHORIZED", detail: "API key has expired" });
     }
     let role = (row.role ?? "OWNER").toUpperCase() as Role;
     if (!["OWNER", "OPERATOR", "VIEWER"].includes(role)) {

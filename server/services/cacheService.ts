@@ -1,3 +1,5 @@
+import { logger } from '../middleware/observability';
+
 interface CacheEntry<T> {
   value: T;
   expiresAt: number;
@@ -39,7 +41,7 @@ class CacheService {
       }
     }
     if (removed > 0) {
-      console.log(`[Cache] Cleaned up ${removed} expired entries`);
+      logger.info(`[Cache] Cleaned up ${removed} expired entries`);
     }
   }
 

@@ -68,11 +68,6 @@ export default function TeamPage() {
   const { auth, role } = useAuth();
   const canManage = role === "OWNER";
   const showDevTools = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEV_TOOLS === "true";
-  const inviteStoragePrefix = useMemo(() => {
-    const tenantId = auth?.tenant_id ?? "unknown";
-    const userId = auth?.user_id ?? "unknown";
-    return `vs.inviteTokens.${tenantId}.${userId}.`;
-  }, [auth?.tenant_id, auth?.user_id]);
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [keys, setKeys] = useState<ApiKeyRow[]>([]);
@@ -85,6 +80,7 @@ export default function TeamPage() {
   const [inviteRole, setInviteRole] = useState<Role>("VIEWER");
   const [keyName, setKeyName] = useState("");
   const [keyUserId, setKeyUserId] = useState<string>("");
+  const [cachedInviteTokens, setCachedInviteTokens] = useState<Record<string, string>>({});
 
   const loadMembers = async () => {
     const payload = await apiFetchJson("/v1/team/members");
@@ -93,23 +89,13 @@ export default function TeamPage() {
 
   const pruneInviteTokens = (pendingIds: Set<string>) => {
     if (!showDevTools) return;
-    try {
-      const keys: string[] = [];
-      for (let i = 0; i < localStorage.length; i += 1) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(inviteStoragePrefix)) {
-          keys.push(key);
-        }
+    setCachedInviteTokens(prev => {
+      const next = { ...prev };
+      for (const id of Object.keys(next)) {
+        if (!pendingIds.has(id)) delete next[id];
       }
-      keys.forEach((key) => {
-        const inviteId = key.slice(inviteStoragePrefix.length);
-        if (!pendingIds.has(inviteId)) {
-          localStorage.removeItem(key);
-        }
-      });
-    } catch {
-      // ignore storage errors in dev
-    }
+      return next;
+    });
   };
 
   const loadInvites = async () => {
@@ -124,7 +110,7 @@ export default function TeamPage() {
       ? items.map((invite: Invite) => {
         const expiresAt = invite.expires_at ? new Date(invite.expires_at).getTime() : null;
         const isPending = !invite.accepted_at && !invite.revoked_at && (!expiresAt || expiresAt > now);
-        const storedToken = isPending ? localStorage.getItem(`${inviteStoragePrefix}${invite.id}`) ?? "" : "";
+        const storedToken = isPending ? cachedInviteTokens[invite.id] ?? "" : "";
         const token = invite.invite_token ?? (storedToken || undefined);
         const link =
           invite.invite_link ??
@@ -186,7 +172,7 @@ export default function TeamPage() {
       });
       toast({ title: "Invite created", description: payload?.invite_link ?? "Invitation created." });
       if (showDevTools && payload?.id && payload?.invite_token) {
-        localStorage.setItem(`${inviteStoragePrefix}${payload.id}`, payload.invite_token);
+        setCachedInviteTokens(prev => ({ ...prev, [payload.id]: payload.invite_token }));
       }
       setInviteEmail("");
       setInviteRole("VIEWER");

@@ -1,5 +1,6 @@
 import { INCIDENT_AUTOMATION_ENABLED, INCIDENT_AUTOMATION_INTERVAL_MS } from "../config/alerting";
 import { runIncidentAutomation } from "./incidentAutomationService";
+import { logger } from "../middleware/observability";
 
 let running = false;
 let lastRunAt: Date | null = null;
@@ -34,7 +35,7 @@ export function startIncidentAutomationScheduler() {
     } catch (err: any) {
       lastErrorAt = new Date();
       lastErrorMessage = err?.message ?? "Unknown error";
-      console.error("Incident automation error:", err);
+      logger.error("Incident automation error", { err });
     } finally {
       running = false;
     }

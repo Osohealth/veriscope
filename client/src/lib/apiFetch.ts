@@ -1,9 +1,6 @@
 // API key for machine-to-machine flows (separate from user JWT auth).
-// User JWTs are now stored in httpOnly cookies and sent automatically.
-export const getApiKey = () => {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem("api_key");
-};
+// Key is managed in-memory by the calling component — never persisted to localStorage.
+export const getApiKey = (): string | null => null;
 
 export const apiFetchJson = async (url: string, options?: RequestInit) => {
   const headers = new Headers(options?.headers ?? {});

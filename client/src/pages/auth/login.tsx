@@ -45,17 +45,14 @@ export default function Login() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         setError(data.error || "Login failed");
         setLoading(false);
         return;
       }
 
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      
+      // Tokens are in httpOnly cookies set by the server — no localStorage needed
       window.location.href = "/maritime/ais-tracking";
     } catch (err) {
       setError("An error occurred. Please try again.");
